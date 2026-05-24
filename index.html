@@ -86,6 +86,7 @@
             width: 100%;
             max-width: 440px;
             height: 100vh;
+            height: 100dvh; /* dynamic short viewport height for iOS Safari navigation bar */
             background-color: var(--surface);
             display: flex;
             flex-direction: column;
@@ -107,14 +108,16 @@
             }
         }
 
-        /* TopBar 高度 52px */
+        /* TopBar 高度 calc(52px + safe-top) */
         .top-bar {
-            height: 52px;
+            height: calc(52px + var(--safe-top));
+            padding-top: var(--safe-top);
             border-bottom: 1px solid var(--divider);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
+            padding-left: 16px;
+            padding-right: 16px;
             background-color: rgba(22, 22, 20, 0.85);
             backdrop-filter: blur(10px);
             z-index: 10;
@@ -863,7 +866,7 @@
         /* VoiceFAB 右下角浮动语音按钮 */
         .voice-fab {
             position: absolute;
-            bottom: 90px;
+            bottom: calc(90px + var(--safe-bottom));
             right: 20px;
             width: 56px;
             height: 56px;
@@ -1542,6 +1545,45 @@
             </div>
         </div>
 
+        <!-- SHEET 4: 系统设置 -->
+        <div class="bottom-sheet" id="sheet-settings">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <span class="sheet-title"><i class="fa-solid fa-sliders"></i> ChronoAI 系统设置</span>
+                <button class="sheet-close-btn">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <span class="form-label">后端 API 服务端端点 (Backend URL)</span>
+                <input type="text" class="form-input" id="setting-backend-url" placeholder="例如：http://192.168.1.100:11337">
+                <span style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
+                    在 GitHub Pages (HTTPS) 上由于浏览器混合内容安全限制，<strong>必须使用云端 HTTPS API 服务端</strong>（如 <code>https://your-backend.railway.app</code>）。如果在本地一键启动下测试，则可以直接输入本地局域网 IP。
+                </span>
+            </div>
+
+            <div class="form-group">
+                <span class="form-label">后端连接状态</span>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                    <span id="setting-conn-indicator" style="width: 8px; height: 8px; border-radius: var(--radius-full); background-color: var(--text-muted); display: inline-block;"></span>
+                    <span id="setting-conn-text" style="font-weight: 600; color: var(--text-muted);">正在检测连接...</span>
+                </div>
+                <button class="btn-sheet-secondary" id="btn-ping-backend" style="padding: 6px 12px; font-size: 11px; align-self: flex-start; margin-top: 4px;">
+                    <i class="fa-solid fa-rotate"></i> 重新检测连接
+                </button>
+            </div>
+
+            <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 4px;">
+                <span class="form-label">系统数据管理</span>
+                <button class="btn-sheet-secondary" id="btn-reset-demo" style="border-color: var(--error); color: var(--error); background: rgba(217, 107, 107, 0.05); align-self: flex-start;">
+                    <i class="fa-solid fa-trash-can"></i> 重置并恢复初始演示数据
+                </button>
+            </div>
+
+            <div class="sheet-action-row" style="margin-top: 12px;">
+                <button class="btn-sheet-primary" id="btn-save-settings" style="width: 100%;">保存并生效设置</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- 6. Scripts: Database, Algorithms, Controllers, Views -->
@@ -1583,8 +1625,9 @@
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
         // ==================== CONFIGS & DIALECTS ====================
+        const savedSettings = DB.get('chrono_settings', {});
         const CONFIG = {
-            BACKEND_URL: `http://${window.location.hostname || 'localhost'}:11337`,
+            BACKEND_URL: savedSettings.backendUrl || `http://${window.location.hostname || 'localhost'}:11337`,
             COLORS: [
                 '#5ba8b5', // 蓝绿
                 '#6daa45', // 绿色
@@ -2047,8 +2090,45 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-routine-edit', 'sheet-delete-confirm'];
+        const bottomSheets = ['sheet-input', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
         
+        async function checkBackendConnection() {
+            const indicator = document.getElementById('setting-conn-indicator');
+            const text = document.getElementById('setting-conn-text');
+            
+            indicator.style.backgroundColor = 'var(--text-muted)';
+            text.innerText = '正在检测连接...';
+            text.style.color = 'var(--text-muted)';
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/health`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error();
+
+                const data = await response.json();
+                if (data.openai_configured) {
+                    indicator.style.backgroundColor = 'var(--success)';
+                    text.innerText = '连接成功 (🟢 API 在线，OpenAI 已激活)';
+                    text.style.color = 'var(--success)';
+                } else {
+                    indicator.style.backgroundColor = 'var(--warning)';
+                    text.innerText = '连接受限 (🟡 API 在线，但未配置 OpenAI 密钥)';
+                    text.style.color = 'var(--warning)';
+                }
+            } catch (e) {
+                clearTimeout(timeoutId);
+                indicator.style.backgroundColor = 'var(--error)';
+                text.innerText = '服务离线 (🔴 无法触达，请检查 IP 和端口 11337)';
+                text.style.color = 'var(--error)';
+            }
+        }
+
         function openSheet(sheetId) {
             document.getElementById('sheet-overlay').style.display = 'block';
             setTimeout(() => {
@@ -3017,9 +3097,65 @@
                 showToast('✅ 安排入座！事项已智能插入最佳空档位置。', 'success');
             });
 
-            // 侧栏设置预留
+            // 系统设置面板激活
             document.getElementById('top-settings').addEventListener('click', () => {
-                alert('⚙️ 主题与设置模块即将于 v2.1 推出，敬请期待！');
+                document.getElementById('setting-backend-url').value = CONFIG.BACKEND_URL;
+                checkBackendConnection();
+                openSheet('sheet-settings');
+            });
+
+            // 重新检测连接
+            document.getElementById('btn-ping-backend').addEventListener('click', () => {
+                checkBackendConnection();
+            });
+
+            // 演示数据重置
+            document.getElementById('btn-reset-demo').addEventListener('click', () => {
+                if (confirm('⚠️ 确定要重置今日日程、效率日志以及所有常常规模板吗？\n此操作将清除所有自定义数据并恢复系统默认演示模板，且不可撤销！')) {
+                    localStorage.removeItem('chrono_routines');
+                    localStorage.removeItem('chrono_efficiency_log');
+                    
+                    // 清除所有 chrono_tasks_ 开头的项
+                    Object.keys(localStorage).forEach(k => {
+                        if (k.startsWith('chrono_tasks_')) {
+                            localStorage.removeItem(k);
+                        }
+                    });
+
+                    checkAndInitSampleData();
+                    showToast('🔄 系统已恢复初始演示模板与数据！', 'success');
+                    closeAllSheets();
+                    
+                    // 刷新视图
+                    selectedDate = getTodayString();
+                    document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
+                    renderWeekStrip();
+                    if (currentTab === 'timeline') renderTimeline();
+                    else if (currentTab === 'analytics') renderAnalytics();
+                    else if (currentTab === 'routines') renderRoutines();
+                }
+            });
+
+            // 保存设置
+            document.getElementById('btn-save-settings').addEventListener('click', () => {
+                let url = document.getElementById('setting-backend-url').value.trim();
+                if (!url) {
+                    showToast('⚠️ 后端 API 地址不能为空', 'error');
+                    return;
+                }
+                
+                // 去除末尾斜杠
+                if (url.endsWith('/')) {
+                    url = url.slice(0, -1);
+                }
+
+                const saved = DB.get('chrono_settings', {});
+                saved.backendUrl = url;
+                DB.set('chrono_settings', saved);
+                
+                CONFIG.BACKEND_URL = url;
+                closeAllSheets();
+                showToast('💾 系统设置已成功保存并立即生效！', 'success');
             });
 
             // Routine CRUD 弹框
