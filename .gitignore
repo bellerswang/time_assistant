@@ -1,0 +1,23 @@
+# Local virtual environment
+venv/
+.venv/
+env/
+
+# Sensitive API Keys & Environments
+.env
+backend/.env
+openai_key.txt
+
+# Python temp files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# System and IDE configurations
+.idea/
+.vscode/
+.gemini/
+.DS_Store
+Thumbs.db
