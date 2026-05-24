@@ -9,11 +9,11 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Copy dependency configuration and install
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source files
-COPY . .
+COPY backend/ .
 
 # Cloud Run injects $PORT environment variable, default to 8080
 ENV PORT=8080
