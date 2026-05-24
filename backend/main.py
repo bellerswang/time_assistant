@@ -7,8 +7,9 @@ import os
 import json
 import tempfile
 import logging
-
-load_dotenv()
+# Load .env file from backend directory explicitly using absolute path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.join(backend_dir, ".env"))
 
 # Use uvicorn's error logger so logs appear nicely in --reload subprocess consoles
 logger = logging.getLogger("uvicorn.error")
@@ -37,10 +38,15 @@ if not openai_key:
     except Exception as e:
         logger.error(f"Failed to read openai_key.txt: {e}")
 
-if not openai_key:
-    logger.warning("OPENAI_API_KEY not set! Server will run but API calls will fail with 401/402.")
+# Handle comma-separated keys like: time_assistant,sk-proj-...
+if openai_key and "," in openai_key:
+    openai_key = openai_key.split(",")[1].strip()
+    logger.info("Parsed comma-separated API key successfully")
 
-client = AsyncOpenAI(api_key=openai_key if openai_key else "placeholder")
+if not openai_key or not openai_key.startswith("sk-"):
+    logger.warning("OPENAI_API_KEY is not configured or invalid! Server will run but API calls will fail with 401/402.")
+
+client = AsyncOpenAI(api_key=openai_key if openai_key and openai_key.startswith("sk-") else "placeholder")
 
 class ParseRequest(BaseModel):
     text: str
@@ -202,5 +208,5 @@ async def health_check():
         "status": "ok", 
         "service": "ChronoAI API Server", 
         "version": "2.0.0",
-        "openai_configured": openai_key is not None
+        "openai_configured": openai_key is not None and openai_key.startswith("sk-")
     }
