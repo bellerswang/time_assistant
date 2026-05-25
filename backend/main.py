@@ -9,6 +9,7 @@ import tempfile
 import logging
 import sqlite3
 import uuid
+import re
 from datetime import datetime, timezone
 import httpx
 
@@ -412,6 +413,103 @@ def list_voice_entries(folder_id: str | None, limit: int) -> list[dict]:
 
 init_voice_db()
 
+
+CHINESE_NUMBERS = {
+    "零": 0,
+    "〇": 0,
+    "一": 1,
+    "二": 2,
+    "两": 2,
+    "三": 3,
+    "四": 4,
+    "五": 5,
+    "六": 6,
+    "七": 7,
+    "八": 8,
+    "九": 9,
+    "十": 10,
+}
+
+
+def parse_chinese_number(value: str) -> int | None:
+    value = value.strip()
+    if not value:
+        return None
+    if value.isdigit():
+        return int(value)
+    if value in CHINESE_NUMBERS:
+        return CHINESE_NUMBERS[value]
+    if "十" in value:
+        left, _, right = value.partition("十")
+        tens = CHINESE_NUMBERS.get(left, 1) if left else 1
+        ones = CHINESE_NUMBERS.get(right, 0) if right else 0
+        return tens * 10 + ones
+    if all(char in CHINESE_NUMBERS for char in value):
+        number = 0
+        for char in value:
+            number = number * 10 + CHINESE_NUMBERS[char]
+        return number
+    return None
+
+
+def normalize_explicit_anchor_time(text: str) -> str | None:
+    text = text.strip()
+    if not text:
+        return None
+
+    numeric_match = re.search(r"\b([01]?\d|2[0-3])[:：]([0-5]\d)\b", text)
+    if numeric_match:
+        return f"{int(numeric_match.group(1)):02d}:{int(numeric_match.group(2)):02d}"
+
+    am_pm_match = re.search(r"\b(1[0-2]|0?[1-9])\s*(am|pm)\b", text, re.IGNORECASE)
+    if am_pm_match:
+        hour = int(am_pm_match.group(1))
+        marker = am_pm_match.group(2).lower()
+        if marker == "pm" and hour != 12:
+            hour += 12
+        if marker == "am" and hour == 12:
+            hour = 0
+        return f"{hour:02d}:00"
+
+    chinese_hour = r"([零〇一二两三四五六七八九十]{1,3}|\d{1,2})"
+    chinese_minute = r"([零〇一二两三四五六七八九十]{1,3}|\d{1,2})"
+    time_match = re.search(
+        rf"(?P<period>凌晨|早上|上午|中午|下午|傍晚|晚上|今晚|夜里|明早|明天早上|明天下午|明天晚上)?\s*"
+        rf"(?P<hour>{chinese_hour})\s*(点|點|时|時)"
+        rf"(?:(?P<half>半)|(?P<minute>{chinese_minute})\s*(分|分钟|刻)?)?",
+        text,
+    )
+    if not time_match:
+        return None
+
+    hour = parse_chinese_number(time_match.group("hour"))
+    if hour is None:
+        return None
+
+    if time_match.group("half"):
+        minute = 30
+    elif time_match.group("minute"):
+        minute = parse_chinese_number(time_match.group("minute"))
+        if minute is None:
+            return None
+    else:
+        minute = 0
+
+    period = time_match.group("period") or ""
+    if period in {"下午", "傍晚", "晚上", "今晚", "夜里", "明天下午", "明天晚上"} and hour < 12:
+        hour += 12
+    elif period == "中午" and hour < 11:
+        hour += 12
+    elif period in {"凌晨"} and hour == 12:
+        hour = 0
+    elif not period and 1 <= hour <= 6:
+        hour += 12
+
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return f"{hour:02d}:{minute:02d}"
+
+
 SYSTEM_PROMPT = """
 You are the advanced parsing engine for ChronoAI v2.0.
 The user will provide a natural language text input describing a task. You must extract structured information and return a strict JSON object with the following fields:
@@ -470,6 +568,10 @@ async def call_gpt_parser(text: str) -> dict:
         result["estMins"] = max(5, min(480, int(result["estMins"])))
         if result["category"] not in ["work", "health", "personal"]:
             result["category"] = "work"
+        explicit_anchor_time = normalize_explicit_anchor_time(text)
+        if explicit_anchor_time:
+            result["anchorTime"] = explicit_anchor_time
+            result["confidence"] = "high"
             
         logger.info(f"[Parser] Successfully parsed: {result}")
         return result
