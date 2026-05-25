@@ -98,6 +98,7 @@ OPENAI_API_KEY=sk-...
 GCS_BUCKET_NAME=your-bucket-name
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
 GOOGLE_DOCS_CREDENTIALS_PATH=backend/credential/key.json
+GOOGLE_DOCS_CREDENTIALS_JSON={"type":"service_account",...}
 GOOGLE_DOCS_ENABLED=true
 VOICE_DB_PATH=backend/data/chronoai.db
 VOICE_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
@@ -107,6 +108,8 @@ DEEPSEEK_MODEL=deepseek-chat
 ```
 
 Cloud Run note: local SQLite is fine for local development and short trials, but Cloud Run's container filesystem is not reliable long-term storage. For production use, migrate voice metadata to Cloud SQL or Firestore while keeping audio files in GCS.
+
+Google Docs sync note: Cloud Run can use either Application Default Credentials or `GOOGLE_DOCS_CREDENTIALS_JSON`. If local sync works but Cloud Run returns `permission_denied_share_doc`, share the target Google Doc with the service account shown by `/health` as `google_docs_auth_email`, or set `GOOGLE_DOCS_CREDENTIALS_JSON` to the same service account key used locally.
 
 ## v2.2.0 - Universal voice memory entry
 

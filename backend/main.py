@@ -10,6 +10,7 @@ import logging
 import sqlite3
 import uuid
 import re
+import base64
 from datetime import datetime, timezone
 import httpx
 
@@ -82,6 +83,7 @@ GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_DOCS_CREDENTIALS_PATH",
     os.getenv("GOOGLE_APPLICATION_CREDENTIALS", os.path.join(backend_dir, "credential", "key.json"))
 )
+GOOGLE_DOCS_CREDENTIALS_JSON = os.getenv("GOOGLE_DOCS_CREDENTIALS_JSON")
 VOICE_DOC_MAX_CHARS = int(os.getenv("VOICE_DOC_MAX_CHARS", "800000"))
 
 
@@ -283,28 +285,58 @@ def resolve_google_docs_credentials_path() -> str | None:
     return None
 
 
-def resolve_google_docs_credentials() -> tuple[object | None, str]:
+def parse_google_docs_credentials_json() -> dict | None:
+    if not GOOGLE_DOCS_CREDENTIALS_JSON:
+        return None
+    raw = GOOGLE_DOCS_CREDENTIALS_JSON.strip()
+    try:
+        if raw.startswith("{"):
+            return json.loads(raw)
+        return json.loads(base64.b64decode(raw).decode("utf-8"))
+    except Exception as e:
+        logger.error(f"[Voice] Failed to parse GOOGLE_DOCS_CREDENTIALS_JSON: {e}")
+        return None
+
+
+def get_google_credential_email(creds: object | None) -> str | None:
+    if creds is None:
+        return None
+    return (
+        getattr(creds, "service_account_email", None)
+        or getattr(creds, "_service_account_email", None)
+        or getattr(creds, "signer_email", None)
+    )
+
+
+def resolve_google_docs_credentials() -> tuple[object | None, str, str | None]:
     scopes = [
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/documents",
     ]
+
+    credentials_info = parse_google_docs_credentials_json()
+    if credentials_info:
+        if service_account is None:
+            raise RuntimeError("google-api-python-client and google-auth are required for Google Docs sync.")
+        creds = service_account.Credentials.from_service_account_info(credentials_info, scopes=scopes)
+        return creds, "service_account_json", get_google_credential_email(creds)
 
     credentials_path = resolve_google_docs_credentials_path()
     if credentials_path:
         if service_account is None:
             raise RuntimeError("google-api-python-client and google-auth are required for Google Docs sync.")
         creds = service_account.Credentials.from_service_account_file(credentials_path, scopes=scopes)
-        return creds, f"service_account_file:{credentials_path}"
+        return creds, f"service_account_file:{credentials_path}", get_google_credential_email(creds)
 
     if google_auth is not None:
         try:
             creds, _ = google_auth.default(scopes=scopes)
             if creds is not None:
-                return creds, "application_default_credentials"
+                return creds, "application_default_credentials", get_google_credential_email(creds)
         except Exception as e:
             logger.warning(f"[Voice] Google ADC unavailable: {e}")
 
-    return None, "none"
+    return None, "none", None
 
 
 class GoogleDocAppender:
@@ -381,6 +413,22 @@ def build_google_doc_url(doc_id: str) -> str:
     return f"https://docs.google.com/document/d/{doc_id}/edit"
 
 
+def classify_google_doc_error(error: Exception) -> str:
+    err = str(error)
+    lowered = err.lower()
+    if "docs api has not been used" in lowered or "docs.googleapis.com" in lowered and "accessnotconfigured" in lowered:
+        return "failed:google_docs_api_disabled"
+    if "drive api has not been used" in lowered or "drive.googleapis.com" in lowered and "accessnotconfigured" in lowered:
+        return "failed:google_drive_api_disabled"
+    if "the caller does not have permission" in lowered or "permission_denied" in lowered or "insufficient permission" in lowered:
+        return "failed:permission_denied_share_doc"
+    if "requested entity was not found" in lowered or "not found" in lowered:
+        return "failed:doc_not_found_or_not_shared"
+    if "invalid_grant" in lowered:
+        return "failed:invalid_google_credentials"
+    return f"failed:{err[:180]}"
+
+
 def append_journal_to_google_doc(entry: dict) -> dict:
     if not GOOGLE_DOCS_ENABLED:
         return {"status": "disabled", "doc_id": None, "doc_url": None}
@@ -391,12 +439,12 @@ def append_journal_to_google_doc(entry: dict) -> dict:
     if not configured_doc_id and not drive_folder_id:
         return {"status": "skipped:no_gdrive_folder_id", "doc_id": None, "doc_url": None}
 
-    creds, auth_mode = resolve_google_docs_credentials()
+    creds, auth_mode, auth_email = resolve_google_docs_credentials()
     if not creds:
         return {"status": "skipped:no_google_credentials", "doc_id": None, "doc_url": None}
 
     try:
-        logger.info(f"[Voice] Google Docs auth mode: {auth_mode}")
+        logger.info(f"[Voice] Google Docs auth mode: {auth_mode}; email: {auth_email or 'unknown'}")
         appender = GoogleDocAppender(creds)
         if configured_doc_id:
             doc_id = configured_doc_id
@@ -421,7 +469,7 @@ def append_journal_to_google_doc(entry: dict) -> dict:
         }
     except Exception as e:
         logger.error(f"[Voice] Google Doc append failed: {e}")
-        return {"status": f"failed:{e}", "doc_id": None, "doc_url": None}
+        return {"status": classify_google_doc_error(e), "doc_id": None, "doc_url": None}
 
 
 def insert_voice_entry(entry: dict) -> None:
@@ -1014,7 +1062,7 @@ async def parse_voice(file: UploadFile = File(...)):
 
 @app.get("/health")
 async def health_check():
-    _, google_docs_auth_mode = resolve_google_docs_credentials()
+    _, google_docs_auth_mode, google_docs_auth_email = resolve_google_docs_credentials()
     return {
         "status": "ok", 
         "service": "ChronoAI API Server", 
@@ -1025,6 +1073,7 @@ async def health_check():
         "google_docs_enabled": GOOGLE_DOCS_ENABLED,
         "google_docs_configured": google_docs_auth_mode != "none",
         "google_docs_auth_mode": google_docs_auth_mode,
+        "google_docs_auth_email": google_docs_auth_email,
         "deepseek_configured": bool(DEEPSEEK_API_KEY),
     }
 

@@ -2798,6 +2798,11 @@
             if (status === 'disabled') return 'disabled';
             if (status === 'skipped:no_google_credentials') return 'missing Google credentials';
             if (status === 'skipped:no_gdrive_folder_id') return 'missing folder/doc config';
+            if (status === 'failed:permission_denied_share_doc') return 'share Google Doc with backend service account';
+            if (status === 'failed:doc_not_found_or_not_shared') return 'Google Doc not found or not shared';
+            if (status === 'failed:google_docs_api_disabled') return 'Google Docs API disabled';
+            if (status === 'failed:google_drive_api_disabled') return 'Google Drive API disabled';
+            if (status === 'failed:invalid_google_credentials') return 'invalid Google credentials';
             if (status.includes('accessNotConfigured') || status.includes('Drive API has not been used')) return 'Drive API disabled';
             if (status.startsWith('failed:')) return 'sync failed';
             return status;
