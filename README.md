@@ -79,3 +79,28 @@ time_assistant/
     *   因为浏览器安全限制，PWA 离线秒开 (Service Worker) 与 `manifest.json` **必须运行在 HTTP 协议环境**（不可直接用 `file://` 双击打开）。
     *   我为您创建了 **`start_frontend.bat`**。双击即可通过 Python 在端口 `8000` 极速起一个静态 HTTP 服务器，自动获取您 PC 的真实局域网 IP，并自动拉起默认浏览器。
     *   **动态 IP 穿透支持**：前端 `index.html` 的 `CONFIG.BACKEND_URL` 已升级为**动态主机识别**，无论是在本地电脑输入 `localhost` 还是在 iPhone 手机上输入局域网 IP (`192.168.x.x`)，前端均能**零修改代码、自适应直连**电脑上的后端 API 接口服务，实现了真正的一套代码全WiFi共享体验。
+## v2.1.0 - Voice Recorder merge
+
+ChronoAI is now the primary app for the former `voice_recorder` workflow.
+
+- Added a dual-mode voice flow: `Schedule` mode turns speech into ChronoAI tasks, and `Journal` mode saves speech/text into Voice Inbox.
+- Added backend voice APIs: `POST /api/voice/transcribe`, `GET /api/voice/entries`, and `GET /api/voice/folders`.
+- Added SQLite voice metadata storage at `backend/data/chronoai.db` by default.
+- Added optional Google Cloud Storage audio upload via `GCS_BUCKET_NAME`.
+- Added Google Doc append for Journal mode using each folder's `gdrive_folder_id`.
+- Switched backend transcription default to `gpt-4o-mini-transcribe`.
+- Migrated folder config and reflection prompts into `folders.json` and `question_list.txt`.
+
+Environment variables:
+
+```bash
+OPENAI_API_KEY=sk-...
+GCS_BUCKET_NAME=your-bucket-name
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
+GOOGLE_DOCS_CREDENTIALS_PATH=backend/credential/key.json
+GOOGLE_DOCS_ENABLED=true
+VOICE_DB_PATH=backend/data/chronoai.db
+VOICE_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+```
+
+Cloud Run note: local SQLite is fine for local development and short trials, but Cloud Run's container filesystem is not reliable long-term storage. For production use, migrate voice metadata to Cloud SQL or Firestore while keeping audio files in GCS.

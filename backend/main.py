@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, Form, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
@@ -7,8 +7,26 @@ import os
 import json
 import tempfile
 import logging
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+import httpx
+
+try:
+    from google.cloud import storage
+except ImportError:
+    storage = None
+
+try:
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+except ImportError:
+    service_account = None
+    build = None
+
 # Load .env file from backend directory explicitly using absolute path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(backend_dir)
 load_dotenv(dotenv_path=os.path.join(backend_dir, ".env"))
 
 # Use uvicorn's error logger so logs appear nicely in --reload subprocess consoles
@@ -29,7 +47,6 @@ openai_key = os.getenv("OPENAI_API_KEY")
 if not openai_key:
     # Try reading from openai_key.txt in project root as fallback
     try:
-        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         txt_path = os.path.join(root_dir, "openai_key.txt")
         if os.path.exists(txt_path):
             with open(txt_path, "r", encoding="utf-8") as f:
@@ -46,10 +63,339 @@ if openai_key and "," in openai_key:
 if not openai_key or not openai_key.startswith("sk-"):
     logger.warning("OPENAI_API_KEY is not configured or invalid! Server will run but API calls will fail with 401/402.")
 
-client = AsyncOpenAI(api_key=openai_key if openai_key and openai_key.startswith("sk-") else "placeholder")
+client = AsyncOpenAI(
+    api_key=openai_key if openai_key and openai_key.startswith("sk-") else "placeholder",
+    http_client=httpx.AsyncClient()
+)
+
+VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
+FOLDERS_CONFIG_PATH = os.path.join(root_dir, "folders.json")
+GOOGLE_DOCS_ENABLED = os.getenv("GOOGLE_DOCS_ENABLED", "true").lower() not in {"0", "false", "no"}
+GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
+    "GOOGLE_DOCS_CREDENTIALS_PATH",
+    os.getenv("GOOGLE_APPLICATION_CREDENTIALS", os.path.join(backend_dir, "credential", "key.json"))
+)
+VOICE_DOC_MAX_CHARS = int(os.getenv("VOICE_DOC_MAX_CHARS", "800000"))
 
 class ParseRequest(BaseModel):
     text: str
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def init_voice_db() -> None:
+    os.makedirs(os.path.dirname(VOICE_DB_PATH), exist_ok=True)
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS voice_entries (
+                id TEXT PRIMARY KEY,
+                mode TEXT NOT NULL,
+                folder_id TEXT NOT NULL,
+                prompt_id TEXT,
+                transcript TEXT NOT NULL,
+                audio_uri TEXT,
+                source_filename TEXT,
+                mime_type TEXT,
+                duration_ms INTEGER,
+                parsed_task_json TEXT,
+                google_doc_id TEXT,
+                google_doc_url TEXT,
+                google_doc_status TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(voice_entries)").fetchall()}
+        migrations = {
+            "google_doc_id": "ALTER TABLE voice_entries ADD COLUMN google_doc_id TEXT",
+            "google_doc_url": "ALTER TABLE voice_entries ADD COLUMN google_doc_url TEXT",
+            "google_doc_status": "ALTER TABLE voice_entries ADD COLUMN google_doc_status TEXT",
+        }
+        for column, statement in migrations.items():
+            if column not in columns:
+                conn.execute(statement)
+        conn.commit()
+
+
+def load_voice_folders() -> dict:
+    default_config = {
+        "folders": [
+            {
+                "id": "LifeVoice",
+                "name": "Life Voice",
+                "description": "Personal daily recordings",
+                "default": True,
+                "gdrive_folder_id": ""
+            }
+        ]
+    }
+    if not os.path.exists(FOLDERS_CONFIG_PATH):
+        return default_config
+    try:
+        with open(FOLDERS_CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data.get("folders"), list):
+            return default_config
+        return data
+    except Exception as e:
+        logger.error(f"[Voice] Failed to load folders.json: {e}")
+        return default_config
+
+
+def validate_folder_id(folder_id: str) -> str:
+    folders = load_voice_folders().get("folders", [])
+    valid_ids = {folder.get("id") for folder in folders}
+    if folder_id not in valid_ids:
+        default_folder = next((f for f in folders if f.get("default")), folders[0] if folders else {"id": "LifeVoice"})
+        return default_folder.get("id", "LifeVoice")
+    return folder_id
+
+
+def get_voice_folder(folder_id: str) -> dict:
+    folders = load_voice_folders().get("folders", [])
+    return next((folder for folder in folders if folder.get("id") == folder_id), {})
+
+
+async def transcribe_audio_file(temp_file_path: str) -> str:
+    if not openai_key:
+        raise HTTPException(status_code=401, detail="Backend is missing OPENAI_API_KEY.")
+    try:
+        with open(temp_file_path, "rb") as audio_file:
+            transcription = await client.audio.transcriptions.create(
+                model=VOICE_TRANSCRIBE_MODEL,
+                file=audio_file,
+                language="zh"
+            )
+        transcript = getattr(transcription, "text", "") or ""
+        if not transcript.strip():
+            raise HTTPException(status_code=422, detail="No speech was detected in the uploaded audio.")
+        return transcript.strip()
+    except HTTPException:
+        raise
+    except Exception as e:
+        err_str = str(e)
+        logger.error(f"[Voice] Transcription failed: {err_str}")
+        if "insufficient_quota" in err_str or "429" in err_str:
+            raise HTTPException(status_code=402, detail="OpenAI quota is insufficient for audio transcription.")
+        raise HTTPException(status_code=500, detail=f"Audio transcription failed: {err_str}")
+
+
+def upload_audio_to_gcs(file_path: str, entry_id: str, folder_id: str, filename: str, content_type: str | None) -> str:
+    if not GCS_BUCKET_NAME:
+        raise HTTPException(status_code=500, detail="GCS_BUCKET_NAME is required before audio uploads can be stored.")
+    if storage is None:
+        raise HTTPException(status_code=500, detail="google-cloud-storage is not installed.")
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(GCS_BUCKET_NAME)
+        ext = os.path.splitext(filename)[1] or ".webm"
+        blob_name = f"voice/{folder_id}/{entry_id}{ext}"
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(file_path, content_type=content_type or "application/octet-stream")
+        return f"gs://{GCS_BUCKET_NAME}/{blob_name}"
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Voice] GCS upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"GCS upload failed: {e}")
+
+
+def resolve_google_docs_credentials_path() -> str | None:
+    candidates = [
+        GOOGLE_DOCS_CREDENTIALS_PATH,
+        os.path.join(backend_dir, "credential", "key.json"),
+        os.path.join(os.path.dirname(root_dir), "voice_recorder", "backend", "credential", "key.json"),
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+class GoogleDocAppender:
+    def __init__(self, credentials_path: str):
+        if service_account is None or build is None:
+            raise RuntimeError("google-api-python-client and google-auth are required for Google Docs sync.")
+        self.creds = service_account.Credentials.from_service_account_file(
+            credentials_path,
+            scopes=[
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/documents",
+            ],
+        )
+        self.drive_service = build("drive", "v3", credentials=self.creds, cache_discovery=False)
+        self.docs_service = build("docs", "v1", credentials=self.creds, cache_discovery=False)
+
+    def find_doc_by_name(self, drive_folder_id: str, doc_name: str) -> str | None:
+        safe_name = doc_name.replace("'", "\\'")
+        query = (
+            f"name='{safe_name}' and '{drive_folder_id}' in parents and trashed=false and "
+            "mimeType='application/vnd.google-apps.document'"
+        )
+        result = self.drive_service.files().list(
+            q=query,
+            fields="files(id, name)",
+            pageSize=1,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+        ).execute()
+        files = result.get("files", [])
+        return files[0]["id"] if files else None
+
+    def create_doc(self, drive_folder_id: str, doc_name: str) -> str:
+        doc = self.drive_service.files().create(
+            body={
+                "name": doc_name,
+                "parents": [drive_folder_id],
+                "mimeType": "application/vnd.google-apps.document",
+            },
+            fields="id",
+            supportsAllDrives=True,
+        ).execute()
+        return doc["id"]
+
+    def get_doc_size(self, doc_id: str) -> int:
+        doc = self.docs_service.documents().get(
+            documentId=doc_id,
+            fields="body(content(endIndex))",
+        ).execute()
+        content = doc.get("body", {}).get("content", [])
+        return content[-1].get("endIndex", 1) if content else 1
+
+    def append_text(self, doc_id: str, text: str) -> None:
+        doc = self.docs_service.documents().get(
+            documentId=doc_id,
+            fields="revisionId,body(content(endIndex))",
+        ).execute()
+        content = doc.get("body", {}).get("content", [])
+        end_index = content[-1].get("endIndex", 1) - 1 if content else 1
+        body = {
+            "requests": [{
+                "insertText": {
+                    "text": text,
+                    "location": {"index": end_index},
+                }
+            }]
+        }
+        revision_id = doc.get("revisionId")
+        if revision_id:
+            body["writeControl"] = {"targetRevisionId": revision_id}
+        self.docs_service.documents().batchUpdate(documentId=doc_id, body=body).execute()
+
+
+def format_google_doc_entry(entry: dict, folder: dict) -> str:
+    folder_name = folder.get("name") or entry["folder_id"]
+    return f"[{entry['created_at']}] {folder_name} - {entry['transcript']}\n\n"
+
+
+def append_journal_to_google_doc(entry: dict) -> dict:
+    if not GOOGLE_DOCS_ENABLED:
+        return {"status": "disabled", "doc_id": None, "doc_url": None}
+
+    folder = get_voice_folder(entry["folder_id"])
+    drive_folder_id = folder.get("gdrive_folder_id")
+    if not drive_folder_id:
+        return {"status": "skipped:no_gdrive_folder_id", "doc_id": None, "doc_url": None}
+
+    credentials_path = resolve_google_docs_credentials_path()
+    if not credentials_path:
+        return {"status": "skipped:no_google_credentials", "doc_id": None, "doc_url": None}
+
+    try:
+        appender = GoogleDocAppender(credentials_path)
+        folder_name = folder.get("name") or entry["folder_id"]
+        volume = 1
+        while True:
+            doc_name = f"{folder_name} Transcripts - Vol {volume}"
+            doc_id = appender.find_doc_by_name(drive_folder_id, doc_name)
+            if not doc_id:
+                doc_id = appender.create_doc(drive_folder_id, doc_name)
+                break
+            if appender.get_doc_size(doc_id) < VOICE_DOC_MAX_CHARS:
+                break
+            volume += 1
+
+        appender.append_text(doc_id, format_google_doc_entry(entry, folder))
+        return {
+            "status": "synced",
+            "doc_id": doc_id,
+            "doc_url": f"https://docs.google.com/document/d/{doc_id}/edit",
+        }
+    except Exception as e:
+        logger.error(f"[Voice] Google Doc append failed: {e}")
+        return {"status": f"failed:{e}", "doc_id": None, "doc_url": None}
+
+
+def insert_voice_entry(entry: dict) -> None:
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO voice_entries (
+                id, mode, folder_id, prompt_id, transcript, audio_uri,
+                source_filename, mime_type, duration_ms, parsed_task_json,
+                google_doc_id, google_doc_url, google_doc_status,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                entry["id"],
+                entry["mode"],
+                entry["folder_id"],
+                entry.get("prompt_id"),
+                entry["transcript"],
+                entry.get("audio_uri"),
+                entry.get("source_filename"),
+                entry.get("mime_type"),
+                entry.get("duration_ms"),
+                json.dumps(entry.get("parsed_task"), ensure_ascii=False) if entry.get("parsed_task") else None,
+                entry.get("google_doc_id"),
+                entry.get("google_doc_url"),
+                entry.get("google_doc_status"),
+                entry["created_at"],
+                entry["updated_at"],
+            ),
+        )
+        conn.commit()
+
+
+def list_voice_entries(folder_id: str | None, limit: int) -> list[dict]:
+    params = []
+    where = ""
+    if folder_id:
+        where = "WHERE folder_id = ?"
+        params.append(folder_id)
+    params.append(limit)
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            SELECT id, mode, folder_id, prompt_id, transcript, audio_uri,
+                   source_filename, mime_type, duration_ms, parsed_task_json,
+                   google_doc_id, google_doc_url, google_doc_status,
+                   created_at, updated_at
+            FROM voice_entries
+            {where}
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    entries = []
+    for row in rows:
+        item = dict(row)
+        parsed_task_json = item.pop("parsed_task_json", None)
+        item["parsed_task"] = json.loads(parsed_task_json) if parsed_task_json else None
+        entries.append(item)
+    return entries
+
+
+init_voice_db()
 
 SYSTEM_PROMPT = """
 You are the advanced parsing engine for ChronoAI v2.0.
@@ -162,16 +508,9 @@ async def parse_voice(file: UploadFile = File(...)):
         
         logger.info(f"[Voice-Parse] Temporary file written at: {temp_file_path}")
 
-        # 2. Call OpenAI Whisper API for transcribing
-        with open(temp_file_path, "rb") as audio_file:
-            transcription = await client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                language="zh" # Guide whisper to recognize Chinese
-            )
-        
-        text = transcription.text
-        logger.info(f"[Voice-Parse] Whisper Transcript Result: '{text}'")
+        # 2. Call OpenAI transcription API
+        text = await transcribe_audio_file(temp_file_path)
+        logger.info(f"[Voice-Parse] Transcript Result: '{text}'")
         
         if not text.strip():
             logger.warning("[Voice-Parse] Whisper returned empty transcription text")
@@ -208,5 +547,112 @@ async def health_check():
         "status": "ok", 
         "service": "ChronoAI API Server", 
         "version": "2.0.0",
-        "openai_configured": openai_key is not None and openai_key.startswith("sk-")
+        "openai_configured": openai_key is not None and openai_key.startswith("sk-"),
+        "voice_db_path": VOICE_DB_PATH,
+        "gcs_configured": bool(GCS_BUCKET_NAME),
+        "google_docs_enabled": GOOGLE_DOCS_ENABLED,
+        "google_docs_configured": bool(resolve_google_docs_credentials_path())
+    }
+
+
+@app.get("/api/voice/folders")
+async def get_voice_folders():
+    return load_voice_folders()
+
+
+@app.get("/api/voice/entries")
+async def get_voice_entries(
+    folder_id: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200)
+):
+    selected_folder = validate_folder_id(folder_id) if folder_id else None
+    return {"entries": list_voice_entries(selected_folder, limit)}
+
+
+@app.post("/api/voice/transcribe")
+async def transcribe_voice_entry(
+    file: UploadFile | None = File(default=None),
+    text: str | None = Form(default=None),
+    folder_id: str = Form(default="LifeVoice"),
+    mode: str = Form(default="journal"),
+    prompt_id: str | None = Form(default=None),
+):
+    mode = (mode or "journal").strip().lower()
+    if mode not in {"journal", "schedule"}:
+        raise HTTPException(status_code=400, detail="mode must be either 'journal' or 'schedule'.")
+
+    folder_id = validate_folder_id(folder_id or "LifeVoice")
+    entry_id = f"voice_{uuid.uuid4().hex}"
+    now = utc_now_iso()
+    transcript = (text or "").strip()
+    audio_uri = None
+    source_filename = None
+    mime_type = None
+    temp_file_path = None
+
+    if file is not None:
+        source_filename = file.filename or "recording.webm"
+        mime_type = file.content_type or "application/octet-stream"
+        ext = os.path.splitext(source_filename)[1] or ".webm"
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
+                contents = await file.read()
+                if not contents:
+                    raise HTTPException(status_code=400, detail="Uploaded audio file is empty.")
+                temp_file.write(contents)
+                temp_file_path = temp_file.name
+
+            if GCS_BUCKET_NAME:
+                audio_uri = upload_audio_to_gcs(temp_file_path, entry_id, folder_id, source_filename, mime_type)
+            else:
+                logger.warning("[Voice] GCS_BUCKET_NAME is not configured; skipping raw audio upload for local development.")
+            transcript = await transcribe_audio_file(temp_file_path)
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                except Exception as ex:
+                    logger.error(f"[Voice] Failed to remove temp file: {ex}")
+
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Provide either a non-empty text field or an audio file.")
+
+    parsed_task = await call_gpt_parser(transcript) if mode == "schedule" else None
+    entry = {
+        "id": entry_id,
+        "mode": mode,
+        "folder_id": folder_id,
+        "prompt_id": prompt_id,
+        "transcript": transcript,
+        "audio_uri": audio_uri,
+        "source_filename": source_filename,
+        "mime_type": mime_type,
+        "duration_ms": None,
+        "parsed_task": parsed_task,
+        "google_doc_id": None,
+        "google_doc_url": None,
+        "google_doc_status": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    if mode == "journal":
+        doc_result = append_journal_to_google_doc(entry)
+        entry["google_doc_id"] = doc_result.get("doc_id")
+        entry["google_doc_url"] = doc_result.get("doc_url")
+        entry["google_doc_status"] = doc_result.get("status")
+
+    insert_voice_entry(entry)
+
+    return {
+        "id": entry_id,
+        "mode": mode,
+        "folder_id": folder_id,
+        "transcript": transcript,
+        "audio_uri": audio_uri,
+        "created_at": now,
+        "parsed_task": parsed_task,
+        "google_doc_id": entry.get("google_doc_id"),
+        "google_doc_url": entry.get("google_doc_url"),
+        "google_doc_status": entry.get("google_doc_status"),
     }

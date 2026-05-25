@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "id": "LifeVoice",
+      "name": "Life Voice",
+      "description": "Personal daily recordings",
+      "default": true,
+      "gdrive_folder_id": "1c6IZkrEqOQnzF3hyByxQGYgyVyeUfxsu"
+    },
+    {
+      "id": "WorkIdeas",
+      "name": "Work Ideas",
+      "description": "Work-related ideas and thoughts",
+      "default": false,
+      "gdrive_folder_id": "152gEo0QJl-oq1isU1_zdnz3Fi1lOEV5a"
+    },
+    {
+      "id": "HydrationExcretion",
+      "name": "Hydration & Excretion",
+      "description": "Hydration and bathroom health notes",
+      "default": false,
+      "gdrive_folder_id": "1vOHRRX45giu1cew6rmv5uDj4AR_C4rRK"
+    }
+  ]
+}

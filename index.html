@@ -12,6 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="ChronoAI">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/855/855523.png">
     
+    <!-- Google Identity Services (GIS) for OAuth 2.0 (v3.0.0) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <!-- Icon Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
@@ -938,6 +941,104 @@
             transform: scale(1.1);
         }
 
+        /* Voice Inbox */
+        .voice-mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 3px;
+        }
+        .voice-mode-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: var(--radius-full);
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .voice-mode-btn.active {
+            background: var(--primary);
+            color: #000000;
+        }
+        .voice-journal-tools {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .voice-journal-tools.active {
+            display: flex;
+        }
+        .voice-prompt-box {
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .voice-prompt-meta {
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .voice-prompt-text {
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        .voice-inbox-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .voice-entry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .voice-entry-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .voice-entry-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .voice-entry-text {
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .voice-save-result {
+            display: none;
+            border: 1px solid rgba(109, 170, 69, 0.35);
+            background: rgba(109, 170, 69, 0.08);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .voice-save-result.active {
+            display: block;
+        }
+
         /* Bottom Sheets */
         .sheet-overlay {
             position: absolute;
@@ -1225,6 +1326,154 @@
             70% { box-shadow: 0 0 0 8px rgba(217, 107, 107, 0); }
             100% { box-shadow: 0 0 0 0 rgba(217, 107, 107, 0); }
         }
+
+        /* ==================== Google Calendar Integration CSS (v3.0.0) ==================== */
+        .gcal-status-bar {
+            height: 28px;
+            background: rgba(66, 133, 244, 0.06);
+            border-bottom: 1px solid rgba(66, 133, 244, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+            animation: fadeIn 0.3s ease;
+        }
+        .gcal-status-bar.warning {
+            background: rgba(232, 175, 52, 0.06);
+            border-bottom: 1px solid rgba(232, 175, 52, 0.12);
+        }
+        .gcal-status-bar .sync-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .gcal-status-bar .sync-btn:hover {
+            color: #4285f4;
+        }
+
+        /* GCal TaskCard Styles */
+        .task-card-wrapper.gcal-event .timeline-node {
+            background-color: #4285f4 !important;
+            border-color: rgba(66, 133, 244, 0.3) !important;
+        }
+        .task-card-wrapper.gcal-event .task-card {
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.06) 0%, rgba(22, 22, 20, 0.8) 100%);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            box-shadow: 0 4px 20px rgba(66, 133, 244, 0.03);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+        .task-card-wrapper.gcal-event .task-card::before {
+            background: linear-gradient(180deg, #4285f4 0%, #34a853 100%);
+        }
+        .gcal-lock-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            color: #4285f4;
+            background: rgba(66, 133, 244, 0.12);
+            padding: 1px 5px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+        }
+        .gcal-link-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .gcal-link-row a {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s ease;
+        }
+        .gcal-link-row a:hover {
+            color: #4285f4;
+        }
+
+        /* Switch toggle styles */
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 18px;
+        }
+        .switch-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--surface-3);
+            border: 1px solid var(--border);
+            transition: .3s;
+            border-radius: 9999px;
+        }
+        .switch-slider::before {
+            content: "";
+            position: absolute;
+            height: 12px;
+            width: 12px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-muted);
+            transition: .3s;
+            border-radius: 50%;
+        }
+        .switch-container input:checked + .switch-slider {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        .switch-container input:checked + .switch-slider::before {
+            transform: translateX(16px);
+            background-color: #ffffff;
+        }
+
+        /* ==================== Swipe to Delete CSS (v3.1.0) ==================== */
+        .swipe-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-lg);
+            width: 100%;
+        }
+        .swipe-delete-bg {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: linear-gradient(135deg, var(--error) 0%, #b23b3b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 16px;
+            z-index: 1;
+            cursor: pointer;
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            box-shadow: inset 5px 0 10px rgba(0, 0, 0, 0.15);
+            transition: background 0.2s;
+        }
+        .swipe-delete-bg:active {
+            background: #992c2c;
+        }
     </style>
 </head>
 <body>
@@ -1374,6 +1623,20 @@
                 </div>
             </div>
 
+            <!-- VIEW 4: Voice Inbox -->
+            <div id="tab-voice" class="tab-panel">
+                <div class="voice-inbox-toolbar">
+                    <select class="form-input" id="voice-inbox-folder" style="margin:0; height:34px; font-size:12px;"></select>
+                    <button class="action-pill primary" id="btn-refresh-voice-inbox" style="height:34px;">
+                        <i class="fa-solid fa-rotate"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="voice-entry-list" id="voice-entry-list">
+                    <!-- Voice entries rendered here -->
+                </div>
+            </div>
+
         </div>
 
         <!-- 4. VoiceFAB -->
@@ -1403,6 +1666,12 @@
                 </svg>
                 <span>常规</span>
             </button>
+            <button class="nav-item" data-tab="voice">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+                <span>Voice</span>
+            </button>
         </nav>
 
         <!-- BOTTOM SHEET OVERLAY -->
@@ -1416,6 +1685,23 @@
                 <button class="sheet-close-btn">&times;</button>
             </div>
             
+            <div class="voice-mode-toggle" id="voice-mode-toggle">
+                <button class="voice-mode-btn active" data-mode="schedule">Schedule</button>
+                <button class="voice-mode-btn" data-mode="journal">Journal</button>
+            </div>
+
+            <div class="voice-journal-tools" id="voice-journal-tools">
+                <select class="form-input" id="voice-folder-select" style="margin:0; height:36px; font-size:12px;"></select>
+                <div class="voice-prompt-box">
+                    <div class="voice-prompt-meta" id="voice-prompt-category">Prompt</div>
+                    <div class="voice-prompt-text" id="voice-prompt-text">Capture what is on your mind.</div>
+                    <button class="btn-sheet-secondary" id="btn-refresh-voice-prompt" style="align-self:flex-start; padding:6px 10px; font-size:11px;">
+                        <i class="fa-solid fa-rotate"></i>
+                        New prompt
+                    </button>
+                </div>
+            </div>
+
             <textarea class="semantic-textarea" id="textarea-input" placeholder="输入你想做的事，例如：&#10;“下午三点写量化策略报告两小时”&#10;“明天早晨健身锻炼四十五分钟”"></textarea>
             
             <div class="sheet-action-row">
@@ -1434,6 +1720,8 @@
                 <i class="fa-solid fa-circle-notch fa-spin"></i>
                 <span id="parse-loading-text">ChronoAI 正在提取解析中...</span>
             </div>
+
+            <div class="voice-save-result" id="voice-save-result"></div>
 
             <!-- 结构化预览卡 -->
             <div class="preview-card" id="preview-result-card">
@@ -1570,6 +1858,66 @@
                 <button class="btn-sheet-secondary" id="btn-ping-backend" style="padding: 6px 12px; font-size: 11px; align-self: flex-start; margin-top: 4px;">
                     <i class="fa-solid fa-rotate"></i> 重新检测连接
                 </button>
+                <pre id="setting-conn-debug" style="display:none; max-height:120px; overflow:auto; white-space:pre-wrap; word-break:break-word; margin-top:6px; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:10px;"></pre>
+            </div>
+
+            <!-- Google Calendar 同步 (v3.0.0 New!) -->
+            <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 12px;">
+                <span class="form-label"><i class="fa-brands fa-google" style="color: #4285f4;"></i> Google Calendar 深度集成</span>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(66, 133, 244, 0.04); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(66, 133, 244, 0.12); margin-top: 6px;">
+                    <div>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">OAuth 2.0 Client ID</span>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" class="form-input" id="setting-gcal-client-id" placeholder="your-client-id.apps.googleusercontent.com" style="margin: 0; flex-grow: 1; font-size: 11px; height: 32px; padding: 4px 8px;">
+                            <button class="btn-sheet-primary" id="btn-save-gcal-client" style="padding: 4px 12px; font-size: 11px; white-space: nowrap; height: 32px;">保存</button>
+                        </div>
+                        <a href="https://console.cloud.google.com/" target="_blank" style="font-size: 9px; color: #4285f4; text-decoration: none; display: inline-block; margin-top: 4px;"><i class="fa-solid fa-arrow-up-right-from-square"></i> 去 Google Cloud 申请 Web Client ID</a>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">同步日历 ID (Calendar ID)</span>
+                        <input type="text" class="form-input" id="setting-gcal-calendar-id" placeholder="primary" value="primary" style="margin: 0; font-size: 11px; height: 32px; padding: 4px 8px;">
+                    </div>
+
+                    <div>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">绑定授权状态</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span id="setting-gcal-status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--error); display: inline-block;"></span>
+                                <span id="setting-gcal-status-text" style="font-weight: 600; color: var(--text-muted);">未配置 Client ID</span>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="btn-sheet-secondary" id="btn-disconnect-gcal" style="padding: 4px 10px; font-size: 11px; margin: 0; display: none; border-color: var(--error); color: var(--error); height: 28px;">
+                                    断开
+                                </button>
+                                <button class="btn-sheet-primary" id="btn-connect-gcal" style="padding: 4px 10px; font-size: 11px; margin: 0; display: none; background-color: #4285f4; border-color: #4285f4; color: #ffffff; height: 28px;">
+                                    <i class="fa-brands fa-google"></i> 授权绑定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="setting-gcal-options" style="display: none; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;">
+                        <span style="font-size: 11px; color: var(--text-muted); display: block;">双向同步偏好</span>
+                        
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 11px; color: var(--text);">自动导入忙碌日程为占位</span>
+                            <label class="switch-container">
+                                <input type="checkbox" id="setting-gcal-auto-import" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 11px; color: var(--text);">本地任务完成/创建自动写入日历</span>
+                            <label class="switch-container">
+                                <input type="checkbox" id="setting-gcal-auto-export">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 4px;">
@@ -1624,10 +1972,24 @@
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
+        // Google Calendar Helper functions (v3.0.0)
+        const loadGCalEvents = (date) => DB.get(`chrono_gcal_events_${date}`, []);
+        const saveGCalEvents = (date, data) => DB.set(`chrono_gcal_events_${date}`, data);
+        const getGCalSettings = () => DB.get('chrono_gcal_settings', {
+            clientId: '',
+            calendarId: 'primary',
+            enabled: false,
+            autoImport: true,
+            autoExport: false,
+            exportCalendarId: 'primary',
+            lastSyncedAt: null
+        });
+        const saveGCalSettings = (settings) => DB.set('chrono_gcal_settings', settings);
+
         // ==================== CONFIGS & DIALECTS ====================
         const savedSettings = DB.get('chrono_settings', {});
         const CONFIG = {
-            BACKEND_URL: savedSettings.backendUrl || `http://${window.location.hostname || 'localhost'}:11337`,
+            BACKEND_URL: savedSettings.backendUrl || `http://${window.location.hostname || 'localhost'}:11338`,
             COLORS: [
                 '#5ba8b5', // 蓝绿
                 '#6daa45', // 绿色
@@ -1645,6 +2007,10 @@
         let currentTab = 'timeline';
         let activeTimerInterval = null;
         let activeTimerTaskId = null;
+        let voiceMode = 'schedule';
+        let voiceFolders = [];
+        let voicePrompts = [];
+        let currentVoicePrompt = null;
 
         // ==================== 初始示例数据 ====================
         function checkAndInitSampleData() {
@@ -1775,7 +2141,12 @@
 
         // ==================== 7. Gap Finder 最佳闲档探测算法 ====================
         function findBestGap(date, durationMins, preferAfter = null, externalTasks = null) {
-            const tasks = (externalTasks || loadTasks(date)).filter(t => t.status !== 'skipped');
+            let tasks = (externalTasks || loadTasks(date)).filter(t => t.status !== 'skipped');
+            const gcalSettings = getGCalSettings();
+            if (gcalSettings.enabled) {
+                const gcalEvents = loadGCalEvents(date);
+                tasks = [...tasks, ...gcalEvents];
+            }
             const workStart = 8 * 60;  // 08:00
             const workEnd = 22 * 60;   // 22:00
 
@@ -1978,6 +2349,12 @@
             const dayOfWeek = d.getDay(); // 0=Sun, 1-5=Mon-Fri, 6=Sat
             const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
 
+            const gcalSettings = getGCalSettings();
+            let gcalEvents = [];
+            if (gcalSettings.enabled) {
+                gcalEvents = loadGCalEvents(date);
+            }
+
             const applicable = routines.filter(r => {
                 if (r.recurRule === 'daily') return true;
                 if (r.recurRule === 'weekdays') return isWeekday;
@@ -1992,7 +2369,7 @@
             let addedCount = 0;
 
             for (const routine of applicable) {
-                // 跳过当天已载入过相同常规模板的事项
+                // 跳过当天已载入过相同常常规模板的事项
                 if (existing.some(t => t.routineId === routine.id)) continue;
 
                 const adjustedMins = getAdjustedMins(routine);
@@ -2002,8 +2379,8 @@
                     const prefStart = timeToMins(routine.preferredTime);
                     const prefEnd = prefStart + adjustedMins;
                     
-                    // 碰撞检测
-                    const allTasksSoFar = [...existing, ...newTasks];
+                    // 碰撞检测 (包含本地与 GCal 占用)
+                    const allTasksSoFar = [...existing, ...newTasks, ...gcalEvents];
                     const hasConflict = allTasksSoFar.some(t => {
                         const ts = timeToMins(t.scheduledStart);
                         const te = timeToMins(t.scheduledEnd);
@@ -2050,6 +2427,7 @@
             if (newTasks.length > 0) {
                 const merged = [...existing, ...newTasks];
                 saveTasks(date, merged);
+                newTasks.forEach(t => exportTaskToGoogleCalendar(t));
             }
 
             return addedCount;
@@ -2089,29 +2467,241 @@
             status.style.display = show ? 'flex' : 'none';
         }
 
+        function setVoiceMode(mode) {
+            voiceMode = mode === 'journal' ? 'journal' : 'schedule';
+            document.querySelectorAll('.voice-mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-mode') === voiceMode);
+            });
+            const tools = document.getElementById('voice-journal-tools');
+            const parseBtn = document.getElementById('btn-parse-text');
+            const result = document.getElementById('voice-save-result');
+            if (tools) tools.classList.toggle('active', voiceMode === 'journal');
+            if (parseBtn) parseBtn.innerHTML = voiceMode === 'journal'
+                ? '<i class="fa-solid fa-inbox"></i> Save note'
+                : '<i class="fa-solid fa-wand-magic"></i> 智能安排';
+            if (result) result.classList.remove('active');
+            document.getElementById('preview-result-card')?.classList.remove('active');
+        }
+
+        async function loadVoiceFolders() {
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/folders`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                voiceFolders = data.folders || [];
+            } catch (e) {
+                console.warn('[Voice] Failed to load folders from backend, using local fallback:', e);
+                voiceFolders = [
+                    { id: 'LifeVoice', name: 'Life Voice', default: true },
+                    { id: 'WorkIdeas', name: 'Work Ideas' },
+                    { id: 'HydrationExcretion', name: 'Hydration & Excretion' }
+                ];
+            }
+            renderVoiceFolderSelects();
+        }
+
+        function renderVoiceFolderSelects() {
+            const selects = [
+                document.getElementById('voice-folder-select'),
+                document.getElementById('voice-inbox-folder')
+            ].filter(Boolean);
+            selects.forEach(select => {
+                const previous = select.value;
+                select.innerHTML = '';
+                voiceFolders.forEach(folder => {
+                    const opt = document.createElement('option');
+                    opt.value = folder.id;
+                    opt.textContent = folder.name || folder.id;
+                    select.appendChild(opt);
+                });
+                const fallback = voiceFolders.find(f => f.default) || voiceFolders[0];
+                select.value = previous || (fallback ? fallback.id : 'LifeVoice');
+            });
+        }
+
+        async function loadVoicePrompts() {
+            try {
+                const response = await fetch(`question_list.txt?t=${Date.now()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const raw = await response.text();
+                voicePrompts = parseVoicePrompts(raw);
+            } catch (e) {
+                console.warn('[Voice] Failed to load question_list.txt:', e);
+                voicePrompts = [
+                    { id: 'fallback_1', category: 'Prompt', text: 'What is worth remembering from today?' },
+                    { id: 'fallback_2', category: 'Prompt', text: 'What idea should I capture before it fades?' }
+                ];
+            }
+            refreshVoicePrompt();
+        }
+
+        function parseVoicePrompts(raw) {
+            const prompts = [];
+            let category = 'Prompt';
+            raw.split(/\r?\n/).forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+                if (trimmed.startsWith('###')) {
+                    category = trimmed.replace(/^#+\s*/, '').trim() || 'Prompt';
+                    return;
+                }
+                const match = trimmed.match(/^\d+\.\s*(.+)$/);
+                if (match) {
+                    prompts.push({
+                        id: `prompt_${prompts.length + 1}`,
+                        category,
+                        text: match[1].trim()
+                    });
+                }
+            });
+            return prompts;
+        }
+
+        function refreshVoicePrompt() {
+            if (!voicePrompts.length) return;
+            currentVoicePrompt = voicePrompts[Math.floor(Math.random() * voicePrompts.length)];
+            const cat = document.getElementById('voice-prompt-category');
+            const text = document.getElementById('voice-prompt-text');
+            if (cat) cat.innerText = currentVoicePrompt.category;
+            if (text) text.innerText = currentVoicePrompt.text;
+        }
+
+        async function saveJournalText(text) {
+            const folderSelect = document.getElementById('voice-folder-select');
+            const formData = new FormData();
+            formData.append('text', text);
+            formData.append('mode', 'journal');
+            formData.append('folder_id', folderSelect?.value || 'LifeVoice');
+            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
+
+            showLoading(true, 'Saving voice note...');
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/transcribe`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
+                }
+                const data = await response.json();
+                showLoading(false);
+                showVoiceSaveResult(data);
+                await renderVoiceInbox();
+                showToast('Voice note saved', 'success');
+            } catch (e) {
+                showLoading(false);
+                console.error('[Voice] Save text failed:', e);
+                showToast('Voice note save failed. Check backend settings.', 'error');
+            }
+        }
+
+        function showVoiceSaveResult(data) {
+            const box = document.getElementById('voice-save-result');
+            if (!box) return;
+            const docStatus = data.google_doc_status || 'not_synced';
+            const docLine = data.google_doc_url
+                ? `<br><a href="${escapeHtml(data.google_doc_url)}" target="_blank" style="color:var(--success);">Google Doc synced</a>`
+                : `<br><span style="color:var(--text-muted);">Google Doc: ${escapeHtml(docStatus)}</span>`;
+            box.innerHTML = `<strong>Saved to Voice Inbox</strong>${docLine}<br>${escapeHtml(data.transcript || '')}`;
+            box.classList.add('active');
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        async function renderVoiceInbox() {
+            const list = document.getElementById('voice-entry-list');
+            if (!list) return;
+            const folder = document.getElementById('voice-inbox-folder')?.value || '';
+            list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">Loading...</div></div>';
+            try {
+                const params = new URLSearchParams({ limit: '50' });
+                if (folder) params.set('folder_id', folder);
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/entries?${params.toString()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const entries = data.entries || [];
+                if (!entries.length) {
+                    list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">No voice notes yet.</div></div>';
+                    return;
+                }
+                list.innerHTML = entries.map(entry => {
+                    const folderName = voiceFolders.find(f => f.id === entry.folder_id)?.name || entry.folder_id;
+                    const date = new Date(entry.created_at).toLocaleString();
+                    const docStatus = entry.google_doc_url
+                        ? `<a href="${escapeHtml(entry.google_doc_url)}" target="_blank" style="color:var(--success); text-decoration:none;">Google Doc</a>`
+                        : `Google Doc: ${escapeHtml(entry.google_doc_status || 'not_synced')}`;
+                    return `
+                        <div class="voice-entry-card">
+                            <div class="voice-entry-meta">
+                                <span>${escapeHtml(folderName)} · ${escapeHtml(entry.mode)}</span>
+                                <span>${escapeHtml(date)}</span>
+                            </div>
+                            <div class="voice-entry-meta">
+                                <span>${docStatus}</span>
+                            </div>
+                            <div class="voice-entry-text">${escapeHtml(entry.transcript)}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('[Voice] Inbox load failed:', e);
+                list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">Could not load Voice Inbox. Check backend connection.</div></div>';
+            }
+        }
+
         // Bottom Sheet 打开和关闭
         const bottomSheets = ['sheet-input', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
             const text = document.getElementById('setting-conn-text');
+            const debug = document.getElementById('setting-conn-debug');
+            const urlInput = document.getElementById('setting-backend-url');
+            let backendUrl = (urlInput?.value || CONFIG.BACKEND_URL || '').trim();
+            if (backendUrl.endsWith('/')) backendUrl = backendUrl.slice(0, -1);
+            if (backendUrl) {
+                CONFIG.BACKEND_URL = backendUrl;
+                const saved = DB.get('chrono_settings', {});
+                saved.backendUrl = backendUrl;
+                DB.set('chrono_settings', saved);
+                if (urlInput) urlInput.value = backendUrl;
+            }
             
             indicator.style.backgroundColor = 'var(--text-muted)';
             text.innerText = '正在检测连接...';
             text.style.color = 'var(--text-muted)';
+            if (debug) {
+                debug.style.display = 'block';
+                debug.innerText = `GET ${backendUrl}/health`;
+            }
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/health`, {
-                    signal: controller.signal
+                const healthUrl = `${backendUrl}/health?t=${Date.now()}`;
+                const response = await fetch(healthUrl, {
+                    signal: controller.signal,
+                    cache: 'no-store'
                 });
                 clearTimeout(timeoutId);
 
-                if (!response.ok) throw new Error();
+                const raw = await response.text();
+                if (debug) {
+                    debug.innerText = `GET ${healthUrl}\nHTTP ${response.status}\n${raw}`;
+                }
 
-                const data = await response.json();
+                if (!response.ok) throw new Error(raw || `HTTP ${response.status}`);
+
+                const data = JSON.parse(raw);
                 if (data.openai_configured) {
                     indicator.style.backgroundColor = 'var(--success)';
                     text.innerText = '连接成功 (🟢 API 在线，OpenAI 已激活)';
@@ -2126,6 +2716,10 @@
                 indicator.style.backgroundColor = 'var(--error)';
                 text.innerText = '服务离线 (🔴 无法触达，请检查 IP 和端口 11337)';
                 text.style.color = 'var(--error)';
+                if (debug) {
+                    debug.style.display = 'block';
+                    debug.innerText = `GET ${backendUrl}/health\nERROR: ${e.message || e}`;
+                }
             }
         }
 
@@ -2200,6 +2794,7 @@
                     selectedDate = itemDateStr;
                     document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
                     renderWeekStrip();
+                    syncGCalEvents(selectedDate);
                     renderTimeline();
                 });
 
@@ -2212,11 +2807,18 @@
             const listContainer = document.getElementById('timeline-list');
             listContainer.innerHTML = '';
 
-            const tasks = loadTasks(selectedDate).sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
+            let tasks = loadTasks(selectedDate);
+            const gcalSettings = getGCalSettings();
+            if (gcalSettings.enabled) {
+                const gcalEvents = loadGCalEvents(selectedDate);
+                tasks = [...tasks, ...gcalEvents];
+            }
+            tasks.sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
             
-            // 更新概览统计数据
-            const total = tasks.length;
-            const doneTasks = tasks.filter(t => t.status === 'done');
+            // 更新概览统计数据 (仅统计本地任务)
+            const localTasks = tasks.filter(t => !t.isGCalEvent);
+            const total = localTasks.length;
+            const doneTasks = localTasks.filter(t => t.status === 'done');
             const totalEst = doneTasks.reduce((s, t) => s + (t.actualMins || 0), 0);
             document.getElementById('timeline-stat-text').innerHTML = `已完成 <span>${doneTasks.length}/${total}</span> (专注 ${totalEst}m)`;
 
@@ -2257,6 +2859,7 @@
                     gapWrapper.querySelector('.gap-action-btn').addEventListener('click', (e) => {
                         const start = e.currentTarget.getAttribute('data-start');
                         document.getElementById('textarea-input').value = `在 ${start} 进行`;
+                        setVoiceMode('schedule');
                         openSheet('sheet-input');
                     });
 
@@ -2265,8 +2868,8 @@
 
                 // 渲染 TaskCard
                 const wrapper = document.createElement('div');
-                wrapper.className = `task-card-wrapper ${task.status}`;
-                wrapper.style.setProperty('--task-color', task.color || 'var(--primary)');
+                wrapper.className = `task-card-wrapper ${task.isGCalEvent ? 'gcal-event' : task.status}`;
+                wrapper.style.setProperty('--task-color', task.isGCalEvent ? '#4285f4' : (task.color || 'var(--primary)'));
 
                 // 计时器组件
                 let timerHtml = '';
@@ -2276,49 +2879,174 @@
 
                 // 卡片底行按钮逻辑
                 let footerButtons = '';
-                if (task.status === 'todo') {
+                let categoryBadge = '';
+
+                if (task.isGCalEvent) {
+                    categoryBadge = `<span class="task-category-badge" style="background: rgba(66, 133, 244, 0.12); color: #4285f4; border: 1px solid rgba(66, 133, 244, 0.2);"><i class="fa-brands fa-google" style="margin-right:2px;"></i> 谷歌日历</span>`;
                     footerButtons = `
-                        <button class="task-btn btn-skip" onclick="changeTaskStatus('${task.id}', 'skipped')"><i class="fa-solid fa-times"></i> 跳过</button>
-                        <button class="task-btn btn-start" onclick="changeTaskStatus('${task.id}', 'in_progress')"><i class="fa-solid fa-play"></i> 开始</button>
+                        <div class="gcal-link-row">
+                            <span class="gcal-lock-badge"><i class="fa-solid fa-lock"></i> 日历锁定</span>
+                            <a href="https://calendar.google.com/calendar/r/eventedit/${task.gcalEventId || ''}" target="_blank"><i class="fa-solid fa-up-right-from-square" style="font-size:9px;"></i> 谷歌日历中编辑</a>
+                        </div>
                     `;
-                } else if (task.status === 'in_progress') {
-                    footerButtons = `
-                        <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
-                    `;
-                } else if (task.status === 'done') {
-                    footerButtons = `
-                        <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已投入 ${task.actualMins}m</span>
-                    `;
-                } else if (task.status === 'skipped') {
-                    footerButtons = `
-                        <button class="task-btn" onclick="changeTaskStatus('${task.id}', 'todo')"><i class="fa-solid fa-undo"></i> 撤销</button>
-                    `;
+                } else {
+                    categoryBadge = `<span class="task-category-badge cat-${task.category}">${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}</span>`;
+                    if (task.status === 'todo') {
+                        footerButtons = `
+                            <button class="task-btn btn-skip" onclick="changeTaskStatus('${task.id}', 'skipped')"><i class="fa-solid fa-times"></i> 跳过</button>
+                            <button class="task-btn btn-start" onclick="changeTaskStatus('${task.id}', 'in_progress')"><i class="fa-solid fa-play"></i> 开始</button>
+                        `;
+                    } else if (task.status === 'in_progress') {
+                        footerButtons = `
+                            <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
+                        `;
+                    } else if (task.status === 'done') {
+                        footerButtons = `
+                            <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已投入 ${task.actualMins}m</span>
+                        `;
+                    } else if (task.status === 'skipped') {
+                        footerButtons = `
+                            <button class="task-btn" onclick="changeTaskStatus('${task.id}', 'todo')"><i class="fa-solid fa-undo"></i> 撤销</button>
+                        `;
+                    }
                 }
 
                 wrapper.innerHTML = `
                     <div class="timeline-node"></div>
-                    <div class="task-card">
-                        <div class="task-header">
-                            <div class="task-time-box">
-                                <span class="task-time-range">${task.scheduledStart} - ${task.scheduledEnd}</span>
-                                <span class="task-duration-badge">预计 ${task.adjustedEstMins}分钟</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                ${timerHtml}
-                                <span class="task-category-badge cat-${task.category}">${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}</span>
-                            </div>
+                    <div class="swipe-container">
+                        <div class="swipe-delete-bg">
+                            <i class="fa-solid fa-trash-can"></i>
                         </div>
-                        <div class="task-body">
-                            <div class="task-name">${task.name}</div>
-                            ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
-                        </div>
-                        <div class="task-footer">
-                            ${footerButtons}
+                        <div class="task-card">
+                            <div class="task-header">
+                                <div class="task-time-box">
+                                    <span class="task-time-range">${task.scheduledStart} - ${task.scheduledEnd}</span>
+                                    <span class="task-duration-badge">预计 ${task.adjustedEstMins}分钟</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    ${timerHtml}
+                                    ${categoryBadge}
+                                </div>
+                            </div>
+                            <div class="task-body">
+                                <div class="task-name">${task.name}</div>
+                                ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
+                            </div>
+                            <div class="task-footer">
+                                ${footerButtons}
+                            </div>
                         </div>
                     </div>
                 `;
 
                 listContainer.appendChild(wrapper);
+
+                // ==================== Swipe to Delete Touch/Mouse Handling ====================
+                let startX = 0;
+                let currentX = 0;
+                let isDragging = false;
+                const maxSlide = 80; // Delete button width is 80px
+                const cardEl = wrapper.querySelector('.task-card');
+                const swipeContainer = wrapper.querySelector('.swipe-container');
+
+                function handleStart(x) {
+                    startX = x;
+                    isDragging = true;
+                    cardEl.style.transition = 'none'; // Disable animation during drag
+                }
+
+                function handleMove(x) {
+                    if (!isDragging) return;
+                    let diffX = x - startX;
+                    if (diffX > 0) diffX = 0; // Don't allow swipe right
+                    if (diffX < -maxSlide - 20) {
+                        // Elastic resistance when pulling past the delete button
+                        const overflow = -diffX - maxSlide;
+                        diffX = -maxSlide - (overflow * 0.3);
+                    }
+                    currentX = diffX;
+                    cardEl.style.transform = `translateX(${currentX}px)`;
+                }
+
+                function handleEnd() {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    cardEl.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                    
+                    if (currentX < -maxSlide / 2) {
+                        // Snap open
+                        currentX = -maxSlide;
+                        cardEl.style.transform = `translateX(-${maxSlide}px)`;
+                        swipeContainer.classList.add('swiped-open');
+                    } else {
+                        // Snap closed
+                        currentX = 0;
+                        cardEl.style.transform = 'translateX(0)';
+                        swipeContainer.classList.remove('swiped-open');
+                    }
+                }
+
+                // Touch Events
+                cardEl.addEventListener('touchstart', (e) => {
+                    handleStart(e.touches[0].clientX);
+                }, { passive: true });
+
+                cardEl.addEventListener('touchmove', (e) => {
+                    handleMove(e.touches[0].clientX);
+                }, { passive: true });
+
+                cardEl.addEventListener('touchend', () => {
+                    handleEnd();
+                });
+
+                // Mouse Events (for Desktop testing & premium cursor drag experience)
+                cardEl.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('button') || e.target.closest('a')) return;
+                    handleStart(e.clientX);
+                    
+                    const onMouseMove = (moveEvent) => {
+                        handleMove(moveEvent.clientX);
+                    };
+                    
+                    const onMouseUp = () => {
+                        handleEnd();
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+
+                // Close swipe state if clicking elsewhere on the page
+                document.addEventListener('click', (e) => {
+                    if (!wrapper.contains(e.target) && currentX !== 0) {
+                        currentX = 0;
+                        cardEl.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                        cardEl.style.transform = 'translateX(0)';
+                        swipeContainer.classList.remove('swiped-open');
+                    }
+                });
+
+                // Delete click action (Triggers premium slide out and collapse animations)
+                wrapper.querySelector('.swipe-delete-bg').addEventListener('click', () => {
+                    cardEl.style.transition = 'transform 0.25s ease-out';
+                    cardEl.style.transform = 'translateX(-100%)';
+                    
+                    setTimeout(() => {
+                        // Smoothly collapse wrapper height and margin before calling delete
+                        wrapper.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                        wrapper.style.height = '0';
+                        wrapper.style.marginBottom = '0';
+                        wrapper.style.opacity = '0';
+                        wrapper.style.padding = '0';
+                        
+                        setTimeout(() => {
+                            deleteTask(task.id);
+                        }, 300);
+                    }, 200);
+                });
+
                 lastTimeMins = taskEndMins;
             });
 
@@ -2340,6 +3068,7 @@
                     gapWrapper.querySelector('.gap-action-btn').addEventListener('click', (e) => {
                         const start = e.currentTarget.getAttribute('data-start');
                         document.getElementById('textarea-input').value = `在 ${start} 进行`;
+                        setVoiceMode('schedule');
                         openSheet('sheet-input');
                     });
                     listContainer.appendChild(gapWrapper);
@@ -2349,6 +3078,79 @@
             // 若存在正在进行的任务，激活前端滴答计时
             if (activeTimerTaskId) {
                 startTimerTicker();
+            }
+        }
+
+        // ==================== 任务删除控制器 (v3.1.0 New!) ====================
+        async function deleteGCalEvent(eventId) {
+            const settings = getGCalSettings();
+            if (!settings.enabled || !settings.clientId) return;
+
+            const token = DB.get('chrono_gcal_token');
+            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
+            if (!token || Date.now() >= expiresAt) return;
+
+            const calId = encodeURIComponent(settings.exportCalendarId || 'primary');
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}`;
+
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Google Calendar API delete error: ${response.status}`);
+            }
+        }
+
+        function deleteTask(taskId) {
+            // 1. 尝试删除本地任务
+            let tasks = loadTasks(selectedDate);
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            
+            if (taskIndex !== -1) {
+                const task = tasks[taskIndex];
+                tasks.splice(taskIndex, 1);
+                saveTasks(selectedDate, tasks);
+                
+                // 如果是正在进行的计时任务，停止计时
+                if (activeTimerTaskId === taskId) {
+                    stopTimerTicker();
+                    activeTimerTaskId = null;
+                }
+                
+                showToast(`🗑️ 任务“${task.name}”已删除`, 'success');
+                renderTimeline();
+                renderWeekStrip();
+                return;
+            }
+
+            // 2. 尝试删除谷歌日历缓存事件，并同步在谷歌日历云端删除它
+            const gcalEvents = loadGCalEvents(selectedDate);
+            const gcalEvtIndex = gcalEvents.findIndex(t => t.id === taskId);
+            if (gcalEvtIndex !== -1) {
+                const gcalEvt = gcalEvents[gcalEvtIndex];
+                gcalEvents.splice(gcalEvtIndex, 1);
+                saveGCalEvents(selectedDate, gcalEvents);
+                
+                // 异步在云端 Google Calendar 执行删除
+                if (gcalEvt.gcalEventId) {
+                    showToast(`🗑️ 正在从 Google Calendar 云端删除事件...`, 'info');
+                    deleteGCalEvent(gcalEvt.gcalEventId)
+                        .then(() => {
+                            showToast(`🗑️ 谷歌日历事件已从本地和云端同步删除`, 'success');
+                        })
+                        .catch(err => {
+                            console.error('[GCal] Cloud delete failed:', err);
+                            showToast(`⚠️ 谷歌日历云端删除失败（已从本地视图移出）`, 'warning');
+                        });
+                } else {
+                    showToast(`🗑️ 谷歌日历事件缓存已清除`, 'success');
+                }
+                renderTimeline();
+                return;
             }
         }
 
@@ -2868,15 +3670,19 @@
         }
 
         async function uploadAndParseAudio(blob) {
-            showLoading(true, '🤖 ChronoAI 正在转录听写音频...');
+            showLoading(true, voiceMode === 'journal' ? 'Saving voice note...' : '🤖 ChronoAI 正在转录听写音频...');
             
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
+            formData.append('mode', voiceMode);
+            if (voiceMode === 'journal') {
+                formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
+                if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
+            }
 
             try {
-                // 1. 调用 Whisper STT 听写
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice-parse`, {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/transcribe`, {
                     method: 'POST',
                     body: formData
                 });
@@ -2889,14 +3695,22 @@
                 const data = await response.json();
                 showLoading(false);
 
+                if (voiceMode === 'journal') {
+                    showVoiceSaveResult(data);
+                    document.getElementById('textarea-input').value = data.transcript || '';
+                    await renderVoiceInbox();
+                    showToast('Voice note saved', 'success');
+                    return;
+                }
+
                 // 在文本框中显示识别出的文字
-                if (data.raw_text) {
-                    document.getElementById('textarea-input').value = data.raw_text;
+                if (data.transcript) {
+                    document.getElementById('textarea-input').value = data.transcript;
                     showToast('✨ 语音听写识别成功');
                 }
 
                 // 展示解析推荐
-                renderRecommendationPreview(data);
+                renderRecommendationPreview(data.parsed_task || data);
 
             } catch (e) {
                 console.error('[Voice] Parse failed:', e);
@@ -2905,7 +3719,12 @@
                 if (msg.includes('402')) {
                     showToast('💳 OpenAI 额度不足，无法进行语音听写。请使用本地正则文本输入！', 'error');
                 } else {
-                    showToast('🔌 语音服务器离线或异常！建议您改为打字进行本地正则解析。', 'error');
+                    let detail = msg;
+                    try {
+                        const jsonText = msg.slice(msg.indexOf('{'));
+                        detail = JSON.parse(jsonText).detail || msg;
+                    } catch (_) {}
+                    showToast(`Voice request failed: ${detail}`, 'error');
                 }
             }
         }
@@ -2984,9 +3803,372 @@
             card.classList.add('active');
         }
 
+        // ==================== Google Calendar 核心通信与授权模块 (v3.0.0 New!) ====================
+        let tokenClient = null;
+
+        function initGCalClient() {
+            const settings = getGCalSettings();
+            const clientInput = document.getElementById('setting-gcal-client-id');
+            const calInput = document.getElementById('setting-gcal-calendar-id');
+            if (clientInput) clientInput.value = settings.clientId || '';
+            if (calInput) calInput.value = settings.calendarId || 'primary';
+
+            updateGCalStatusUI();
+
+            if (!settings.clientId) return;
+
+            try {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+                    tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: settings.clientId,
+                        scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events',
+                        callback: (tokenResponse) => {
+                            if (tokenResponse.error) {
+                                showToast(`⚠️ 授权失败: ${tokenResponse.error}`, 'error');
+                                return;
+                            }
+                            
+                            const expiresAt = Date.now() + (parseInt(tokenResponse.expires_in) * 1000);
+                            DB.set('chrono_gcal_token', tokenResponse.access_token);
+                            DB.set('chrono_gcal_expires_at', expiresAt);
+                            
+                            settings.enabled = true;
+                            saveGCalSettings(settings);
+                            
+                            showToast('🟢 Google Calendar 授权成功，正在同步数据...', 'success');
+                            syncGCalEvents(selectedDate);
+                            updateGCalStatusUI();
+                        },
+                    });
+                    console.log('[GCal] GIS TokenClient initialized successfully.');
+                }
+            } catch (e) {
+                console.error('[GCal] Failed to initialize GIS TokenClient:', e);
+            }
+        }
+
+        function updateGCalStatusUI() {
+            const settings = getGCalSettings();
+            const indicator = document.getElementById('setting-gcal-status-indicator');
+            const text = document.getElementById('setting-gcal-status-text');
+            const connBtn = document.getElementById('btn-connect-gcal');
+            const disBtn = document.getElementById('btn-disconnect-gcal');
+            const optionsPanel = document.getElementById('setting-gcal-options');
+            const autoImportChk = document.getElementById('setting-gcal-auto-import');
+            const autoExportChk = document.getElementById('setting-gcal-auto-export');
+
+            if (!indicator || !text) return;
+
+            if (autoImportChk) autoImportChk.checked = settings.autoImport;
+            if (autoExportChk) autoExportChk.checked = settings.autoExport;
+
+            if (!settings.clientId) {
+                indicator.style.backgroundColor = 'var(--text-faint)';
+                text.innerText = '未配置 Client ID';
+                text.style.color = 'var(--text-muted)';
+                if (connBtn) connBtn.style.display = 'none';
+                if (disBtn) disBtn.style.display = 'none';
+                if (optionsPanel) optionsPanel.style.display = 'none';
+                renderGCalStatusBar(false, '');
+                return;
+            }
+
+            const token = DB.get('chrono_gcal_token');
+            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
+
+            if (token && Date.now() < expiresAt) {
+                indicator.style.backgroundColor = 'var(--success)';
+                text.innerText = '已授权连接';
+                text.style.color = 'var(--success)';
+                if (connBtn) connBtn.style.display = 'none';
+                if (disBtn) disBtn.style.display = 'inline-block';
+                if (optionsPanel) optionsPanel.style.display = 'flex';
+                
+                renderGCalStatusBar(true);
+            } else if (token && Date.now() >= expiresAt) {
+                indicator.style.backgroundColor = 'var(--warning)';
+                text.innerText = '授权已过期';
+                text.style.color = 'var(--warning)';
+                if (connBtn) connBtn.style.display = 'inline-block';
+                if (disBtn) disBtn.style.display = 'none';
+                if (optionsPanel) optionsPanel.style.display = 'flex';
+
+                renderGCalStatusBar(false, `授权已过期 - 请重新连接 Google 账户`);
+            } else {
+                indicator.style.backgroundColor = 'var(--error)';
+                text.innerText = '未绑定授权';
+                text.style.color = 'var(--error)';
+                if (connBtn) connBtn.style.display = 'inline-block';
+                if (disBtn) disBtn.style.display = 'none';
+                if (optionsPanel) optionsPanel.style.display = 'none';
+
+                renderGCalStatusBar(false, `未绑定 Google 日历`);
+            }
+        }
+
+        function connectGoogleAccount() {
+            const settings = getGCalSettings();
+            if (!settings.clientId) {
+                showToast('⚠️ 请先配置并保存 Google Client ID', 'error');
+                return;
+            }
+            if (!tokenClient) {
+                initGCalClient();
+            }
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                showToast('⚠️ Google SDK 载入失败，请检查网络或稍后重试', 'error');
+            }
+        }
+
+        function disconnectGoogleAccount() {
+            const settings = getGCalSettings();
+            settings.enabled = false;
+            saveGCalSettings(settings);
+            DB.remove('chrono_gcal_token');
+            DB.remove('chrono_gcal_expires_at');
+            
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith('chrono_gcal_events_')) {
+                    localStorage.removeItem(k);
+                }
+            });
+
+            showToast('🔌 已解除 Google 账号绑定并清除缓存', 'success');
+            updateGCalStatusUI();
+            if (currentTab === 'timeline') renderTimeline();
+        }
+
+        function renderGCalStatusBar(ok, msg) {
+            let bar = document.getElementById('gcal-status-bar');
+            const weekStrip = document.querySelector('.week-strip');
+            const settings = getGCalSettings();
+            
+            if (!settings.enabled || !settings.clientId) {
+                if (bar) bar.remove();
+                return;
+            }
+
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'gcal-status-bar';
+                bar.className = 'gcal-status-bar';
+                if (weekStrip) weekStrip.after(bar);
+            }
+
+            bar.className = `gcal-status-bar ${ok ? '' : 'warning'}`;
+            
+            const timeLabel = settings.lastSyncedAt 
+                ? new Date(settings.lastSyncedAt).toTimeString().slice(0, 5) 
+                : '--:--';
+                
+            bar.innerHTML = `
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <i class="fa-brands fa-google" style="color: ${ok ? '#4285f4' : 'var(--warning)'};"></i>
+                    <span>${ok ? `日历日程已同步 (最新: ${timeLabel})` : msg}</span>
+                </div>
+                ${ok ? `
+                <button class="sync-btn" id="btn-sync-now">
+                    <i class="fa-solid fa-rotate" id="sync-icon-rotate"></i> 强制同步
+                </button>
+                ` : `
+                <button class="sync-btn" id="btn-reauth-now" style="color: var(--warning)">
+                    <i class="fa-solid fa-key"></i> 重新授权
+                </button>
+                `}
+            `;
+
+            const syncBtn = document.getElementById('btn-sync-now');
+            if (syncBtn) {
+                syncBtn.addEventListener('click', () => {
+                    const icon = document.getElementById('sync-icon-rotate');
+                    if (icon) icon.style.animation = 'pulse-node 1.5s linear infinite';
+                    syncGCalEvents(selectedDate).finally(() => {
+                        if (icon) icon.style.animation = '';
+                    });
+                });
+            }
+
+            const reauthBtn = document.getElementById('btn-reauth-now');
+            if (reauthBtn) {
+                reauthBtn.addEventListener('click', () => {
+                    openSheet('sheet-settings');
+                    connectGoogleAccount();
+                });
+            }
+        }
+
+        async function syncGCalEvents(dateStr) {
+            const settings = getGCalSettings();
+            if (!settings.enabled || !settings.clientId) return;
+
+            const token = DB.get('chrono_gcal_token');
+            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
+
+            if (!token || Date.now() >= expiresAt - 60000) {
+                console.warn('[GCal] Token expired or not found.');
+                updateGCalStatusUI();
+                return;
+            }
+
+            const calId = encodeURIComponent(settings.calendarId || 'primary');
+            // 采用时区安全的方式解析 YYYY-MM-DD 字符串，避免浏览器时区差导致偏差 1 天
+            const parts = dateStr.split('-');
+            const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            
+            const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
+            const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
+
+            const timeMin = startOfDay.toISOString();
+            const timeMax = endOfDay.toISOString();
+
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    let errMsg = `Google Calendar API error: ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.error && errData.error.message) {
+                            errMsg = errData.error.message;
+                        }
+                    } catch (e) {
+                        // ignore JSON parse error
+                    }
+
+                    if (response.status === 401) {
+                        DB.remove('chrono_gcal_token');
+                        updateGCalStatusUI();
+                        showToast('🔑 谷歌授权已失效，请重新连接账号', 'error');
+                        return;
+                    }
+                    if (response.status === 404) {
+                        throw new Error(`找不到日历 (404)。详细信息: ${errMsg}`);
+                    }
+                    if (response.status === 403) {
+                        const isApiDisabled = errMsg.toLowerCase().includes('disabled') || errMsg.toLowerCase().includes('not been used');
+                        throw new Error(`无权访问此日历 (403)。${isApiDisabled ? '⚠️ 您的 Google Cloud 项目尚未启用 Google Calendar API。' : '⚠️ 请确保您在登录谷歌授权弹窗时，手动勾选了“查看/修改日程”的复选框权限。'} 详细信息: ${errMsg}`);
+                    }
+                    throw new Error(errMsg);
+                }
+
+                const data = await response.json();
+                const items = data.items || [];
+
+                const gcalEvents = items.map(evt => {
+                    const startStr = evt.start.dateTime || evt.start.date;
+                    const endStr = evt.end.dateTime || evt.end.date;
+
+                    const startDt = new Date(startStr);
+                    const endDt = new Date(endStr);
+
+                    const pad = (n) => String(n).padStart(2, '0');
+                    const startHM = `${pad(startDt.getHours())}:${pad(startDt.getMinutes())}`;
+                    const endHM = `${pad(endDt.getHours())}:${pad(endDt.getMinutes())}`;
+
+                    const estMins = Math.round((endDt - startDt) / 60000);
+
+                    let category = 'personal';
+                    const textToAnalyze = `${evt.summary || ''} ${evt.description || ''}`.toLowerCase();
+                    const workKeywords = ['code', 'meeting', 'standup', '周报', '工作', '汇报', '会议', '对齐', '开发', 'Bloomberg', 'FOMC', '量化', '研究', 'strategy'];
+                    const healthKeywords = ['gym', 'yoga', 'hospital', '健身', '医院', '睡觉', '运动', 'run', 'fit', 'sleep'];
+                    if (workKeywords.some(kw => textToAnalyze.includes(kw))) category = 'work';
+                    else if (healthKeywords.some(kw => textToAnalyze.includes(kw))) category = 'health';
+
+                    return {
+                        id: `gcal_${startDt.getTime()}_${evt.id}`,
+                        routineId: null,
+                        name: evt.summary || '无标题日历事件',
+                        category: category,
+                        color: '#4285f4',
+                        date: dateStr,
+                        scheduledStart: startHM,
+                        scheduledEnd: endHM,
+                        adjustedEstMins: estMins,
+                        status: 'todo',
+                        actualStart: null,
+                        actualEnd: null,
+                        actualMins: null,
+                        isRoutineInstance: false,
+                        isManuallyPlaced: true,
+                        isGCalEvent: true,
+                        gcalEventId: evt.id,
+                        notes: evt.description || ''
+                    };
+                });
+
+                saveGCalEvents(dateStr, gcalEvents);
+                
+                settings.lastSyncedAt = new Date().toISOString();
+                saveGCalSettings(settings);
+
+                updateGCalStatusUI();
+                if (currentTab === 'timeline') renderTimeline();
+
+            } catch (err) {
+                console.error('[GCal] Sync events failed:', err);
+                showToast(`⚠️ 同步失败: ${err.message}`, 'error');
+            }
+        }
+
+        async function exportTaskToGoogleCalendar(task) {
+            const settings = getGCalSettings();
+            if (!settings.enabled || !settings.autoExport || !settings.clientId) return;
+
+            const token = DB.get('chrono_gcal_token');
+            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
+            if (!token || Date.now() >= expiresAt) return;
+
+            const calId = encodeURIComponent(settings.exportCalendarId || 'primary');
+
+            const startIso = new Date(`${task.date}T${task.scheduledStart}:00`).toISOString();
+            const endIso = new Date(`${task.date}T${task.scheduledEnd}:00`).toISOString();
+
+            const eventBody = {
+                'summary': `[ChronoAI] ${task.name}`,
+                'description': `由 ChronoAI 自动排程。\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
+                'start': { 'dateTime': startIso },
+                'end': { 'dateTime': endIso },
+                'colorId': task.category === 'work' ? '5' : (task.category === 'health' ? '10' : '7')
+            };
+
+            try {
+                const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calId}/events`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventBody)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    task.gcalEventId = data.id;
+                    console.log(`[GCal] Task successfully exported. EventID: ${data.id}`);
+                }
+            } catch (e) {
+                console.error('[GCal] Failed to export task:', e);
+            }
+        }
+
         // ==================== 初始化与事件绑定器 ====================
         function initApp() {
             checkAndInitSampleData();
+            loadVoiceFolders().then(renderVoiceInbox);
+            loadVoicePrompts();
+            
+            // Google Calendar 初始化 (v3.0.0)
+            initGCalClient();
+            syncGCalEvents(selectedDate);
             
             // 首屏初始化渲染
             document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
@@ -3010,6 +4192,7 @@
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'analytics') renderAnalytics();
                     else if (targetTab === 'routines') renderRoutines();
+                    else if (targetTab === 'voice') renderVoiceInbox();
                 });
             });
 
@@ -3024,6 +4207,7 @@
                     selectedDate = e.target.value;
                     document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
                     renderWeekStrip();
+                    syncGCalEvents(selectedDate);
                     renderTimeline();
                 }
             });
@@ -3032,8 +4216,20 @@
             document.getElementById('voice-fab-trigger').addEventListener('click', () => {
                 document.getElementById('textarea-input').value = '';
                 document.getElementById('preview-result-card').classList.remove('active');
+                document.getElementById('voice-save-result')?.classList.remove('active');
+                setVoiceMode('schedule');
                 openSheet('sheet-input');
             });
+
+            document.querySelectorAll('.voice-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setVoiceMode(btn.getAttribute('data-mode'));
+                });
+            });
+
+            document.getElementById('btn-refresh-voice-prompt').addEventListener('click', refreshVoicePrompt);
+            document.getElementById('btn-refresh-voice-inbox').addEventListener('click', renderVoiceInbox);
+            document.getElementById('voice-inbox-folder').addEventListener('change', renderVoiceInbox);
 
             // 一键载入日程
             document.getElementById('btn-load-routines').addEventListener('click', () => {
@@ -3052,6 +4248,10 @@
                 const txt = document.getElementById('textarea-input').value.trim();
                 if (!txt) {
                     showToast('💡 请先打字说点什么，比如：“下午写代码两小时”');
+                    return;
+                }
+                if (voiceMode === 'journal') {
+                    await saveJournalText(txt);
                     return;
                 }
                 const parsed = await parseSemanticInput(txt);
@@ -3089,6 +4289,7 @@
 
                 tasks.push(newTask);
                 saveTasks(selectedDate, tasks);
+                exportTaskToGoogleCalendar(newTask);
                 
                 renderTimeline();
                 renderWeekStrip();
@@ -3156,6 +4357,51 @@
                 CONFIG.BACKEND_URL = url;
                 closeAllSheets();
                 showToast('💾 系统设置已成功保存并立即生效！', 'success');
+            });
+
+            // 保存 Google Client ID 与日历 ID (v3.0.0)
+            document.getElementById('btn-save-gcal-client').addEventListener('click', () => {
+                const clientId = document.getElementById('setting-gcal-client-id').value.trim();
+                const calendarId = document.getElementById('setting-gcal-calendar-id').value.trim() || 'primary';
+                
+                const settings = getGCalSettings();
+                settings.clientId = clientId;
+                settings.calendarId = calendarId;
+                saveGCalSettings(settings);
+
+                showToast('💾 Google 日历配置已成功保存！', 'success');
+                initGCalClient();
+            });
+
+            // 授权绑定 GCal (v3.0.0)
+            document.getElementById('btn-connect-gcal').addEventListener('click', () => {
+                connectGoogleAccount();
+            });
+
+            // 解除绑定 GCal (v3.0.0)
+            document.getElementById('btn-disconnect-gcal').addEventListener('click', () => {
+                if (confirm('🔌 确定要解除 Google Calendar 的授权绑定并清除本地日程缓存吗？')) {
+                    disconnectGoogleAccount();
+                }
+            });
+
+            // 自动导入切换 (v3.0.0)
+            document.getElementById('setting-gcal-auto-import').addEventListener('change', (e) => {
+                const settings = getGCalSettings();
+                settings.autoImport = e.target.checked;
+                saveGCalSettings(settings);
+                showToast(`🔄 自动导入忙碌日程已${settings.autoImport ? '开启' : '关闭'}`);
+                if (settings.autoImport) {
+                    syncGCalEvents(selectedDate);
+                }
+            });
+
+            // 自动导出切换 (v3.0.0)
+            document.getElementById('setting-gcal-auto-export').addEventListener('change', (e) => {
+                const settings = getGCalSettings();
+                settings.autoExport = e.target.checked;
+                saveGCalSettings(settings);
+                showToast(`📤 本地任务自动写入已${settings.autoExport ? '开启' : '关闭'}`);
             });
 
             // Routine CRUD 弹框

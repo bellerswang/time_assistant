@@ -26,9 +26,11 @@ echo [INFO] Checking and installing dependencies...
 pip install -r backend\requirements.txt
 
 echo.
-echo [INFO] Starting FastAPI server on port 11337 (listening on all local IPs)...
+echo [INFO] Starting FastAPI server on port 11338 (listening on all local IPs)...
+echo [INFO] Logs will also be written to backend\logs\backend_11338.log
 echo.
 cd backend
-uvicorn main:app --host 0.0.0.0 --port 11337 --reload
+if not exist "logs" mkdir logs
+uvicorn main:app --host 0.0.0.0 --port 11338 --reload --log-level debug 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath logs\backend_11338.log -Append"
 
 pause
