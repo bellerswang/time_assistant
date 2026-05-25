@@ -1478,6 +1478,55 @@
             background: transparent;
         }
 
+        /* Loomi Input Method Segmented Control */
+        .loomi-mode-selector {
+            display: flex;
+            position: relative;
+            background: rgba(16, 12, 33, 0.7);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 4px;
+            width: 200px;
+            margin: 0 auto 10px;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        .loomi-selector-btn {
+            flex: 1;
+            background: transparent;
+            border: 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: color 0.3s;
+            position: relative;
+            z-index: 2;
+        }
+        .loomi-selector-btn.active {
+            color: var(--text);
+        }
+        .loomi-selector-slider {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.25), rgba(189, 147, 249, 0.2));
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: calc(var(--radius-xl) - 4px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+        .loomi-mode-selector button#loomi-sel-text.active ~ .loomi-selector-slider {
+            transform: translateX(100%);
+        }
+
         .loomi-result-card {
             width: 100%;
             max-width: 380px;
@@ -2155,50 +2204,62 @@
                 </div>
             </div>
 
-            <!-- VIEW 4: Voice (沉浸式录音) -->
+            <!-- VIEW 4: Voice (沉浸式智能输入 Loomi) -->
             <div id="tab-voice" class="tab-panel record-home">
                 <div class="loomi-immersive">
                     <div class="record-hero-title">LOOMI</div>
-                    <button class="record-orb-button" id="record-home-mic" aria-label="Start voice capture">
-                        <i class="fa-solid fa-microphone" id="loomi-orb-icon"></i>
-                    </button>
-                    <div class="loomi-status-text" id="loomi-status">点击开始录音</div>
-                    <div class="loomi-wave-container" id="loomi-wave-container">
-                        <canvas id="loomi-wave-canvas"></canvas>
+                    
+                    <!-- Segmented Control Mode Selector -->
+                    <div class="loomi-mode-selector">
+                        <button class="loomi-selector-btn active" id="loomi-sel-voice" onclick="setLoomiInputMethod('voice')">
+                            <i class="fa-solid fa-microphone"></i> 语音
+                        </button>
+                        <button class="loomi-selector-btn" id="loomi-sel-text" onclick="setLoomiInputMethod('text')">
+                            <i class="fa-solid fa-keyboard"></i> 文字
+                        </button>
+                        <div class="loomi-selector-slider"></div>
                     </div>
+
+                    <!-- Voice Area -->
+                    <div class="loomi-voice-area" id="loomi-voice-area" style="display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%;">
+                        <button class="record-orb-button" id="record-home-mic" aria-label="Start voice capture">
+                            <i class="fa-solid fa-microphone" id="loomi-orb-icon"></i>
+                        </button>
+                        <div class="loomi-status-text" id="loomi-status">点击开始录音</div>
+                        <div class="loomi-wave-container" id="loomi-wave-container">
+                            <canvas id="loomi-wave-canvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Text Area -->
+                    <div class="loomi-text-area" id="loomi-text-area" style="display: none; width: 100%; flex-direction: column; gap: 16px; align-items: center;">
+                        <div class="quick-record-composer" style="width: 100%; max-width: 380px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; backdrop-filter: blur(20px);">
+                            <textarea id="loomi-text-input" placeholder="输入你想记录的内容，或向 AI 提问..." style="width: 100%; min-height: 80px; background: transparent; border: 0; color: var(--text); font-size: 14px; resize: none; outline: none;"></textarea>
+                            <div class="quick-record-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                <div></div>
+                                <button class="record-primary-action" id="btn-loomi-text-submit" style="background: linear-gradient(135deg, var(--primary), var(--accent)); border: 0; border-radius: var(--radius-full); color: #070514; font-size: 13px; font-weight: 600; padding: 6px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 15px rgba(0, 245, 255, 0.25);">
+                                    <i class="fa-solid fa-paper-plane"></i> 发送
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mode Chips -->
                     <div class="loomi-mode-row" id="loomi-mode-row">
-                        <button class="loomi-mode-chip active" data-mode="auto">Auto</button>
-                        <button class="loomi-mode-chip" data-mode="journal">Journal</button>
-                        <button class="loomi-mode-chip" data-mode="wiki">Wiki</button>
-                        <button class="loomi-mode-chip" data-mode="schedule">Schedule</button>
+                        <button class="loomi-mode-chip active" data-mode="auto">Auto 自动</button>
+                        <button class="loomi-mode-chip" data-mode="journal">Journal 日记</button>
+                        <button class="loomi-mode-chip" data-mode="wiki">Wiki 百科</button>
+                        <button class="loomi-mode-chip" data-mode="ask">Ask 问答</button>
+                        <button class="loomi-mode-chip" data-mode="schedule">Schedule 日程</button>
                     </div>
+
+                    <!-- Unified Result Card -->
                     <div class="loomi-result-card" id="loomi-result-card">
                         <div class="result-title" id="loomi-result-title"></div>
                         <div class="result-body" id="loomi-result-body"></div>
                         <div class="result-meta" id="loomi-result-meta"></div>
                     </div>
                 </div>
-            </div>
-
-            <!-- VIEW 5: Ask Me -->
-            <div id="tab-ask" class="tab-panel record-home">
-                <section class="record-hero compact">
-                    <div class="record-hero-title">Ask Me</div>
-                    <button class="record-orb-button" id="ask-voice-mic" aria-label="Ask by voice">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
-                    <div class="quick-record-composer">
-                        <textarea id="ask-memory-input" placeholder="Ask your journal and life wiki..."></textarea>
-                        <div class="quick-record-row">
-                            <div></div>
-                            <button class="record-primary-action" id="btn-ask-memory">
-                                <i class="fa-solid fa-arrow-right"></i>
-                                Ask
-                            </button>
-                        </div>
-                    </div>
-                    <div class="voice-save-result" id="ask-memory-result"></div>
-                </section>
             </div>
 
             <!-- VIEW 6: Records -->
@@ -2279,12 +2340,6 @@
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
                 <span>Loomi</span>
-            </button>
-            <button class="nav-item" data-tab="ask">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                </svg>
-                <span>问答</span>
             </button>
             <button class="nav-item" data-tab="records">
                 <svg viewBox="0 0 24 24">
@@ -3151,13 +3206,12 @@
         }
 
         function setActiveAppMode(tabName) {
-            const memoryTabs = ['voice', 'ask', 'records'];
+            const memoryTabs = ['voice', 'records'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
                 timeline: '日程',
                 analytics: '分析',
                 voice: 'Loomi',
-                ask: '问答',
                 records: '记录'
             };
             document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
@@ -4803,6 +4857,110 @@
             }
         }
 
+        async function renderLoomiResult(data) {
+            const titleEl = document.getElementById('loomi-result-title');
+            const bodyEl = document.getElementById('loomi-result-body');
+            const metaEl = document.getElementById('loomi-result-meta');
+            const resultCard = document.getElementById('loomi-result-card');
+            
+            if (!titleEl || !bodyEl || !metaEl) return;
+
+            if (data.mode === 'schedule' && data.parsed_task) {
+                titleEl.innerText = `📅 ${data.parsed_task.name || 'Task'}`;
+                bodyEl.innerText = `${data.parsed_task.estMins || '?'}分钟 · ${data.parsed_task.category || 'work'}`;
+                metaEl.innerText = data.transcript || '';
+                if (data.transcript) document.getElementById('textarea-input').value = data.transcript;
+                renderRecommendationPreview(data.parsed_task);
+            } else if (data.record) {
+                titleEl.innerText = `✅ ${data.record.category_label || data.record.category || 'Saved'}`;
+                bodyEl.innerText = data.record.title || data.record.summary || data.transcript || '';
+                metaEl.innerText = (data.record.tags || []).join(' · ');
+                await renderVoiceInbox();
+            } else if (data.mode === 'ask') {
+                titleEl.innerText = '💡 Memory Answer';
+                bodyEl.innerText = data.answer || 'No answer returned.';
+                metaEl.innerText = (data.sources || []).map(s => `${s.type}: ${s.title || s.id}`).join(' · ');
+            } else {
+                titleEl.innerText = `✅ ${data.mode || 'auto'} saved`;
+                bodyEl.innerText = data.transcript || data.text || '';
+                metaEl.innerText = '';
+                await renderVoiceInbox();
+            }
+            resultCard?.classList.add('active');
+        }
+
+        async function submitLoomiText() {
+            const textarea = document.getElementById('loomi-text-input');
+            const text = (textarea?.value || '').trim();
+            if (!text) {
+                showToast('请输入一些文字！', 'error');
+                return;
+            }
+            
+            const statusEl = document.getElementById('loomi-status');
+            const resultCard = document.getElementById('loomi-result-card');
+            
+            const formData = new FormData();
+            formData.append('text', text);
+            formData.append('mode', voiceMode);
+            formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
+            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
+
+            statusEl.innerText = 'Loomi 正在处理...';
+            statusEl.className = 'loomi-status-text processing';
+            resultCard?.classList.remove('active');
+            showLoading(true, '🤖 Loomi 正在理解您的文字...');
+
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
+                }
+
+                const data = await response.json();
+                await renderLoomiResult(data);
+                
+                statusEl.innerText = '理解完成！';
+                statusEl.className = 'loomi-status-text';
+                if (textarea) textarea.value = '';
+                showToast(data.mode === 'schedule' ? '✨ 智能日程已解析' : `✅ ${data.mode || 'auto'} saved`, 'success');
+            } catch (e) {
+                console.error('[Loomi Text] Submit failed:', e);
+                statusEl.innerText = '理解失败，请重试';
+                statusEl.className = 'loomi-status-text';
+                showToast(`处理失败: ${e.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function setLoomiInputMethod(method) {
+            const voiceBtn = document.getElementById('loomi-sel-voice');
+            const textBtn = document.getElementById('loomi-sel-text');
+            const voiceArea = document.getElementById('loomi-voice-area');
+            const textArea = document.getElementById('loomi-text-area');
+            
+            if (method === 'voice') {
+                voiceBtn.classList.add('active');
+                textBtn.classList.remove('active');
+                voiceArea.style.display = 'flex';
+                textArea.style.display = 'none';
+            } else {
+                voiceBtn.classList.remove('active');
+                textBtn.classList.add('active');
+                voiceArea.style.display = 'none';
+                textArea.style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('loomi-text-input')?.focus();
+                }, 50);
+            }
+        }
+
         async function uploadLoomiAudio(blob) {
             const statusEl = document.getElementById('loomi-status');
             const orbBtn = document.getElementById('record-home-mic');
@@ -4829,36 +4987,8 @@
                 }
 
                 const data = await response.json();
+                await renderLoomiResult(data);
 
-                // 在 Loomi 页面内直接展示结果
-                const titleEl = document.getElementById('loomi-result-title');
-                const bodyEl = document.getElementById('loomi-result-body');
-                const metaEl = document.getElementById('loomi-result-meta');
-
-                if (data.mode === 'schedule' && data.parsed_task) {
-                    titleEl.innerText = `📅 ${data.parsed_task.name || 'Task'}`;
-                    bodyEl.innerText = `${data.parsed_task.estMins || '?'}分钟 · ${data.parsed_task.category || 'work'}`;
-                    metaEl.innerText = data.transcript || '';
-                    // 同时填入 sheet-input 以备确认
-                    if (data.transcript) document.getElementById('textarea-input').value = data.transcript;
-                    renderRecommendationPreview(data.parsed_task);
-                } else if (data.record) {
-                    titleEl.innerText = `✅ ${data.record.category_label || data.record.category || 'Saved'}`;
-                    bodyEl.innerText = data.record.title || data.record.summary || data.transcript || '';
-                    metaEl.innerText = (data.record.tags || []).join(' · ');
-                    await renderVoiceInbox();
-                } else if (data.mode === 'ask') {
-                    titleEl.innerText = '💡 Memory Answer';
-                    bodyEl.innerText = data.answer || 'No answer returned.';
-                    metaEl.innerText = (data.sources || []).map(s => `${s.type}: ${s.title || s.id}`).join(' · ');
-                } else {
-                    titleEl.innerText = `✅ ${data.mode || 'auto'} saved`;
-                    bodyEl.innerText = data.transcript || '';
-                    metaEl.innerText = '';
-                    await renderVoiceInbox();
-                }
-
-                resultCard?.classList.add('active');
                 statusEl.innerText = '完成！点击重新录音';
                 statusEl.className = 'loomi-status-text';
                 orbBtn.style.animation = 'planetary-pulse 3s infinite ease-in-out';
@@ -5466,16 +5596,13 @@
                 });
             });
 
-            // Ask Tab 麦克风 — 弹出 sheet 供文字/语音混合输入
-            document.getElementById('ask-voice-mic')?.addEventListener('click', () => {
-                openVoiceCapture('ask');
-            });
-            document.getElementById('btn-quick-record-submit')?.addEventListener('click', submitQuickRecordText);
-            document.getElementById('quick-record-text')?.addEventListener('keydown', (e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitQuickRecordText();
-            });
-            document.getElementById('record-home-ask')?.addEventListener('click', () => {
-                document.getElementById('ask-memory-input')?.focus();
+            // Loomi Text submit
+            document.getElementById('btn-loomi-text-submit')?.addEventListener('click', submitLoomiText);
+            document.getElementById('loomi-text-input')?.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    submitLoomiText();
+                }
             });
             document.getElementById('record-home-settings')?.addEventListener('click', () => {
                 document.getElementById('setting-backend-url').value = CONFIG.BACKEND_URL;
