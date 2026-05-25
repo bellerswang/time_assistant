@@ -19,9 +19,11 @@ except ImportError:
     storage = None
 
 try:
+    import google.auth as google_auth
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
 except ImportError:
+    google_auth = None
     service_account = None
     build = None
 
@@ -234,17 +236,35 @@ def resolve_google_docs_credentials_path() -> str | None:
     return None
 
 
-class GoogleDocAppender:
-    def __init__(self, credentials_path: str):
-        if service_account is None or build is None:
+def resolve_google_docs_credentials() -> tuple[object | None, str]:
+    scopes = [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/documents",
+    ]
+
+    credentials_path = resolve_google_docs_credentials_path()
+    if credentials_path:
+        if service_account is None:
             raise RuntimeError("google-api-python-client and google-auth are required for Google Docs sync.")
-        self.creds = service_account.Credentials.from_service_account_file(
-            credentials_path,
-            scopes=[
-                "https://www.googleapis.com/auth/drive",
-                "https://www.googleapis.com/auth/documents",
-            ],
-        )
+        creds = service_account.Credentials.from_service_account_file(credentials_path, scopes=scopes)
+        return creds, f"service_account_file:{credentials_path}"
+
+    if google_auth is not None:
+        try:
+            creds, _ = google_auth.default(scopes=scopes)
+            if creds is not None:
+                return creds, "application_default_credentials"
+        except Exception as e:
+            logger.warning(f"[Voice] Google ADC unavailable: {e}")
+
+    return None, "none"
+
+
+class GoogleDocAppender:
+    def __init__(self, creds: object):
+        if build is None:
+            raise RuntimeError("google-api-python-client and google-auth are required for Google Docs sync.")
+        self.creds = creds
         self.drive_service = build("drive", "v3", credentials=self.creds, cache_discovery=False)
         self.docs_service = build("docs", "v1", credentials=self.creds, cache_discovery=False)
 
@@ -319,12 +339,13 @@ def append_journal_to_google_doc(entry: dict) -> dict:
     if not drive_folder_id:
         return {"status": "skipped:no_gdrive_folder_id", "doc_id": None, "doc_url": None}
 
-    credentials_path = resolve_google_docs_credentials_path()
-    if not credentials_path:
+    creds, auth_mode = resolve_google_docs_credentials()
+    if not creds:
         return {"status": "skipped:no_google_credentials", "doc_id": None, "doc_url": None}
 
     try:
-        appender = GoogleDocAppender(credentials_path)
+        logger.info(f"[Voice] Google Docs auth mode: {auth_mode}")
+        appender = GoogleDocAppender(creds)
         folder_name = folder.get("name") or entry["folder_id"]
         volume = 1
         while True:
@@ -660,6 +681,7 @@ async def parse_voice(file: UploadFile = File(...)):
 
 @app.get("/health")
 async def health_check():
+    _, google_docs_auth_mode = resolve_google_docs_credentials()
     return {
         "status": "ok", 
         "service": "ChronoAI API Server", 
@@ -668,7 +690,8 @@ async def health_check():
         "voice_db_path": VOICE_DB_PATH,
         "gcs_configured": bool(GCS_BUCKET_NAME),
         "google_docs_enabled": GOOGLE_DOCS_ENABLED,
-        "google_docs_configured": bool(resolve_google_docs_credentials_path())
+        "google_docs_configured": google_docs_auth_mode != "none",
+        "google_docs_auth_mode": google_docs_auth_mode,
     }
 
 
