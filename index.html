@@ -160,6 +160,94 @@
             background: var(--surface-3);
         }
 
+        .month-picker {
+            position: absolute;
+            top: calc(52px + var(--safe-top) + 8px);
+            left: 12px;
+            right: 12px;
+            z-index: 40;
+            background: rgba(22, 22, 20, 0.98);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+            padding: 12px;
+            display: none;
+        }
+        .month-picker.active {
+            display: block;
+        }
+        .month-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .month-picker-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .month-nav-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .month-weekday,
+        .month-day {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            border-radius: var(--radius-sm);
+            position: relative;
+        }
+        .month-weekday {
+            color: var(--text-muted);
+            font-weight: 600;
+            min-height: 20px;
+        }
+        .month-day {
+            color: var(--text);
+            background: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        .month-day.outside {
+            color: var(--text-faint);
+        }
+        .month-day.today {
+            border-color: rgba(232, 175, 52, 0.55);
+        }
+        .month-day.selected {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .month-day.has-items::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: var(--radius-full);
+            background: var(--success);
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
         .top-setting-btn {
             background: none;
             border: none;
@@ -383,14 +471,15 @@
         .task-card {
             background: var(--surface-2);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            touch-action: pan-y;
         }
 
         .task-card::before {
@@ -411,30 +500,30 @@
 
         .task-time-box {
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            align-items: baseline;
+            gap: 8px;
         }
 
         .task-time-range {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text);
             font-variant-numeric: tabular-nums;
         }
 
         .task-duration-badge {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
             font-weight: 500;
         }
 
         .task-category-badge {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: var(--radius-full);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
         }
         .cat-work {
             background-color: rgba(91, 168, 181, 0.15);
@@ -456,9 +545,10 @@
         }
 
         .task-name {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: #ffffff;
+            line-height: 1.28;
         }
 
         .task-notes {
@@ -471,8 +561,7 @@
             justify-content: flex-end;
             align-items: center;
             gap: 8px;
-            border-top: 1px solid var(--divider);
-            padding-top: 10px;
+            padding-top: 2px;
         }
 
         .task-btn {
@@ -1450,7 +1539,7 @@
         .swipe-container {
             position: relative;
             overflow: hidden;
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-md);
             width: 100%;
         }
         .swipe-delete-bg {
@@ -1467,9 +1556,16 @@
             font-size: 16px;
             z-index: 1;
             cursor: pointer;
-            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
             box-shadow: inset 5px 0 10px rgba(0, 0, 0, 0.15);
             transition: background 0.2s;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .swipe-container.dragging .swipe-delete-bg,
+        .swipe-container.swiped-open .swipe-delete-bg {
+            pointer-events: auto;
+            opacity: 1;
         }
         .swipe-delete-bg:active {
             background: #992c2c;
@@ -1505,6 +1601,19 @@
                 <i class="fa-solid fa-cog"></i>
             </button>
         </header>
+
+        <div id="month-picker" class="month-picker">
+            <div class="month-picker-header">
+                <button class="month-nav-btn" id="month-prev" aria-label="Previous month">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span class="month-picker-title" id="month-picker-title"></span>
+                <button class="month-nav-btn" id="month-next" aria-label="Next month">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            <div id="month-grid" class="month-grid"></div>
+        </div>
 
         <!-- 2. WeekStrip -->
         <div class="week-strip" id="week-strip">
@@ -1838,7 +1947,12 @@
             <div class="sheet-handle"></div>
             <div class="sheet-header">
                 <span class="sheet-title"><i class="fa-solid fa-sliders"></i> Loomi 系统设置</span>
-                <button class="sheet-close-btn">&times;</button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button class="top-setting-btn" id="btn-refresh-page" aria-label="Refresh app" title="Refresh app">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    <button class="sheet-close-btn">&times;</button>
+                </div>
             </div>
             
             <div class="form-group">
@@ -1973,23 +2087,28 @@
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
         // Google Calendar Helper functions (v3.0.0)
+        const DEFAULT_BACKEND_URL = 'https://voice-assistant-1090997558704.europe-west2.run.app';
+        const DEFAULT_GCAL_CLIENT_ID = '1090997558704-7r1o8eu2bjvc517ddpu40bqqi3sdvoi6.apps.googleusercontent.com';
         const loadGCalEvents = (date) => DB.get(`chrono_gcal_events_${date}`, []);
         const saveGCalEvents = (date, data) => DB.set(`chrono_gcal_events_${date}`, data);
-        const getGCalSettings = () => DB.get('chrono_gcal_settings', {
-            clientId: '',
-            calendarId: 'primary',
-            enabled: false,
-            autoImport: true,
-            autoExport: false,
-            exportCalendarId: 'primary',
-            lastSyncedAt: null
-        });
+        const getGCalSettings = () => {
+            const saved = DB.get('chrono_gcal_settings', {});
+            return {
+                clientId: saved.clientId || DEFAULT_GCAL_CLIENT_ID,
+                calendarId: saved.calendarId || 'primary',
+                enabled: saved.enabled || false,
+                autoImport: saved.autoImport ?? true,
+                autoExport: saved.autoExport ?? false,
+                exportCalendarId: saved.exportCalendarId || 'primary',
+                lastSyncedAt: saved.lastSyncedAt || null
+            };
+        };
         const saveGCalSettings = (settings) => DB.set('chrono_gcal_settings', settings);
 
         // ==================== CONFIGS & DIALECTS ====================
         const savedSettings = DB.get('chrono_settings', {});
         const CONFIG = {
-            BACKEND_URL: savedSettings.backendUrl || `http://${window.location.hostname || 'localhost'}:11338`,
+            BACKEND_URL: savedSettings.backendUrl || DEFAULT_BACKEND_URL,
             COLORS: [
                 '#5ba8b5', // 蓝绿
                 '#6daa45', // 绿色
@@ -2791,11 +2910,7 @@
                 cell.appendChild(dotsDiv);
 
                 cell.addEventListener('click', () => {
-                    selectedDate = itemDateStr;
-                    document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
-                    renderWeekStrip();
-                    syncGCalEvents(selectedDate);
-                    renderTimeline();
+                    setSelectedDate(itemDateStr);
                 });
 
                 container.appendChild(cell);
@@ -2803,6 +2918,81 @@
         }
 
         // ==================== Tab 1: 今日时间轴渲染 ====================
+        function getDayItemCount(dateStr) {
+            const localCount = loadTasks(dateStr).filter(t => t.status !== 'skipped').length;
+            const gcalCount = loadGCalEvents(dateStr).length;
+            return localCount + gcalCount;
+        }
+
+        let monthPickerDate = null;
+
+        function setSelectedDate(dateStr) {
+            selectedDate = dateStr;
+            document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
+            renderWeekStrip();
+            renderMonthPicker();
+            syncGCalEvents(selectedDate);
+            renderTimeline();
+        }
+
+        function renderMonthPicker() {
+            const picker = document.getElementById('month-picker');
+            const grid = document.getElementById('month-grid');
+            const title = document.getElementById('month-picker-title');
+            if (!picker || !grid || !title) return;
+
+            if (!monthPickerDate) {
+                const [y, m, d] = selectedDate.split('-').map(Number);
+                monthPickerDate = new Date(y, m - 1, d);
+            }
+
+            grid.innerHTML = '';
+            const year = monthPickerDate.getFullYear();
+            const month = monthPickerDate.getMonth();
+            title.innerText = `${year} / ${String(month + 1).padStart(2, '0')}`;
+
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(label => {
+                const el = document.createElement('div');
+                el.className = 'month-weekday';
+                el.innerText = label;
+                grid.appendChild(el);
+            });
+
+            const first = new Date(year, month, 1);
+            const start = new Date(first);
+            start.setDate(first.getDate() - first.getDay());
+            const todayStr = getTodayString();
+
+            for (let i = 0; i < 42; i++) {
+                const dayObj = new Date(start);
+                dayObj.setDate(start.getDate() + i);
+                const dateStr = formatDateISO(dayObj);
+                const cell = document.createElement('button');
+                cell.type = 'button';
+                cell.className = 'month-day';
+                if (dayObj.getMonth() !== month) cell.classList.add('outside');
+                if (dateStr === selectedDate) cell.classList.add('selected');
+                if (dateStr === todayStr) cell.classList.add('today');
+                if (getDayItemCount(dateStr) > 0) cell.classList.add('has-items');
+                cell.innerText = dayObj.getDate();
+                cell.addEventListener('click', () => {
+                    document.getElementById('month-picker')?.classList.remove('active');
+                    monthPickerDate = new Date(dayObj);
+                    setSelectedDate(dateStr);
+                });
+                grid.appendChild(cell);
+            }
+        }
+
+        function shiftMonthPicker(delta) {
+            if (!monthPickerDate) {
+                const [y, m, d] = selectedDate.split('-').map(Number);
+                monthPickerDate = new Date(y, m - 1, d);
+            }
+            monthPickerDate.setMonth(monthPickerDate.getMonth() + delta);
+            renderMonthPicker();
+        }
+
         function renderTimeline() {
             const listContainer = document.getElementById('timeline-list');
             listContainer.innerHTML = '';
@@ -2952,6 +3142,7 @@
                 function handleStart(x) {
                     startX = x;
                     isDragging = true;
+                    swipeContainer.classList.add('dragging');
                     cardEl.style.transition = 'none'; // Disable animation during drag
                 }
 
@@ -2971,6 +3162,7 @@
                 function handleEnd() {
                     if (!isDragging) return;
                     isDragging = false;
+                    swipeContainer.classList.remove('dragging');
                     cardEl.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
                     
                     if (currentX < -maxSlide / 2) {
@@ -4173,6 +4365,7 @@
             // 首屏初始化渲染
             document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
             renderWeekStrip();
+            renderMonthPicker();
             renderTimeline();
             renderAnalytics();
             renderRoutines();
@@ -4200,16 +4393,22 @@
             const dateTitleBtn = document.getElementById('date-title-picker');
             const hiddenDateInput = document.getElementById('hidden-date-input');
             dateTitleBtn.addEventListener('click', () => {
-                hiddenDateInput.showPicker();
+                monthPickerDate = new Date(...selectedDate.split('-').map((part, index) => index === 1 ? Number(part) - 1 : Number(part)));
+                renderMonthPicker();
+                document.getElementById('month-picker')?.classList.toggle('active');
             });
             hiddenDateInput.addEventListener('change', (e) => {
                 if (e.target.value) {
-                    selectedDate = e.target.value;
-                    document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
-                    renderWeekStrip();
-                    syncGCalEvents(selectedDate);
-                    renderTimeline();
+                    setSelectedDate(e.target.value);
                 }
+            });
+            document.getElementById('month-prev')?.addEventListener('click', () => shiftMonthPicker(-1));
+            document.getElementById('month-next')?.addEventListener('click', () => shiftMonthPicker(1));
+            document.addEventListener('click', (e) => {
+                const picker = document.getElementById('month-picker');
+                if (!picker?.classList.contains('active')) return;
+                if (picker.contains(e.target) || dateTitleBtn.contains(e.target)) return;
+                picker.classList.remove('active');
             });
 
             // FAB 触发解析 Sheet
@@ -4311,6 +4510,14 @@
             });
 
             // 演示数据重置
+            document.getElementById('btn-refresh-page')?.addEventListener('click', async () => {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.update()));
+                }
+                window.location.reload();
+            });
+
             document.getElementById('btn-reset-demo').addEventListener('click', () => {
                 if (confirm('⚠️ 确定要重置今日日程、效率日志以及所有常常规模板吗？\n此操作将清除所有自定义数据并恢复系统默认演示模板，且不可撤销！')) {
                     localStorage.removeItem('chrono_routines');
