@@ -71,13 +71,28 @@ client = AsyncOpenAI(
 VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
-FOLDERS_CONFIG_PATH = os.path.join(root_dir, "folders.json")
 GOOGLE_DOCS_ENABLED = os.getenv("GOOGLE_DOCS_ENABLED", "true").lower() not in {"0", "false", "no"}
 GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_DOCS_CREDENTIALS_PATH",
     os.getenv("GOOGLE_APPLICATION_CREDENTIALS", os.path.join(backend_dir, "credential", "key.json"))
 )
 VOICE_DOC_MAX_CHARS = int(os.getenv("VOICE_DOC_MAX_CHARS", "800000"))
+
+
+def resolve_folders_config_path() -> str:
+    explicit_path = os.getenv("FOLDERS_CONFIG_PATH")
+    if explicit_path:
+        return explicit_path
+
+    candidates = [
+        os.path.join(root_dir, "folders.json"),
+        os.path.join(backend_dir, "folders.json"),
+        os.path.join(os.getcwd(), "folders.json"),
+    ]
+    return next((path for path in candidates if os.path.exists(path)), candidates[0])
+
+
+FOLDERS_CONFIG_PATH = resolve_folders_config_path()
 
 class ParseRequest(BaseModel):
     text: str
