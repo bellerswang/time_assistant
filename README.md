@@ -118,3 +118,76 @@ Google Docs sync note: Cloud Run can use either Application Default Credentials 
 - Added Life Wiki storage via `wiki_entries` and memory lookup via `/api/memory/search`.
 - Added DeepSeek-backed `/api/memory/ask` for answers grounded in Journal + Wiki memory.
 - Schedule parsing now attaches relevant memory reminders when matching journal/wiki context exists.
+
+## Current workflows
+
+### Universal voice entry
+
+The voice sheet now defaults to `Auto`. A single voice/text submission can become:
+
+- `Schedule`: creates a structured task preview and can attach memory reminders from Journal/Wiki.
+- `Journal`: stores the transcript in Voice Inbox and appends it to the configured Google Doc.
+- `Wiki`: stores reusable life knowledge as a structured Life Wiki card.
+- `Ask`: searches Wiki + Journal memory and asks DeepSeek to answer from those sources.
+
+Manual modes are still available: `Schedule`, `Journal`, `Wiki`, and `Ask`.
+
+### Life Wiki
+
+Life Wiki is for reusable knowledge, not time-ordered diary entries. Example:
+
+```text
+Colindale Library Bank Holiday does not open.
+```
+
+This should be saved as a Wiki card with a topic such as `places_local_life`, tags such as `library` and `bank holiday`, and a concise body. The database is the source of truth for search and AI context; Google Docs are only for human-readable journal backup.
+
+### Memory search and Ask
+
+Use `/api/memory/search?q=...&types=wiki,journal` to retrieve relevant memories. Use `/api/memory/ask` to ask DeepSeek for an answer grounded in those retrieved memories.
+
+DeepSeek requires:
+
+```bash
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+If `DEEPSEEK_API_KEY` is missing, Ask returns `503` but Journal, Wiki, and Schedule still work.
+
+### Google Docs sync on Cloud Run
+
+Local Google Docs sync can work while Cloud Run fails if the two environments use different Google identities. Check:
+
+```text
+https://voice-assistant-1090997558704.europe-west2.run.app/health
+```
+
+Important fields:
+
+```json
+{
+  "google_docs_auth_mode": "service_account_json",
+  "google_docs_auth_email": "xwang-upload@mercurial-weft-455321-v6.iam.gserviceaccount.com"
+}
+```
+
+Recommended Cloud Run setup:
+
+- Set environment variable name: `GOOGLE_DOCS_CREDENTIALS_JSON`
+- Set value to the full service account JSON, including the outer `{}`.
+- Keep `private_key` newline escapes as `\n`.
+- Share the target Google Doc with `google_docs_auth_email` as Editor.
+
+Common sync statuses:
+
+- `synced`: transcript was appended to the Google Doc.
+- `skipped:no_google_credentials`: Cloud Run has no usable Google credentials.
+- `failed:permission_denied_share_doc`: share the target Doc with the backend service account.
+- `failed:google_docs_api_disabled`: enable Google Docs API for the active project.
+- `failed:doc_not_found_or_not_shared`: configured doc id is wrong or not shared with the service account.
+
+### Cloud persistence note
+
+Local SQLite is fine for development. Cloud Run container storage is not reliable long-term storage, so production memory should eventually move to Cloud SQL, Firestore, or another persistent backend. Until then, Cloud Run SQLite memory can disappear across container rebuilds or instance replacement.
