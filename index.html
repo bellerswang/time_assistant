@@ -2721,9 +2721,20 @@
             const docStatus = data.google_doc_status || 'not_synced';
             const docLine = data.google_doc_url
                 ? `<br><a href="${escapeHtml(data.google_doc_url)}" target="_blank" style="color:var(--success);">Google Doc synced</a>`
-                : `<br><span style="color:var(--text-muted);">Google Doc: ${escapeHtml(docStatus)}</span>`;
+                : `<br><span style="color:var(--text-muted);">Google Doc: ${escapeHtml(formatGoogleDocStatus(docStatus))}</span>`;
             box.innerHTML = `<strong>Saved to Voice Inbox</strong>${docLine}<br>${escapeHtml(data.transcript || '')}`;
             box.classList.add('active');
+        }
+
+        function formatGoogleDocStatus(status) {
+            if (!status) return 'not_synced';
+            if (status === 'synced') return 'synced';
+            if (status === 'disabled') return 'disabled';
+            if (status === 'skipped:no_google_credentials') return 'missing Google credentials';
+            if (status === 'skipped:no_gdrive_folder_id') return 'missing folder/doc config';
+            if (status.includes('accessNotConfigured') || status.includes('Drive API has not been used')) return 'Drive API disabled';
+            if (status.startsWith('failed:')) return 'sync failed';
+            return status;
         }
 
         function escapeHtml(value) {
@@ -2756,7 +2767,7 @@
                     const date = new Date(entry.created_at).toLocaleString();
                     const docStatus = entry.google_doc_url
                         ? `<a href="${escapeHtml(entry.google_doc_url)}" target="_blank" style="color:var(--success); text-decoration:none;">Google Doc</a>`
-                        : `Google Doc: ${escapeHtml(entry.google_doc_status || 'not_synced')}`;
+                        : `Google Doc: ${escapeHtml(formatGoogleDocStatus(entry.google_doc_status || 'not_synced'))}`;
                     return `
                         <div class="voice-entry-card">
                             <div class="voice-entry-meta">

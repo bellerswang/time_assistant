@@ -330,13 +330,18 @@ def format_google_doc_entry(entry: dict, folder: dict) -> str:
     return f"[{entry['created_at']}] {folder_name} - {entry['transcript']}\n\n"
 
 
+def build_google_doc_url(doc_id: str) -> str:
+    return f"https://docs.google.com/document/d/{doc_id}/edit"
+
+
 def append_journal_to_google_doc(entry: dict) -> dict:
     if not GOOGLE_DOCS_ENABLED:
         return {"status": "disabled", "doc_id": None, "doc_url": None}
 
     folder = get_voice_folder(entry["folder_id"])
+    configured_doc_id = folder.get("google_doc_id")
     drive_folder_id = folder.get("gdrive_folder_id")
-    if not drive_folder_id:
+    if not configured_doc_id and not drive_folder_id:
         return {"status": "skipped:no_gdrive_folder_id", "doc_id": None, "doc_url": None}
 
     creds, auth_mode = resolve_google_docs_credentials()
@@ -346,23 +351,26 @@ def append_journal_to_google_doc(entry: dict) -> dict:
     try:
         logger.info(f"[Voice] Google Docs auth mode: {auth_mode}")
         appender = GoogleDocAppender(creds)
-        folder_name = folder.get("name") or entry["folder_id"]
-        volume = 1
-        while True:
-            doc_name = f"{folder_name} Transcripts - Vol {volume}"
-            doc_id = appender.find_doc_by_name(drive_folder_id, doc_name)
-            if not doc_id:
-                doc_id = appender.create_doc(drive_folder_id, doc_name)
-                break
-            if appender.get_doc_size(doc_id) < VOICE_DOC_MAX_CHARS:
-                break
-            volume += 1
+        if configured_doc_id:
+            doc_id = configured_doc_id
+        else:
+            folder_name = folder.get("name") or entry["folder_id"]
+            volume = 1
+            while True:
+                doc_name = f"{folder_name} Transcripts - Vol {volume}"
+                doc_id = appender.find_doc_by_name(drive_folder_id, doc_name)
+                if not doc_id:
+                    doc_id = appender.create_doc(drive_folder_id, doc_name)
+                    break
+                if appender.get_doc_size(doc_id) < VOICE_DOC_MAX_CHARS:
+                    break
+                volume += 1
 
         appender.append_text(doc_id, format_google_doc_entry(entry, folder))
         return {
             "status": "synced",
             "doc_id": doc_id,
-            "doc_url": f"https://docs.google.com/document/d/{doc_id}/edit",
+            "doc_url": build_google_doc_url(doc_id),
         }
     except Exception as e:
         logger.error(f"[Voice] Google Doc append failed: {e}")
