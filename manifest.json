@@ -1,9 +1,9 @@
 {
-  "short_name": "ChronoAI",
-  "name": "ChronoAI - 智能时间安排助手",
+  "short_name": "Loomi",
+  "name": "Loomi - 智能自适应时间助手",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/855/855523.png",
+      "src": "./loomi_icon.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"

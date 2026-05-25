@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ChronoAI — 智能自适应日程</title>
+    <title>Loomi — 智能自适应日程</title>
     
     <!-- PWA Meta Tags & Manifest -->
     <link rel="manifest" href="./manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ChronoAI">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/855/855523.png">
+    <meta name="apple-mobile-web-app-title" content="Loomi">
+    <link rel="apple-touch-icon" href="./loomi_icon.png">
     
     <!-- Google Identity Services (GIS) for OAuth 2.0 (v3.0.0) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1492,7 +1492,7 @@
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
                     <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <span>ChronoAI</span>
+                <span>Loomi</span>
             </div>
             
             <button id="date-title-picker" class="date-title-btn">
@@ -1718,14 +1718,14 @@
             <!-- 解析状态提示 -->
             <div id="parse-loading-status" style="display:none; font-size:12px; color:var(--primary); align-items:center; gap:8px;">
                 <i class="fa-solid fa-circle-notch fa-spin"></i>
-                <span id="parse-loading-text">ChronoAI 正在提取解析中...</span>
+                <span id="parse-loading-text">Loomi 正在提取解析中...</span>
             </div>
 
             <div class="voice-save-result" id="voice-save-result"></div>
 
             <!-- 结构化预览卡 -->
             <div class="preview-card" id="preview-result-card">
-                <div class="preview-header">✨ ChronoAI 结构化解析结果</div>
+                <div class="preview-header">✨ Loomi 结构化解析结果</div>
                 <div class="preview-item">
                     <span class="preview-label">事项名称</span>
                     <span class="preview-val" id="prev-name">-</span>
@@ -1837,7 +1837,7 @@
         <div class="bottom-sheet" id="sheet-settings">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <span class="sheet-title"><i class="fa-solid fa-sliders"></i> ChronoAI 系统设置</span>
+                <span class="sheet-title"><i class="fa-solid fa-sliders"></i> Loomi 系统设置</span>
                 <button class="sheet-close-btn">&times;</button>
             </div>
             
@@ -2311,7 +2311,7 @@
 
         async function parseSemanticInput(text) {
             console.log(`[Parser] Starting extraction for: "${text}"`);
-            showLoading(true, '🤖 ChronoAI 正在向后端发起解析...');
+            showLoading(true, '🤖 Loomi 正在向后端发起解析...');
 
             try {
                 const response = await fetch(`${CONFIG.BACKEND_URL}/api/parse`, {
@@ -3670,7 +3670,7 @@
         }
 
         async function uploadAndParseAudio(blob) {
-            showLoading(true, voiceMode === 'journal' ? 'Saving voice note...' : '🤖 ChronoAI 正在转录听写音频...');
+            showLoading(true, voiceMode === 'journal' ? 'Saving voice note...' : '🤖 Loomi 正在转录听写音频...');
             
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
@@ -4133,8 +4133,8 @@
             const endIso = new Date(`${task.date}T${task.scheduledEnd}:00`).toISOString();
 
             const eventBody = {
-                'summary': `[ChronoAI] ${task.name}`,
-                'description': `由 ChronoAI 自动排程。\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
+                'summary': `[Loomi] ${task.name}`,
+                'description': `由 Loomi 自动排程。\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
                 'start': { 'dateTime': startIso },
                 'end': { 'dateTime': endIso },
                 'colorId': task.category === 'work' ? '5' : (task.category === 'health' ? '10' : '7')

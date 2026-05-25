@@ -1,7 +1,7 @@
 @echo off
-title ChronoAI Frontend Launcher
+title Loomi Frontend Launcher
 echo ===================================================
-echo   ChronoAI Smart Time Assistant - Frontend Server
+echo   Loomi Smart Time Assistant - Frontend Server
 echo ===================================================
 echo.
 
