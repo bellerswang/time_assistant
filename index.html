@@ -1128,6 +1128,277 @@
             display: block;
         }
 
+        .record-home {
+            gap: 18px;
+        }
+        .record-hero {
+            border: 1px solid rgba(91, 168, 181, 0.32);
+            background:
+                linear-gradient(150deg, rgba(91, 168, 181, 0.18), rgba(109, 170, 69, 0.08)),
+                var(--surface-2);
+            border-radius: var(--radius-xl);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+            min-height: 360px;
+            justify-content: center;
+        }
+        .record-hero.compact {
+            min-height: auto;
+            justify-content: flex-start;
+        }
+        .record-hero-kicker {
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .record-hero-title {
+            color: var(--text);
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.05;
+        }
+        .record-hero-subtitle {
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .record-hero-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+        }
+        .record-orb-button {
+            width: 148px;
+            height: 148px;
+            border: 0;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.45), transparent 26%),
+                linear-gradient(145deg, var(--primary), #6daa45);
+            color: #071010;
+            font-size: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 24px 54px rgba(91, 168, 181, 0.28);
+            margin: 6px 0 4px;
+        }
+        .record-orb-button:active {
+            transform: scale(0.96);
+        }
+        .quick-record-composer {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: rgba(15, 15, 14, 0.36);
+            border-radius: var(--radius-lg);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .quick-record-composer textarea {
+            width: 100%;
+            min-height: 82px;
+            resize: vertical;
+            border: 0;
+            background: transparent;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        .quick-record-composer textarea::placeholder {
+            color: var(--text-muted);
+        }
+        .quick-record-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
+        .quick-record-row select {
+            margin: 0;
+            height: 36px;
+        }
+        .record-primary-action {
+            border: 0;
+            background: var(--primary);
+            color: #000;
+            border-radius: var(--radius-md);
+            padding: 0 14px;
+            height: 36px;
+            font-size: 12px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            cursor: pointer;
+        }
+        .record-secondary-action {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            cursor: pointer;
+        }
+        .record-filter-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+        .record-filter-row::-webkit-scrollbar {
+            display: none;
+        }
+        .record-filter-chip {
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-muted);
+            border-radius: var(--radius-full);
+            padding: 7px 11px;
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .record-filter-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #000;
+        }
+        .record-section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .record-section-title {
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .ask-panel {
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ask-input-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+        .ask-input-row input {
+            min-width: 0;
+        }
+        .category-sheet-list {
+            display: grid;
+            gap: 8px;
+        }
+        .category-choice-btn {
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .category-choice-btn span {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .app-container.record-home-mode .week-strip {
+            display: none;
+        }
+        .app-container.record-home-mode .top-bar,
+        .app-container.record-home-mode .voice-fab,
+        .app-container.record-home-mode #tab-timeline,
+        .app-container.record-home-mode #tab-analytics,
+        .app-container.record-home-mode #tab-routines {
+            display: none;
+        }
+        .app-container.record-home-mode .main-content {
+            padding-top: 18px;
+            padding-bottom: calc(88px + var(--safe-bottom));
+        }
+
+        .recording-wave-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 35;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 15, 14, 0.72);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+        .recording-wave-overlay.active {
+            display: flex;
+        }
+        .recording-wave-core {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #071010;
+            background: linear-gradient(145deg, var(--primary), #6daa45);
+            font-size: 42px;
+            box-shadow: 0 26px 70px rgba(91, 168, 181, 0.34);
+        }
+        .recording-wave-core::before,
+        .recording-wave-core::after {
+            content: "";
+            position: absolute;
+            inset: -18px;
+            border: 1px solid rgba(91, 168, 181, 0.52);
+            border-radius: 50%;
+            animation: wave-ring 1.5s ease-out infinite;
+        }
+        .recording-wave-core::after {
+            inset: -44px;
+            animation-delay: 0.45s;
+        }
+        @keyframes wave-ring {
+            0% {
+                transform: scale(0.75);
+                opacity: 0.82;
+            }
+            100% {
+                transform: scale(1.28);
+                opacity: 0;
+            }
+        }
+
         /* Bottom Sheets */
         .sheet-overlay {
             position: absolute;
@@ -1615,6 +1886,12 @@
             <div id="month-grid" class="month-grid"></div>
         </div>
 
+        <div class="recording-wave-overlay" id="recording-wave-overlay">
+            <div class="recording-wave-core">
+                <i class="fa-solid fa-microphone"></i>
+            </div>
+        </div>
+
         <!-- 2. WeekStrip -->
         <div class="week-strip" id="week-strip">
             <!-- Dynamic days rendered here -->
@@ -1624,7 +1901,7 @@
         <div class="main-content">
             
             <!-- VIEW 1: 今日时间轴 -->
-            <div id="tab-timeline" class="tab-panel active">
+            <div id="tab-timeline" class="tab-panel">
                 <div class="action-banner">
                     <button class="action-pill primary" id="btn-load-routines">
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -1732,25 +2009,85 @@
                 </div>
             </div>
 
-            <!-- VIEW 4: Voice Inbox -->
-            <div id="tab-voice" class="tab-panel">
-                <div class="voice-inbox-toolbar">
-                    <select class="form-input" id="voice-inbox-folder" style="margin:0; height:34px; font-size:12px;"></select>
-                    <select class="form-input" id="voice-inbox-mode" style="margin:0; height:34px; font-size:12px;">
-                        <option value="all">All</option>
-                        <option value="journal">Journal</option>
-                        <option value="wiki">Wiki</option>
-                        <option value="ask">Ask</option>
-                        <option value="schedule">Schedule</option>
-                    </select>
+            <!-- VIEW 4: Voice -->
+            <div id="tab-voice" class="tab-panel active record-home">
+                <section class="record-hero">
+                    <div class="record-hero-title">LOOMI MEMORY</div>
+                    <button class="record-orb-button" id="record-home-mic" aria-label="Start voice capture">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                </section>
+            </div>
+
+            <!-- VIEW 5: Ask Me -->
+            <div id="tab-ask" class="tab-panel record-home">
+                <section class="record-hero compact">
+                    <div class="record-hero-title">Ask Me</div>
+                    <button class="record-orb-button" id="ask-voice-mic" aria-label="Ask by voice">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <div class="quick-record-composer">
+                        <textarea id="ask-memory-input" placeholder="Ask your journal and life wiki..."></textarea>
+                        <div class="quick-record-row">
+                            <div></div>
+                            <button class="record-primary-action" id="btn-ask-memory">
+                                <i class="fa-solid fa-arrow-right"></i>
+                                Ask
+                            </button>
+                        </div>
+                    </div>
+                    <div class="voice-save-result" id="ask-memory-result"></div>
+                </section>
+            </div>
+
+            <!-- VIEW 6: Records -->
+            <div id="tab-records" class="tab-panel record-home">
+                <div class="record-section-head">
+                    <div class="record-section-title">Records</div>
                     <button class="action-pill primary" id="btn-refresh-voice-inbox" style="height:34px;">
                         <i class="fa-solid fa-rotate"></i>
                         Refresh
                     </button>
                 </div>
+
+                <div class="record-filter-row" id="record-filter-row">
+                    <button class="record-filter-chip active" data-category="all">All</button>
+                    <button class="record-filter-chip" data-category="self_reflection">Self Reflection</button>
+                    <button class="record-filter-chip" data-category="life_knowledge">Life Knowledge</button>
+                    <button class="record-filter-chip" data-category="work_idea">Work Idea</button>
+                    <button class="record-filter-chip" data-category="family_plan">Family Plan</button>
+                    <button class="record-filter-chip" data-category="ask">Ask</button>
+                    <button class="record-filter-chip" data-category="inbox">Inbox</button>
+                </div>
+
+                <div class="voice-inbox-toolbar" style="display:none;">
+                    <select class="form-input" id="voice-inbox-folder" style="margin:0; height:34px; font-size:12px;"></select>
+                    <select class="form-input" id="voice-inbox-mode" style="margin:0; height:34px; font-size:12px;">
+                        <option value="all">All</option>
+                        <option value="self_reflection">Self Reflection</option>
+                        <option value="life_knowledge">Life Knowledge</option>
+                        <option value="work_idea">Work Idea</option>
+                        <option value="family_plan">Family Plan</option>
+                        <option value="ask">Ask</option>
+                        <option value="inbox">Inbox</option>
+                    </select>
+                </div>
                 <div class="voice-entry-list" id="voice-entry-list">
                     <!-- Voice entries rendered here -->
                 </div>
+            </div>
+
+            <!-- VIEW 7: Settings -->
+            <div id="tab-settings-home" class="tab-panel record-home">
+                <section class="record-hero compact">
+                    <div class="record-hero-title">Settings</div>
+                    <button class="record-orb-button" id="settings-open-button" aria-label="Open settings">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                    <div class="voice-save-result active">
+                        Backend, Google Calendar, refresh, and connection checks are kept in the existing settings panel.
+                    </div>
+                </section>
             </div>
 
         </div>
@@ -1764,25 +2101,31 @@
 
         <!-- 5. BottomNav -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-tab="timeline">
+            <button class="nav-item active" data-tab="voice">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+                <span>Voice</span>
+            </button>
+            <button class="nav-item" data-tab="ask">
                 <svg viewBox="0 0 24 24">
                     <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/>
                 </svg>
                 <span>日程轴</span>
             </button>
-            <button class="nav-item" data-tab="analytics">
+            <button class="nav-item" data-tab="records">
                 <svg viewBox="0 0 24 24">
                     <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
                 </svg>
                 <span>分析</span>
             </button>
-            <button class="nav-item" data-tab="routines">
+            <button class="nav-item" data-tab="settings-home">
                 <svg viewBox="0 0 24 24">
                     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
                 </svg>
                 <span>常规</span>
             </button>
-            <button class="nav-item" data-tab="voice">
+            <button class="nav-item" data-tab="voice" style="display:none;">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
@@ -1873,6 +2216,22 @@
         </div>
 
         <!-- SHEET 2: 新增/编辑日常模板 -->
+        <div class="bottom-sheet" id="sheet-record-category">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <span class="sheet-title"><i class="fa-solid fa-tags"></i> Change category</span>
+                <button class="sheet-close-btn">&times;</button>
+            </div>
+            <input type="hidden" id="record-category-target-id">
+            <div class="category-sheet-list">
+                <button class="category-choice-btn" data-category="work_idea">Work Idea <span>Ideas, projects, code</span></button>
+                <button class="category-choice-btn" data-category="family_plan">Family Plan <span>Plans, reminders, calendar candidates</span></button>
+                <button class="category-choice-btn" data-category="life_knowledge">Life Knowledge <span>Reusable facts and wiki notes</span></button>
+                <button class="category-choice-btn" data-category="self_reflection">Self Reflection <span>Journal and personal notes</span></button>
+                <button class="category-choice-btn" data-category="inbox">Inbox <span>Review later</span></button>
+            </div>
+        </div>
+
         <div class="bottom-sheet" id="sheet-routine-edit">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -2133,7 +2492,7 @@
 
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
-        let currentTab = 'timeline';
+        let currentTab = 'voice';
         let activeTimerInterval = null;
         let activeTimerTaskId = null;
         let voiceMode = 'auto';
@@ -2622,6 +2981,54 @@
             document.getElementById('preview-result-card')?.classList.remove('active');
         }
 
+        function openVoiceCapture(mode = 'auto') {
+            document.getElementById('textarea-input').value = '';
+            document.getElementById('preview-result-card')?.classList.remove('active');
+            document.getElementById('voice-save-result')?.classList.remove('active');
+            setVoiceMode(mode);
+            openSheet('sheet-input');
+        }
+
+        function setActiveAppMode(tabName) {
+            const memoryTabs = ['voice', 'ask', 'records', 'settings-home'];
+            document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
+            const labels = {
+                voice: 'Voice',
+                ask: 'Ask Me',
+                records: 'Records',
+                'settings-home': 'Setting'
+            };
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+                const label = labels[item.getAttribute('data-tab')];
+                const span = item.querySelector('span');
+                if (label && span) span.innerText = label;
+            });
+        }
+
+        function setRecordFilter(category) {
+            const modeSelect = document.getElementById('voice-inbox-mode');
+            if (modeSelect) modeSelect.value = category || 'all';
+            document.querySelectorAll('.record-filter-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-category') === (category || 'all'));
+            });
+            renderVoiceInbox();
+        }
+
+        async function submitQuickRecordText() {
+            const textarea = document.getElementById('quick-record-text');
+            const modeSelect = document.getElementById('quick-record-mode');
+            const text = (textarea?.value || '').trim();
+            if (!text) {
+                showToast('Type something first, or tap the circle to speak.', 'error');
+                return;
+            }
+            const previousMode = voiceMode;
+            setVoiceMode(modeSelect?.value || 'auto');
+            await submitVoiceText(text);
+            setVoiceMode(previousMode);
+            if (textarea) textarea.value = '';
+        }
+
         async function loadVoiceFolders() {
             try {
                 const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/folders`);
@@ -2772,6 +3179,27 @@
         function showVoiceSaveResult(data) {
             const box = document.getElementById('voice-save-result');
             if (!box) return;
+            if (data.record) {
+                const record = data.record;
+                const storage = data.storage || {};
+                const primary = storage.primary || {};
+                const tags = (record.tags || []).map(escapeHtml).join(', ');
+                const docLine = primary.doc_url
+                    ? `<br><a href="${escapeHtml(primary.doc_url)}" target="_blank" style="color:var(--success);">Google Doc synced</a>`
+                    : `<br><span style="color:var(--text-muted);">Google Doc: ${escapeHtml(formatGoogleDocStatus(primary.status || data.google_doc_status || 'not_synced'))}</span>`;
+                const confidence = typeof record.confidence === 'number' ? Math.round(record.confidence * 100) + '%' : '';
+                box.innerHTML = `
+                    <strong>Saved as ${escapeHtml(record.category_label || record.category || 'Record')}</strong>${docLine}
+                    <br><span>${escapeHtml(record.title || '')}</span>
+                    <br><span style="color:var(--text-muted);">${escapeHtml(record.summary || data.transcript || '')}</span>
+                    <br><span style="color:var(--text-muted);">${tags}${confidence ? ` · ${escapeHtml(confidence)}` : ''}</span>
+                    <br><button class="btn-sheet-secondary" style="margin-top:8px; padding:6px 10px; font-size:11px;" onclick="changeRecordCategory('${escapeHtml(record.id)}')">
+                        <i class="fa-solid fa-tags"></i> Change category
+                    </button>
+                `;
+                box.classList.add('active');
+                return;
+            }
             if (data.mode === 'wiki' && data.wiki_entry) {
                 const wiki = data.wiki_entry;
                 box.innerHTML = `<strong>Saved to Life Wiki</strong><br>${escapeHtml(wiki.title || '')}<br><span style="color:var(--text-muted);">${escapeHtml(wiki.topic || '')} · ${(wiki.tags || []).map(escapeHtml).join(', ')}</span>`;
@@ -2808,6 +3236,69 @@
             return status;
         }
 
+        async function changeRecordCategory(recordId) {
+            document.getElementById('record-category-target-id').value = recordId;
+            openSheet('sheet-record-category');
+        }
+
+        async function submitRecordCategory(recordId, category) {
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}/category`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                closeAllSheets();
+                await renderVoiceInbox();
+                showToast('Record category updated', 'success');
+            } catch (e) {
+                console.error('[Records] Category update failed:', e);
+                showToast('Could not update category', 'error');
+            }
+        }
+
+        async function submitAskPanel() {
+            const input = document.getElementById('ask-memory-input');
+            const result = document.getElementById('ask-memory-result');
+            const query = (input?.value || '').trim();
+            if (!query) {
+                showToast('Ask something from your records first.', 'error');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('text', query);
+            formData.append('mode', 'ask');
+            formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
+            if (result) {
+                result.classList.add('active');
+                result.innerHTML = '<strong>Searching memory...</strong>';
+            }
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
+                }
+                const data = await response.json();
+                const sources = (data.sources || []).map(src => `${escapeHtml(src.category_label || src.type)}: ${escapeHtml(src.title || src.id)}`).join('<br>');
+                if (result) {
+                    result.innerHTML = `<strong>Memory Answer</strong><br>${escapeHtml(data.answer || 'No answer returned.')}<br><span style="color:var(--text-muted);">${sources}</span>`;
+                }
+                await renderVoiceInbox();
+            } catch (e) {
+                console.error('[Ask] Memory ask failed:', e);
+                const msg = e.message || '';
+                const detail = msg.includes('DEEPSEEK_API_KEY') || msg.includes('503')
+                    ? 'DeepSeek is not configured on the backend. Add DEEPSEEK_API_KEY to backend/.env, then restart the backend.'
+                    : 'Check backend and DeepSeek configuration.';
+                if (result) result.innerHTML = `<strong>Ask failed</strong><br><span style="color:var(--text-muted);">${escapeHtml(detail)}</span>`;
+            }
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replaceAll('&', '&amp;')
@@ -2825,12 +3316,11 @@
             list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">Loading...</div></div>';
             try {
                 const params = new URLSearchParams({ limit: '50' });
-                if (folder) params.set('folder_id', folder);
-                if (mode && mode !== 'all') params.set('mode', mode);
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/entries?${params.toString()}`);
+                if (mode && mode !== 'all') params.set('category', mode);
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records?${params.toString()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                const entries = data.entries || [];
+                const entries = data.records || data.entries || [];
                 if (!entries.length) {
                     list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">No voice notes yet.</div></div>';
                     return;
@@ -2838,19 +3328,32 @@
                 list.innerHTML = entries.map(entry => {
                     const folderName = voiceFolders.find(f => f.id === entry.folder_id)?.name || entry.folder_id;
                     const date = new Date(entry.created_at).toLocaleString();
-                    const docStatus = entry.google_doc_url
-                        ? `<a href="${escapeHtml(entry.google_doc_url)}" target="_blank" style="color:var(--success); text-decoration:none;">Google Doc</a>`
-                        : `Google Doc: ${escapeHtml(formatGoogleDocStatus(entry.google_doc_status || 'not_synced'))}`;
+                    const storage = entry.storage_status || {};
+                    const primary = storage.primary || {};
+                    const docUrl = entry.google_doc_url || primary.doc_url;
+                    const docRawStatus = entry.google_doc_status || primary.status || 'not_synced';
+                    const docStatus = docUrl
+                        ? `<a href="${escapeHtml(docUrl)}" target="_blank" style="color:var(--success); text-decoration:none;">Google Doc</a>`
+                        : `Google Doc: ${escapeHtml(formatGoogleDocStatus(docRawStatus))}`;
+                    const title = entry.title || '';
+                    const body = entry.summary || entry.cleaned_text || entry.raw_transcript || entry.transcript || '';
+                    const label = entry.category_label || entry.category || `${folderName} 路 ${entry.mode}`;
+                    const tags = (entry.tags || entry.metadata?.tags || []).map(escapeHtml).join(', ');
+                    const changeButton = entry.category
+                        ? `<button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px;" onclick="changeRecordCategory('${escapeHtml(entry.id)}')">Change</button>`
+                        : '';
                     return `
                         <div class="voice-entry-card">
                             <div class="voice-entry-meta">
-                                <span>${escapeHtml(folderName)} · ${escapeHtml(entry.mode)}</span>
+                                <span>${escapeHtml(label)}</span>
                                 <span>${escapeHtml(date)}</span>
                             </div>
                             <div class="voice-entry-meta">
                                 <span>${docStatus}</span>
+                                ${changeButton}
                             </div>
-                            <div class="voice-entry-text">${escapeHtml(entry.transcript)}</div>
+                            <div class="voice-entry-text">${title ? `<strong>${escapeHtml(title)}</strong><br>` : ''}${escapeHtml(body)}</div>
+                            ${tags ? `<div class="voice-entry-meta"><span>${tags}</span></div>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -2861,7 +3364,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -3889,6 +4392,12 @@
         let audioChunks = [];
         let isRecording = false;
 
+        function setRecordingWave(active) {
+            document.getElementById('recording-wave-overlay')?.classList.toggle('active', Boolean(active));
+            document.getElementById('record-home-mic')?.classList.toggle('active-recording', Boolean(active));
+            document.getElementById('ask-voice-mic')?.classList.toggle('active-recording', Boolean(active));
+        }
+
         async function toggleVoiceRecording() {
             const btn = document.getElementById('btn-voice-record');
             const icon = document.getElementById('voice-record-icon');
@@ -3923,6 +4432,7 @@
 
                     mediaRecorder.start();
                     isRecording = true;
+                    setRecordingWave(true);
 
                     btn.classList.add('active-recording');
                     icon.className = 'fa-solid fa-square-phone-flip';
@@ -3930,6 +4440,7 @@
                     showToast('🎙️ 正在录音... 说完后请再次点击该按钮停止并安排');
 
                 } catch (e) {
+                    setRecordingWave(false);
                     console.error('[Voice] Mic request failed:', e);
                     showToast('🎙️ 录音授权失败，请在浏览器权限设置中开启麦克风权限！', 'error');
                 }
@@ -3939,6 +4450,7 @@
                     mediaRecorder.stop();
                 }
                 isRecording = false;
+                setRecordingWave(false);
                 btn.classList.remove('active-recording');
                 icon.className = 'fa-solid fa-microphone';
                 text.innerText = '按键录音';
@@ -4441,6 +4953,7 @@
             checkAndInitSampleData();
             loadVoiceFolders().then(renderVoiceInbox);
             loadVoicePrompts();
+            setActiveAppMode(currentTab);
             
             // Google Calendar 初始化 (v3.0.0)
             initGCalClient();
@@ -4466,10 +4979,16 @@
                     document.getElementById(`tab-${targetTab}`).classList.add('active');
 
                     currentTab = targetTab;
+                    setActiveAppMode(targetTab);
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'analytics') renderAnalytics();
                     else if (targetTab === 'routines') renderRoutines();
-                    else if (targetTab === 'voice') renderVoiceInbox();
+                    else if (targetTab === 'records') renderVoiceInbox();
+                    else if (targetTab === 'settings-home') {
+                        document.getElementById('setting-backend-url').value = CONFIG.BACKEND_URL;
+                        checkBackendConnection();
+                        openSheet('sheet-settings');
+                    }
                 });
             });
 
@@ -4497,11 +5016,51 @@
 
             // FAB 触发解析 Sheet
             document.getElementById('voice-fab-trigger').addEventListener('click', () => {
-                document.getElementById('textarea-input').value = '';
-                document.getElementById('preview-result-card').classList.remove('active');
-                document.getElementById('voice-save-result')?.classList.remove('active');
-                setVoiceMode('auto');
-                openSheet('sheet-input');
+                openVoiceCapture('auto');
+            });
+
+            document.getElementById('record-home-mic')?.addEventListener('click', () => {
+                openVoiceCapture('auto');
+                setTimeout(() => {
+                    if (!isRecording) toggleVoiceRecording();
+                }, 120);
+            });
+            document.getElementById('ask-voice-mic')?.addEventListener('click', () => {
+                openVoiceCapture('ask');
+                setTimeout(() => {
+                    if (!isRecording) toggleVoiceRecording();
+                }, 120);
+            });
+            document.getElementById('btn-quick-record-submit')?.addEventListener('click', submitQuickRecordText);
+            document.getElementById('quick-record-text')?.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitQuickRecordText();
+            });
+            document.getElementById('record-home-ask')?.addEventListener('click', () => {
+                document.getElementById('ask-memory-input')?.focus();
+            });
+            document.getElementById('record-home-settings')?.addEventListener('click', () => {
+                document.getElementById('setting-backend-url').value = CONFIG.BACKEND_URL;
+                checkBackendConnection();
+                openSheet('sheet-settings');
+            });
+            document.getElementById('settings-open-button')?.addEventListener('click', () => {
+                document.getElementById('setting-backend-url').value = CONFIG.BACKEND_URL;
+                checkBackendConnection();
+                openSheet('sheet-settings');
+            });
+            document.getElementById('btn-ask-memory')?.addEventListener('click', submitAskPanel);
+            document.getElementById('ask-memory-input')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitAskPanel();
+            });
+            document.querySelectorAll('.record-filter-chip').forEach(btn => {
+                btn.addEventListener('click', () => setRecordFilter(btn.getAttribute('data-category') || 'all'));
+            });
+            document.querySelectorAll('.category-choice-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const recordId = document.getElementById('record-category-target-id')?.value;
+                    if (!recordId) return;
+                    submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
+                });
             });
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {

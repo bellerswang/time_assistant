@@ -104,7 +104,7 @@ VOICE_DB_PATH=backend/data/chronoai.db
 VOICE_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODEL=DeepSeek-V4-Flash
 ```
 
 Cloud Run note: local SQLite is fine for local development and short trials, but Cloud Run's container filesystem is not reliable long-term storage. For production use, migrate voice metadata to Cloud SQL or Firestore while keeping audio files in GCS.
@@ -118,6 +118,41 @@ Google Docs sync note: Cloud Run can use either Application Default Credentials 
 - Added Life Wiki storage via `wiki_entries` and memory lookup via `/api/memory/search`.
 - Added DeepSeek-backed `/api/memory/ask` for answers grounded in Journal + Wiki memory.
 - Schedule parsing now attaches relevant memory reminders when matching journal/wiki context exists.
+
+## v2.3.0 - Voice-first Record architecture
+
+- Added a unified `Record` model for every voice/text submission.
+- Added a repository/service skeleton for Google Doc, SQLite index, and future Firestore storage.
+- Kept Google Doc as the current human-readable primary archive while moving the app contract toward structured Records.
+- Added a SQLite `records` metadata index for Records list, memory search, and category correction.
+- Upgraded `/api/voice/submit` to return both the old fields and the new `record`, `storage`, and `actions` feedback card shape.
+- Added `GET /api/records` and `PATCH /api/records/{record_id}/category`.
+- Reserved Firestore configuration and a `FirestoreRepository` stub, disabled by default.
+- Refactored the frontend toward a voice-first Records home: large voice capture entry, Ask panel, record category filters, and a category correction bottom sheet.
+- Simplified the app shell into a single memory capture surface: circular voice button, direct text input, Ask, and Records.
+- Reworked the frontend into four tabs: `Voice`, `Ask Me`, `Records`, and `Setting`.
+- Added a recording wave overlay so every voice input shows clear active recording feedback.
+
+Current storage modes:
+
+```bash
+STORAGE_MODE=google_doc
+INDEX_MODE=sqlite
+GOOGLE_DOCS_ENABLED=true
+GOOGLE_DOCS_DEFAULT_DOC_ID=optional-doc-id
+FIRESTORE_ENABLED=false
+FIRESTORE_PROJECT_ID=
+FIRESTORE_COLLECTION=records
+```
+
+Record categories:
+
+- `work_idea` - work ideas, product thoughts, code/project notes.
+- `family_plan` - family plans and calendar-like arrangements.
+- `life_knowledge` - reusable Life Wiki facts and local-life knowledge.
+- `self_reflection` - journal, mood, relationship, and personal reflection.
+- `ask` - memory questions.
+- `inbox` - uncertain or uncategorized records.
 
 ## Current workflows
 
@@ -151,7 +186,7 @@ DeepSeek requires:
 ```bash
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODEL=DeepSeek-V4-Flash
 ```
 
 If `DEEPSEEK_API_KEY` is missing, Ask returns `503` but Journal, Wiki, and Schedule still work.

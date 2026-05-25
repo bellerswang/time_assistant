@@ -14,6 +14,8 @@ import base64
 from datetime import datetime, timezone
 import httpx
 
+from models import CATEGORY_LABELS, Record, RecordMetadata
+
 try:
     from google.cloud import storage
 except ImportError:
@@ -85,6 +87,12 @@ GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
 )
 GOOGLE_DOCS_CREDENTIALS_JSON = os.getenv("GOOGLE_DOCS_CREDENTIALS_JSON")
 VOICE_DOC_MAX_CHARS = int(os.getenv("VOICE_DOC_MAX_CHARS", "800000"))
+STORAGE_MODE = os.getenv("STORAGE_MODE", "google_doc")
+INDEX_MODE = os.getenv("INDEX_MODE", "sqlite")
+GOOGLE_DOCS_DEFAULT_DOC_ID = os.getenv("GOOGLE_DOCS_DEFAULT_DOC_ID")
+FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "false").lower() in {"1", "true", "yes"}
+FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
+FIRESTORE_COLLECTION = os.getenv("FIRESTORE_COLLECTION", "records")
 
 
 def resolve_folders_config_path() -> str:
@@ -119,6 +127,10 @@ class MemoryAskRequest(BaseModel):
     query: str
     types: list[str] = ["wiki", "journal"]
     limit: int = 8
+
+
+class RecordCategoryUpdateRequest(BaseModel):
+    category: str
 
 
 def utc_now_iso() -> str:
@@ -187,6 +199,32 @@ def init_voice_db() -> None:
             )
         except sqlite3.OperationalError as e:
             logger.warning(f"[Memory] SQLite FTS5 unavailable; LIKE search fallback will be used: {e}")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS records (
+                id TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                source TEXT NOT NULL,
+                raw_transcript TEXT NOT NULL,
+                cleaned_text TEXT NOT NULL,
+                category TEXT NOT NULL,
+                category_label TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                needs_review INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                storage_status_json TEXT NOT NULL,
+                folder_id TEXT,
+                mode TEXT,
+                prompt_id TEXT,
+                google_doc_id TEXT,
+                google_doc_url TEXT,
+                google_doc_status TEXT
+            )
+            """
+        )
         conn.commit()
 
 
@@ -409,6 +447,18 @@ def format_google_doc_entry(entry: dict, folder: dict) -> str:
     return f"[{entry['created_at']}] {folder_name} - {entry['transcript']}\n\n"
 
 
+def format_record_for_google_doc(record: Record, folder: dict) -> str:
+    tags = record.metadata.tags or []
+    tag_text = " / ".join(tags) if tags else "no tags"
+    created = record.created_at.strftime("%Y-%m-%d %H:%M")
+    return (
+        f"\n## {created} · {record.category_label} · {tag_text}\n\n"
+        f"{record.cleaned_text}\n\n"
+        f"AI Summary: {record.summary}\n\n"
+        f"Record ID:\n{record.id}\n\n"
+    )
+
+
 def build_google_doc_url(doc_id: str) -> str:
     return f"https://docs.google.com/document/d/{doc_id}/edit"
 
@@ -470,6 +520,52 @@ def append_journal_to_google_doc(entry: dict) -> dict:
     except Exception as e:
         logger.error(f"[Voice] Google Doc append failed: {e}")
         return {"status": classify_google_doc_error(e), "doc_id": None, "doc_url": None}
+
+
+def append_record_to_google_doc(record: Record, folder_id: str) -> dict:
+    if STORAGE_MODE != "google_doc":
+        return {"backend": "google_doc", "status": "skipped:storage_mode_not_google_doc", "doc_id": None, "doc_url": None}
+    if not GOOGLE_DOCS_ENABLED:
+        return {"backend": "google_doc", "status": "disabled", "doc_id": None, "doc_url": None}
+
+    folder = get_voice_folder(folder_id)
+    configured_doc_id = folder.get("google_doc_id") or GOOGLE_DOCS_DEFAULT_DOC_ID
+    drive_folder_id = folder.get("gdrive_folder_id")
+    if not configured_doc_id and not drive_folder_id:
+        return {"backend": "google_doc", "status": "skipped:no_gdrive_folder_id", "doc_id": None, "doc_url": None}
+
+    creds, auth_mode, auth_email = resolve_google_docs_credentials()
+    if not creds:
+        return {"backend": "google_doc", "status": "skipped:no_google_credentials", "doc_id": None, "doc_url": None}
+
+    try:
+        logger.info(f"[Record] Google Docs auth mode: {auth_mode}; email: {auth_email or 'unknown'}")
+        appender = GoogleDocAppender(creds)
+        if configured_doc_id:
+            doc_id = configured_doc_id
+        else:
+            folder_name = folder.get("name") or folder_id
+            volume = 1
+            while True:
+                doc_name = f"{folder_name} Records - Vol {volume}"
+                doc_id = appender.find_doc_by_name(drive_folder_id, doc_name)
+                if not doc_id:
+                    doc_id = appender.create_doc(drive_folder_id, doc_name)
+                    break
+                if appender.get_doc_size(doc_id) < VOICE_DOC_MAX_CHARS:
+                    break
+                volume += 1
+
+        appender.append_text(doc_id, format_record_for_google_doc(record, folder))
+        return {
+            "backend": "google_doc",
+            "status": "synced",
+            "doc_id": doc_id,
+            "doc_url": build_google_doc_url(doc_id),
+        }
+    except Exception as e:
+        logger.error(f"[Record] Google Doc append failed: {e}")
+        return {"backend": "google_doc", "status": classify_google_doc_error(e), "doc_id": None, "doc_url": None}
 
 
 def insert_voice_entry(entry: dict) -> None:
@@ -543,6 +639,253 @@ def list_voice_entries(folder_id: str | None, mode: str | None, limit: int) -> l
     return entries
 
 
+def record_to_public_dict(record: Record) -> dict:
+    data = record.model_dump(mode="json")
+    data["tags"] = record.metadata.tags
+    return data
+
+
+def build_record_id() -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return f"rec_{timestamp}_{uuid.uuid4().hex[:8]}"
+
+
+def mode_to_record_category(mode: str, transcript: str, route: dict | None = None) -> str:
+    if mode == "wiki":
+        return "life_knowledge"
+    if mode == "ask":
+        return "ask"
+    if mode == "schedule":
+        return "family_plan"
+    lowered = (transcript or "").lower()
+    if re.search(r"(work|project|code|coding|meeting|dashboard|瀛︿範|宸ヤ綔|浠ｇ爜|椤圭洰|浼氳)", lowered):
+        return "work_idea"
+    return "self_reflection"
+
+
+def normalize_record_category(category: str | None) -> str:
+    return category if category in CATEGORY_LABELS else "inbox"
+
+
+def simple_tags_from_text(text: str, limit: int = 6) -> list[str]:
+    tags = []
+    for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]+|[\u4e00-\u9fff]{2,}", text or ""):
+        normalized = token.lower()
+        if normalized not in tags:
+            tags.append(normalized)
+        if len(tags) >= limit:
+            break
+    return tags
+
+
+async def create_record_draft(transcript: str, mode: str, source: str, route: dict | None = None) -> dict:
+    fallback_category = mode_to_record_category(mode, transcript, route)
+    fallback = {
+        "category": fallback_category,
+        "category_label": CATEGORY_LABELS[fallback_category],
+        "confidence": float(route.get("confidence", 0.7)) if route else 0.7,
+        "needs_review": False,
+        "title": (transcript.strip().splitlines()[0][:80] or "Voice Record"),
+        "summary": transcript.strip()[:180],
+        "cleaned_text": transcript.strip(),
+        "tags": simple_tags_from_text(transcript),
+        "people": [],
+        "places": [],
+        "time_expression": None,
+        "action_required": mode == "schedule",
+        "calendar_candidate": mode == "schedule",
+    }
+    if not DEEPSEEK_API_KEY:
+        return fallback
+
+    prompt = {
+        "task": "Create a structured Record draft from this personal voice/text input.",
+        "allowed_categories": list(CATEGORY_LABELS.keys()),
+        "mode_hint": mode,
+        "text": transcript,
+        "return_json_schema": {
+            "category": "one allowed category",
+            "category_label": "human readable label",
+            "confidence": 0.0,
+            "needs_review": False,
+            "title": "short title",
+            "summary": "short summary",
+            "cleaned_text": "lightly cleaned original text",
+            "tags": ["short tags"],
+            "people": [],
+            "places": [],
+            "time_expression": None,
+            "action_required": False,
+            "calendar_candidate": False,
+        },
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as deepseek_client:
+            response = await deepseek_client.post(
+                f"{DEEPSEEK_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": DEEPSEEK_MODEL,
+                    "messages": [
+                        {"role": "system", "content": "Return only valid JSON. Classify the note into the allowed Record category list."},
+                        {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
+                    ],
+                    "temperature": 0.1,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+        if response.status_code >= 400:
+            logger.warning(f"[Record] DeepSeek draft failed; using fallback: {response.text[:300]}")
+            return fallback
+        content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
+        draft = json.loads(content)
+        category = normalize_record_category(draft.get("category"))
+        draft["category"] = category
+        draft["category_label"] = draft.get("category_label") or CATEGORY_LABELS[category]
+        draft["confidence"] = max(0.0, min(1.0, float(draft.get("confidence", fallback["confidence"]))))
+        draft["needs_review"] = bool(draft.get("needs_review", False))
+        draft["title"] = (draft.get("title") or fallback["title"])[:120]
+        draft["summary"] = draft.get("summary") or fallback["summary"]
+        draft["cleaned_text"] = draft.get("cleaned_text") or fallback["cleaned_text"]
+        draft["tags"] = draft.get("tags") if isinstance(draft.get("tags"), list) else fallback["tags"]
+        draft["people"] = draft.get("people") if isinstance(draft.get("people"), list) else []
+        draft["places"] = draft.get("places") if isinstance(draft.get("places"), list) else []
+        draft["time_expression"] = draft.get("time_expression")
+        draft["action_required"] = bool(draft.get("action_required", mode == "schedule"))
+        draft["calendar_candidate"] = bool(draft.get("calendar_candidate", mode == "schedule"))
+        return draft
+    except Exception as e:
+        logger.warning(f"[Record] DeepSeek draft exception; using fallback: {e}")
+        return fallback
+
+
+def build_record_from_draft(
+    draft: dict,
+    transcript: str,
+    source: str,
+    now: str,
+    mode: str,
+    storage_status: dict | None = None,
+) -> Record:
+    category = normalize_record_category(draft.get("category"))
+    metadata = RecordMetadata(
+        people=draft.get("people") or [],
+        places=draft.get("places") or [],
+        tags=draft.get("tags") or [],
+        time_expression=draft.get("time_expression"),
+        action_required=bool(draft.get("action_required", mode == "schedule")),
+        calendar_candidate=bool(draft.get("calendar_candidate", mode == "schedule")),
+    )
+    return Record(
+        id=build_record_id(),
+        created_at=datetime.fromisoformat(now),
+        updated_at=datetime.fromisoformat(now),
+        source=source,
+        raw_transcript=transcript,
+        cleaned_text=draft.get("cleaned_text") or transcript,
+        category=category,
+        category_label=draft.get("category_label") or CATEGORY_LABELS[category],
+        confidence=float(draft.get("confidence", 0.7)),
+        needs_review=bool(draft.get("needs_review", False)),
+        title=draft.get("title") or transcript[:80] or "Voice Record",
+        summary=draft.get("summary") or transcript[:180],
+        metadata=metadata,
+        storage_status=storage_status or {},
+    )
+
+
+def insert_record(record: Record, folder_id: str, mode: str, prompt_id: str | None) -> dict:
+    status = record.storage_status or {}
+    primary = status.get("primary") or {}
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO records (
+                id, created_at, updated_at, source, raw_transcript, cleaned_text,
+                category, category_label, confidence, needs_review, title, summary,
+                metadata_json, storage_status_json, folder_id, mode, prompt_id,
+                google_doc_id, google_doc_url, google_doc_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.id,
+                record.created_at.isoformat(),
+                record.updated_at.isoformat(),
+                record.source,
+                record.raw_transcript,
+                record.cleaned_text,
+                record.category,
+                record.category_label,
+                record.confidence,
+                1 if record.needs_review else 0,
+                record.title,
+                record.summary,
+                json.dumps(record.metadata.model_dump(), ensure_ascii=False),
+                json.dumps(record.storage_status, ensure_ascii=False),
+                folder_id,
+                mode,
+                prompt_id,
+                primary.get("doc_id"),
+                primary.get("doc_url"),
+                primary.get("status"),
+            ),
+        )
+        conn.commit()
+    index_memory_item("record", record.id, record.title, f"{record.summary}\n{record.cleaned_text}")
+    return {"backend": "sqlite", "status": "saved"}
+
+
+def row_to_record_dict(row: sqlite3.Row) -> dict:
+    item = dict(row)
+    metadata = json.loads(item.pop("metadata_json") or "{}")
+    storage_status = json.loads(item.pop("storage_status_json") or "{}")
+    item["metadata"] = metadata
+    item["storage_status"] = storage_status
+    item["tags"] = metadata.get("tags", [])
+    return item
+
+
+def list_records(category: str | None, limit: int) -> list[dict]:
+    params = []
+    clause = ""
+    if category and category != "all":
+        clause = "WHERE category = ? OR mode = ?"
+        params.extend([category, category])
+    params.append(limit)
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            SELECT *
+            FROM records
+            {clause}
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    return [row_to_record_dict(row) for row in rows]
+
+
+def update_record_category(record_id: str, category: str) -> dict:
+    category = normalize_record_category(category)
+    label = CATEGORY_LABELS[category]
+    now = utc_now_iso()
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        result = conn.execute(
+            """
+            UPDATE records
+            SET category = ?, category_label = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (category, label, now, record_id),
+        )
+        conn.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return {"ok": True, "record_id": record_id, "category": category, "category_label": label}
+
+
 async def extract_submission_text(
     file: UploadFile | None,
     text: str | None,
@@ -599,7 +942,7 @@ def normalize_memory_types(types: list[str] | str | None) -> set[str]:
         raw_types = [item.strip() for item in types.split(",")]
     else:
         raw_types = types or ["wiki", "journal"]
-    allowed = {"wiki", "journal"}
+    allowed = {"wiki", "journal", "record", "records"}
     selected = {item for item in raw_types if item in allowed}
     return selected or allowed
 
@@ -680,6 +1023,54 @@ def search_memory(query: str, types: list[str] | str | None = None, limit: int =
         return []
 
     rows = []
+    results = []
+    category_filter = []
+    if "wiki" in selected_types:
+        category_filter.append("life_knowledge")
+    if "journal" in selected_types:
+        category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+    if "record" in selected_types or "records" in selected_types:
+        category_filter = []
+
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        like = f"%{query}%"
+        category_clause = ""
+        params = [like, like, like]
+        if category_filter:
+            placeholders = ",".join("?" for _ in category_filter)
+            category_clause = f"AND category IN ({placeholders})"
+            params.extend(category_filter)
+        params.append(limit)
+        try:
+            record_rows = conn.execute(
+                f"""
+                SELECT id, category, category_label, title, summary, cleaned_text, created_at
+                FROM records
+                WHERE (title LIKE ? OR summary LIKE ? OR cleaned_text LIKE ?)
+                {category_clause}
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                params,
+            ).fetchall()
+            results.extend(
+                {
+                    "type": row["category"],
+                    "id": row["id"],
+                    "record_id": row["id"],
+                    "title": row["title"],
+                    "category_label": row["category_label"],
+                    "created_at": row["created_at"],
+                    "snippet": (row["summary"] or row["cleaned_text"] or "")[:500],
+                }
+                for row in record_rows
+            )
+        except sqlite3.OperationalError as e:
+            logger.warning(f"[Memory] records search unavailable; using legacy search: {e}")
+    if results:
+        return results[:limit]
+
     try:
         with sqlite3.connect(VOICE_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
@@ -1075,6 +1466,12 @@ async def health_check():
         "google_docs_auth_mode": google_docs_auth_mode,
         "google_docs_auth_email": google_docs_auth_email,
         "deepseek_configured": bool(DEEPSEEK_API_KEY),
+        "deepseek_model": DEEPSEEK_MODEL if DEEPSEEK_API_KEY else None,
+        "storage_mode": STORAGE_MODE,
+        "index_mode": INDEX_MODE,
+        "firestore_enabled": FIRESTORE_ENABLED,
+        "firestore_project_id": FIRESTORE_PROJECT_ID,
+        "firestore_collection": FIRESTORE_COLLECTION,
     }
 
 
@@ -1136,6 +1533,19 @@ async def ask_memory(req: MemoryAskRequest):
     return {"answer": answer, "sources": sources}
 
 
+@app.get("/api/records")
+async def get_records(
+    category: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    return {"records": list_records(category, limit)}
+
+
+@app.patch("/api/records/{record_id}/category")
+async def patch_record_category(record_id: str, req: RecordCategoryUpdateRequest):
+    return update_record_category(record_id, req.category)
+
+
 @app.get("/api/voice/entries")
 async def get_voice_entries(
     folder_id: str | None = Query(default=None),
@@ -1160,6 +1570,7 @@ async def process_voice_submission(
     folder_id = validate_folder_id(folder_id or "LifeVoice")
     entry_id = f"voice_{uuid.uuid4().hex}"
     now = utc_now_iso()
+    source = "voice" if file is not None else "text"
     transcript, audio_uri, source_filename, mime_type = await extract_submission_text(file, text, entry_id, folder_id)
 
     route = classify_voice_intent(transcript) if requested_mode == "auto" else {
@@ -1191,6 +1602,23 @@ async def process_voice_submission(
         sources = search_memory(transcript, ["wiki", "journal"], 8)
         answer = await answer_with_deepseek(transcript, sources)
 
+    record_draft = await create_record_draft(transcript, resolved_mode, source, route)
+    record = build_record_from_draft(record_draft, transcript, source, now, resolved_mode)
+    primary_result = {
+        "backend": "google_doc",
+        "status": "skipped:ask_record_not_exported" if resolved_mode == "ask" else "skipped:not_attempted",
+        "doc_id": None,
+        "doc_url": None,
+    }
+    if resolved_mode != "ask":
+        primary_result = append_record_to_google_doc(record, folder_id)
+    record.storage_status = {
+        "primary": primary_result,
+        "index": {"backend": "sqlite", "status": "saved"},
+    }
+    index_result = insert_record(record, folder_id, resolved_mode, prompt_id)
+    record.storage_status["index"] = index_result
+
     entry = {
         "id": entry_id,
         "mode": resolved_mode,
@@ -1202,18 +1630,12 @@ async def process_voice_submission(
         "mime_type": mime_type,
         "duration_ms": None,
         "parsed_task": parsed_task,
-        "google_doc_id": None,
-        "google_doc_url": None,
-        "google_doc_status": None,
+        "google_doc_id": primary_result.get("doc_id"),
+        "google_doc_url": primary_result.get("doc_url"),
+        "google_doc_status": primary_result.get("status"),
         "created_at": now,
         "updated_at": now,
     }
-
-    if resolved_mode == "journal":
-        doc_result = append_journal_to_google_doc(entry)
-        entry["google_doc_id"] = doc_result.get("doc_id")
-        entry["google_doc_url"] = doc_result.get("doc_url")
-        entry["google_doc_status"] = doc_result.get("status")
 
     insert_voice_entry(entry)
 
@@ -1232,6 +1654,24 @@ async def process_voice_submission(
         "google_doc_id": entry.get("google_doc_id"),
         "google_doc_url": entry.get("google_doc_url"),
         "google_doc_status": entry.get("google_doc_status"),
+        "ok": True,
+        "record": {
+            "id": record.id,
+            "category": record.category,
+            "category_label": record.category_label,
+            "title": record.title,
+            "summary": record.summary,
+            "confidence": record.confidence,
+            "needs_review": record.needs_review,
+            "tags": record.metadata.tags,
+            "created_at": record.created_at.isoformat(),
+        },
+        "storage": record.storage_status,
+        "actions": [
+            {"id": "change_category", "label": "Change category"},
+            {"id": "edit", "label": "Edit"},
+            {"id": "delete", "label": "Delete"},
+        ],
     }
 
 
