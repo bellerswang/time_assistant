@@ -74,6 +74,9 @@ client = AsyncOpenAI(
 VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 GOOGLE_DOCS_ENABLED = os.getenv("GOOGLE_DOCS_ENABLED", "true").lower() not in {"0", "false", "no"}
 GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_DOCS_CREDENTIALS_PATH",
@@ -99,6 +102,21 @@ FOLDERS_CONFIG_PATH = resolve_folders_config_path()
 
 class ParseRequest(BaseModel):
     text: str
+
+
+class WikiEntryRequest(BaseModel):
+    title: str
+    body: str
+    topic: str = "personal_playbook"
+    tags: list[str] = []
+    source: str = "manual"
+    confidence: str | None = None
+
+
+class MemoryAskRequest(BaseModel):
+    query: str
+    types: list[str] = ["wiki", "journal"]
+    limit: int = 8
 
 
 def utc_now_iso() -> str:
@@ -138,6 +156,35 @@ def init_voice_db() -> None:
         for column, statement in migrations.items():
             if column not in columns:
                 conn.execute(statement)
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS wiki_entries (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                tags_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                confidence TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        try:
+            conn.execute(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+                    source_type,
+                    source_id,
+                    title,
+                    body,
+                    tokenize='unicode61'
+                )
+                """
+            )
+        except sqlite3.OperationalError as e:
+            logger.warning(f"[Memory] SQLite FTS5 unavailable; LIKE search fallback will be used: {e}")
         conn.commit()
 
 
@@ -407,14 +454,22 @@ def insert_voice_entry(entry: dict) -> None:
             ),
         )
         conn.commit()
+    if entry.get("mode") == "journal":
+        index_memory_item("journal", entry["id"], entry.get("folder_id", "Journal"), entry.get("transcript", ""))
 
 
-def list_voice_entries(folder_id: str | None, limit: int) -> list[dict]:
+def list_voice_entries(folder_id: str | None, mode: str | None, limit: int) -> list[dict]:
     params = []
     where = ""
+    clauses = []
     if folder_id:
-        where = "WHERE folder_id = ?"
+        clauses.append("folder_id = ?")
         params.append(folder_id)
+    if mode and mode != "all":
+        clauses.append("mode = ?")
+        params.append(mode)
+    if clauses:
+        where = f"WHERE {' AND '.join(clauses)}"
     params.append(limit)
     with sqlite3.connect(VOICE_DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -438,6 +493,276 @@ def list_voice_entries(folder_id: str | None, limit: int) -> list[dict]:
         item["parsed_task"] = json.loads(parsed_task_json) if parsed_task_json else None
         entries.append(item)
     return entries
+
+
+async def extract_submission_text(
+    file: UploadFile | None,
+    text: str | None,
+    entry_id: str,
+    folder_id: str,
+) -> tuple[str, str | None, str | None, str | None]:
+    transcript = (text or "").strip()
+    audio_uri = None
+    source_filename = None
+    mime_type = None
+    temp_file_path = None
+
+    if file is not None:
+        source_filename = file.filename or "recording.webm"
+        mime_type = file.content_type or "application/octet-stream"
+        ext = os.path.splitext(source_filename)[1] or ".webm"
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
+                contents = await file.read()
+                if not contents:
+                    raise HTTPException(status_code=400, detail="Uploaded audio file is empty.")
+                temp_file.write(contents)
+                temp_file_path = temp_file.name
+
+            if GCS_BUCKET_NAME:
+                audio_uri = upload_audio_to_gcs(temp_file_path, entry_id, folder_id, source_filename, mime_type)
+            else:
+                logger.warning("[Voice] GCS_BUCKET_NAME is not configured; skipping raw audio upload for local development.")
+            transcript = await transcribe_audio_file(temp_file_path)
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                except Exception as ex:
+                    logger.error(f"[Voice] Failed to remove temp file: {ex}")
+
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Provide either a non-empty text field or an audio file.")
+    return transcript, audio_uri, source_filename, mime_type
+
+
+WIKI_TOPICS = [
+    "places_local_life",
+    "home_admin",
+    "personal_playbook",
+    "health_body",
+    "people_relationships",
+    "work_learning",
+]
+
+
+def normalize_memory_types(types: list[str] | str | None) -> set[str]:
+    if isinstance(types, str):
+        raw_types = [item.strip() for item in types.split(",")]
+    else:
+        raw_types = types or ["wiki", "journal"]
+    allowed = {"wiki", "journal"}
+    selected = {item for item in raw_types if item in allowed}
+    return selected or allowed
+
+
+def index_memory_item(source_type: str, source_id: str, title: str, body: str) -> None:
+    try:
+        with sqlite3.connect(VOICE_DB_PATH) as conn:
+            conn.execute("DELETE FROM memory_fts WHERE source_type = ? AND source_id = ?", (source_type, source_id))
+            conn.execute(
+                "INSERT INTO memory_fts (source_type, source_id, title, body) VALUES (?, ?, ?, ?)",
+                (source_type, source_id, title, body),
+            )
+            conn.commit()
+    except sqlite3.OperationalError as e:
+        logger.warning(f"[Memory] Failed to update FTS index; continuing without FTS: {e}")
+
+
+def insert_wiki_entry(entry: dict) -> None:
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO wiki_entries (
+                id, title, body, topic, tags_json, source, confidence, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                entry["id"],
+                entry["title"],
+                entry["body"],
+                entry["topic"],
+                json.dumps(entry.get("tags", []), ensure_ascii=False),
+                entry.get("source", "voice"),
+                entry.get("confidence"),
+                entry["created_at"],
+                entry["updated_at"],
+            ),
+        )
+        conn.commit()
+    index_memory_item("wiki", entry["id"], entry["title"], entry["body"])
+
+
+def list_wiki_entries(topic: str | None, q: str | None, limit: int) -> list[dict]:
+    where = []
+    params = []
+    if topic:
+        where.append("topic = ?")
+        params.append(topic)
+    if q:
+        where.append("(title LIKE ? OR body LIKE ? OR tags_json LIKE ?)")
+        like = f"%{q}%"
+        params.extend([like, like, like])
+    params.append(limit)
+    clause = f"WHERE {' AND '.join(where)}" if where else ""
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            SELECT id, title, body, topic, tags_json, source, confidence, created_at, updated_at
+            FROM wiki_entries
+            {clause}
+            ORDER BY updated_at DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    entries = []
+    for row in rows:
+        item = dict(row)
+        item["tags"] = json.loads(item.pop("tags_json") or "[]")
+        entries.append(item)
+    return entries
+
+
+def search_memory(query: str, types: list[str] | str | None = None, limit: int = 8) -> list[dict]:
+    query = (query or "").strip()
+    selected_types = normalize_memory_types(types)
+    if not query:
+        return []
+
+    rows = []
+    try:
+        with sqlite3.connect(VOICE_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            fts_query = " OR ".join(re.findall(r"[\w\u4e00-\u9fff]+", query)) or query
+            placeholders = ",".join("?" for _ in selected_types)
+            rows = conn.execute(
+                f"""
+                SELECT source_type, source_id, title, body
+                FROM memory_fts
+                WHERE memory_fts MATCH ? AND source_type IN ({placeholders})
+                LIMIT ?
+                """,
+                [fts_query, *selected_types, limit],
+            ).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.warning(f"[Memory] FTS search failed; falling back to LIKE search: {e}")
+
+    results = [
+        {
+            "type": row["source_type"],
+            "id": row["source_id"],
+            "title": row["title"],
+            "snippet": row["body"][:500],
+        }
+        for row in rows
+    ]
+    if results:
+        return results
+
+    like = f"%{query}%"
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        if "wiki" in selected_types:
+            for row in conn.execute(
+                """
+                SELECT id, title, body
+                FROM wiki_entries
+                WHERE title LIKE ? OR body LIKE ? OR tags_json LIKE ?
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (like, like, like, limit),
+            ).fetchall():
+                results.append({"type": "wiki", "id": row["id"], "title": row["title"], "snippet": row["body"][:500]})
+        if "journal" in selected_types and len(results) < limit:
+            for row in conn.execute(
+                """
+                SELECT id, folder_id, transcript
+                FROM voice_entries
+                WHERE mode = 'journal' AND transcript LIKE ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (like, limit - len(results)),
+            ).fetchall():
+                results.append({"type": "journal", "id": row["id"], "title": row["folder_id"], "snippet": row["transcript"][:500]})
+    return results[:limit]
+
+
+def classify_voice_intent(text: str) -> dict:
+    lowered = (text or "").lower()
+    if re.search(r"(查|查询|问一下|找一下|有没有|记得吗|what|where|when|search|ask)", lowered):
+        return {"intent": "ask", "confidence": 0.85, "reason": "question or lookup phrasing"}
+    if re.search(r"(记住|记到|保存到wiki|wiki|知识|小知识|规则|流程|地址|电话|不开门|营业|bank holiday)", lowered):
+        return {"intent": "wiki", "confidence": 0.85, "reason": "reusable knowledge phrasing"}
+    if re.search(r"(安排|提醒|日程|会议|开会|学习|写|做|下午|上午|晚上|\d{1,2}[:：点]|schedule|calendar)", lowered):
+        return {"intent": "schedule", "confidence": 0.8, "reason": "schedule/time phrasing"}
+    return {"intent": "journal", "confidence": 0.7, "reason": "default personal note"}
+
+
+def extract_wiki_entry_from_text(text: str) -> dict:
+    tags = []
+    for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]+|[\u4e00-\u9fff]{2,}", text):
+        if len(tags) >= 6:
+            break
+        normalized = token.lower()
+        if normalized not in tags:
+            tags.append(normalized)
+    topic = "personal_playbook"
+    lowered = text.lower()
+    if re.search(r"(library|图书馆|超市|医院|gp|车站|colindale|bank holiday|营业|不开门)", lowered):
+        topic = "places_local_life"
+    elif re.search(r"(保险|账单|签证|银行|税|预约|流程)", lowered):
+        topic = "home_admin"
+    elif re.search(r"(身体|睡眠|吃药|运动|疼|health)", lowered):
+        topic = "health_body"
+    elif re.search(r"(工作|学习|代码|项目|会议)", lowered):
+        topic = "work_learning"
+    title = text.strip().splitlines()[0][:80] or "Life Wiki Note"
+    return {
+        "title": title,
+        "body": text.strip(),
+        "topic": topic,
+        "tags": tags,
+        "source": "voice",
+        "confidence": "personal_observation",
+    }
+
+
+def build_memory_note(query: str) -> tuple[str | None, list[dict]]:
+    sources = search_memory(query, ["wiki", "journal"], 5)
+    if not sources:
+        return None, []
+    snippets = " | ".join(f"{item['title']}: {item['snippet']}" for item in sources[:3])
+    return f"Memory reminder: {snippets[:700]}", sources
+
+
+async def answer_with_deepseek(query: str, sources: list[dict]) -> str:
+    if not DEEPSEEK_API_KEY:
+        raise HTTPException(status_code=503, detail="DEEPSEEK_API_KEY is not configured.")
+    context = "\n".join(
+        f"[{idx + 1}] {item['type']} {item['title']}: {item['snippet']}"
+        for idx, item in enumerate(sources)
+    ) or "No relevant memory was found."
+    async with httpx.AsyncClient(timeout=30) as deepseek_client:
+        response = await deepseek_client.post(
+            f"{DEEPSEEK_BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": DEEPSEEK_MODEL,
+                "messages": [
+                    {"role": "system", "content": "Answer using only the supplied personal memory context. If context is weak, say so briefly."},
+                    {"role": "user", "content": f"Question: {query}\n\nMemory context:\n{context}"},
+                ],
+                "temperature": 0.2,
+            },
+        )
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=f"DeepSeek API error: {response.text[:500]}")
+    data = response.json()
+    return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
 
 init_voice_db()
@@ -700,6 +1025,7 @@ async def health_check():
         "google_docs_enabled": GOOGLE_DOCS_ENABLED,
         "google_docs_configured": google_docs_auth_mode != "none",
         "google_docs_auth_mode": google_docs_auth_mode,
+        "deepseek_configured": bool(DEEPSEEK_API_KEY),
     }
 
 
@@ -708,67 +1034,117 @@ async def get_voice_folders():
     return load_voice_folders()
 
 
+@app.get("/api/wiki/topics")
+async def get_wiki_topics():
+    return {"topics": WIKI_TOPICS}
+
+
+@app.post("/api/wiki/entries")
+async def create_wiki_entry(req: WikiEntryRequest):
+    now = utc_now_iso()
+    entry = {
+        "id": f"wiki_{uuid.uuid4().hex}",
+        "title": req.title.strip() or "Life Wiki Note",
+        "body": req.body.strip(),
+        "topic": req.topic if req.topic in WIKI_TOPICS else "personal_playbook",
+        "tags": req.tags,
+        "source": req.source or "manual",
+        "confidence": req.confidence,
+        "created_at": now,
+        "updated_at": now,
+    }
+    if not entry["body"]:
+        raise HTTPException(status_code=400, detail="Wiki body cannot be empty.")
+    insert_wiki_entry(entry)
+    return entry
+
+
+@app.get("/api/wiki/entries")
+async def get_wiki_entries(
+    topic: str | None = Query(default=None),
+    q: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    return {"entries": list_wiki_entries(topic, q, limit)}
+
+
+@app.get("/api/memory/search")
+async def get_memory_search(
+    q: str = Query(..., min_length=1),
+    types: str = Query(default="wiki,journal"),
+    limit: int = Query(default=8, ge=1, le=30),
+):
+    return {"results": search_memory(q, types, limit)}
+
+
+@app.post("/api/memory/ask")
+async def ask_memory(req: MemoryAskRequest):
+    query = req.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+    sources = search_memory(query, req.types, max(1, min(req.limit, 30)))
+    answer = await answer_with_deepseek(query, sources)
+    return {"answer": answer, "sources": sources}
+
+
 @app.get("/api/voice/entries")
 async def get_voice_entries(
     folder_id: str | None = Query(default=None),
+    mode: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200)
 ):
     selected_folder = validate_folder_id(folder_id) if folder_id else None
-    return {"entries": list_voice_entries(selected_folder, limit)}
+    return {"entries": list_voice_entries(selected_folder, mode, limit)}
 
 
-@app.post("/api/voice/transcribe")
-async def transcribe_voice_entry(
-    file: UploadFile | None = File(default=None),
-    text: str | None = Form(default=None),
-    folder_id: str = Form(default="LifeVoice"),
-    mode: str = Form(default="journal"),
-    prompt_id: str | None = Form(default=None),
-):
-    mode = (mode or "journal").strip().lower()
-    if mode not in {"journal", "schedule"}:
-        raise HTTPException(status_code=400, detail="mode must be either 'journal' or 'schedule'.")
+async def process_voice_submission(
+    file: UploadFile | None,
+    text: str | None,
+    folder_id: str,
+    mode: str,
+    prompt_id: str | None,
+) -> dict:
+    requested_mode = (mode or "auto").strip().lower()
+    if requested_mode not in {"auto", "journal", "schedule", "wiki", "ask"}:
+        raise HTTPException(status_code=400, detail="mode must be one of: auto, journal, schedule, wiki, ask.")
 
     folder_id = validate_folder_id(folder_id or "LifeVoice")
     entry_id = f"voice_{uuid.uuid4().hex}"
     now = utc_now_iso()
-    transcript = (text or "").strip()
-    audio_uri = None
-    source_filename = None
-    mime_type = None
-    temp_file_path = None
+    transcript, audio_uri, source_filename, mime_type = await extract_submission_text(file, text, entry_id, folder_id)
 
-    if file is not None:
-        source_filename = file.filename or "recording.webm"
-        mime_type = file.content_type or "application/octet-stream"
-        ext = os.path.splitext(source_filename)[1] or ".webm"
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
-                contents = await file.read()
-                if not contents:
-                    raise HTTPException(status_code=400, detail="Uploaded audio file is empty.")
-                temp_file.write(contents)
-                temp_file_path = temp_file.name
+    route = classify_voice_intent(transcript) if requested_mode == "auto" else {
+        "intent": requested_mode,
+        "confidence": 1.0,
+        "reason": "manual mode",
+    }
+    resolved_mode = route["intent"]
+    parsed_task = None
+    wiki_entry = None
+    answer = None
+    sources = []
 
-            if GCS_BUCKET_NAME:
-                audio_uri = upload_audio_to_gcs(temp_file_path, entry_id, folder_id, source_filename, mime_type)
-            else:
-                logger.warning("[Voice] GCS_BUCKET_NAME is not configured; skipping raw audio upload for local development.")
-            transcript = await transcribe_audio_file(temp_file_path)
-        finally:
-            if temp_file_path and os.path.exists(temp_file_path):
-                try:
-                    os.remove(temp_file_path)
-                except Exception as ex:
-                    logger.error(f"[Voice] Failed to remove temp file: {ex}")
+    if resolved_mode == "schedule":
+        memory_note, sources = build_memory_note(transcript)
+        parsed_task = await call_gpt_parser(transcript)
+        if memory_note:
+            parsed_task["memory_note"] = memory_note
+            parsed_task["memory_sources"] = sources
+    elif resolved_mode == "wiki":
+        wiki_entry = {
+            "id": f"wiki_{uuid.uuid4().hex}",
+            "created_at": now,
+            "updated_at": now,
+            **extract_wiki_entry_from_text(transcript),
+        }
+        insert_wiki_entry(wiki_entry)
+    elif resolved_mode == "ask":
+        sources = search_memory(transcript, ["wiki", "journal"], 8)
+        answer = await answer_with_deepseek(transcript, sources)
 
-    if not transcript:
-        raise HTTPException(status_code=400, detail="Provide either a non-empty text field or an audio file.")
-
-    parsed_task = await call_gpt_parser(transcript) if mode == "schedule" else None
     entry = {
         "id": entry_id,
-        "mode": mode,
+        "mode": resolved_mode,
         "folder_id": folder_id,
         "prompt_id": prompt_id,
         "transcript": transcript,
@@ -784,7 +1160,7 @@ async def transcribe_voice_entry(
         "updated_at": now,
     }
 
-    if mode == "journal":
+    if resolved_mode == "journal":
         doc_result = append_journal_to_google_doc(entry)
         entry["google_doc_id"] = doc_result.get("doc_id")
         entry["google_doc_url"] = doc_result.get("doc_url")
@@ -794,13 +1170,39 @@ async def transcribe_voice_entry(
 
     return {
         "id": entry_id,
-        "mode": mode,
+        "mode": resolved_mode,
+        "route": route,
         "folder_id": folder_id,
         "transcript": transcript,
         "audio_uri": audio_uri,
         "created_at": now,
         "parsed_task": parsed_task,
+        "wiki_entry": wiki_entry,
+        "answer": answer,
+        "sources": sources,
         "google_doc_id": entry.get("google_doc_id"),
         "google_doc_url": entry.get("google_doc_url"),
         "google_doc_status": entry.get("google_doc_status"),
     }
+
+
+@app.post("/api/voice/submit")
+async def submit_voice_entry(
+    file: UploadFile | None = File(default=None),
+    text: str | None = Form(default=None),
+    folder_id: str = Form(default="LifeVoice"),
+    mode: str = Form(default="auto"),
+    prompt_id: str | None = Form(default=None),
+):
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id)
+
+
+@app.post("/api/voice/transcribe")
+async def transcribe_voice_entry(
+    file: UploadFile | None = File(default=None),
+    text: str | None = Form(default=None),
+    folder_id: str = Form(default="LifeVoice"),
+    mode: str = Form(default="journal"),
+    prompt_id: str | None = Form(default=None),
+):
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id)

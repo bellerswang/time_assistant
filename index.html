@@ -1736,6 +1736,13 @@
             <div id="tab-voice" class="tab-panel">
                 <div class="voice-inbox-toolbar">
                     <select class="form-input" id="voice-inbox-folder" style="margin:0; height:34px; font-size:12px;"></select>
+                    <select class="form-input" id="voice-inbox-mode" style="margin:0; height:34px; font-size:12px;">
+                        <option value="all">All</option>
+                        <option value="journal">Journal</option>
+                        <option value="wiki">Wiki</option>
+                        <option value="ask">Ask</option>
+                        <option value="schedule">Schedule</option>
+                    </select>
                     <button class="action-pill primary" id="btn-refresh-voice-inbox" style="height:34px;">
                         <i class="fa-solid fa-rotate"></i>
                         Refresh
@@ -1795,8 +1802,11 @@
             </div>
             
             <div class="voice-mode-toggle" id="voice-mode-toggle">
-                <button class="voice-mode-btn active" data-mode="schedule">Schedule</button>
+                <button class="voice-mode-btn active" data-mode="auto">Auto</button>
+                <button class="voice-mode-btn" data-mode="schedule">Schedule</button>
                 <button class="voice-mode-btn" data-mode="journal">Journal</button>
+                <button class="voice-mode-btn" data-mode="wiki">Wiki</button>
+                <button class="voice-mode-btn" data-mode="ask">Ask</button>
             </div>
 
             <div class="voice-journal-tools" id="voice-journal-tools">
@@ -2126,7 +2136,7 @@
         let currentTab = 'timeline';
         let activeTimerInterval = null;
         let activeTimerTaskId = null;
-        let voiceMode = 'schedule';
+        let voiceMode = 'auto';
         let voiceFolders = [];
         let voicePrompts = [];
         let currentVoicePrompt = null;
@@ -2587,17 +2597,27 @@
         }
 
         function setVoiceMode(mode) {
-            voiceMode = mode === 'journal' ? 'journal' : 'schedule';
+            voiceMode = ['auto', 'schedule', 'journal', 'wiki', 'ask'].includes(mode) ? mode : 'auto';
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-mode') === voiceMode);
             });
             const tools = document.getElementById('voice-journal-tools');
             const parseBtn = document.getElementById('btn-parse-text');
             const result = document.getElementById('voice-save-result');
-            if (tools) tools.classList.toggle('active', voiceMode === 'journal');
+            if (tools) tools.classList.toggle('active', ['auto', 'journal', 'wiki', 'ask'].includes(voiceMode));
             if (parseBtn) parseBtn.innerHTML = voiceMode === 'journal'
                 ? '<i class="fa-solid fa-inbox"></i> Save note'
                 : '<i class="fa-solid fa-wand-magic"></i> 智能安排';
+            if (parseBtn) {
+                const labels = {
+                    auto: '<i class="fa-solid fa-wand-magic-sparkles"></i> Submit',
+                    schedule: '<i class="fa-solid fa-wand-magic"></i> Schedule',
+                    journal: '<i class="fa-solid fa-inbox"></i> Save note',
+                    wiki: '<i class="fa-solid fa-book"></i> Save wiki',
+                    ask: '<i class="fa-solid fa-magnifying-glass"></i> Ask memory'
+                };
+                parseBtn.innerHTML = labels[voiceMode] || labels.auto;
+            }
             if (result) result.classList.remove('active');
             document.getElementById('preview-result-card')?.classList.remove('active');
         }
@@ -2715,9 +2735,55 @@
             }
         }
 
+        async function submitVoiceText(text) {
+            const folderSelect = document.getElementById('voice-folder-select');
+            const formData = new FormData();
+            formData.append('text', text);
+            formData.append('mode', voiceMode);
+            formData.append('folder_id', folderSelect?.value || 'LifeVoice');
+            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
+
+            showLoading(true, 'Sending to Loomi...');
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
+                }
+                const data = await response.json();
+                showLoading(false);
+                if (data.mode === 'schedule') {
+                    renderRecommendationPreview(data.parsed_task || data);
+                    return;
+                }
+                showVoiceSaveResult(data);
+                await renderVoiceInbox();
+                showToast(data.mode === 'ask' ? 'Memory answer ready' : `${data.mode} saved`, 'success');
+            } catch (e) {
+                showLoading(false);
+                console.error('[Voice] Submit text failed:', e);
+                showToast('Voice submit failed. Check backend settings.', 'error');
+            }
+        }
+
         function showVoiceSaveResult(data) {
             const box = document.getElementById('voice-save-result');
             if (!box) return;
+            if (data.mode === 'wiki' && data.wiki_entry) {
+                const wiki = data.wiki_entry;
+                box.innerHTML = `<strong>Saved to Life Wiki</strong><br>${escapeHtml(wiki.title || '')}<br><span style="color:var(--text-muted);">${escapeHtml(wiki.topic || '')} · ${(wiki.tags || []).map(escapeHtml).join(', ')}</span>`;
+                box.classList.add('active');
+                return;
+            }
+            if (data.mode === 'ask') {
+                const sources = (data.sources || []).map(src => `${escapeHtml(src.type)}: ${escapeHtml(src.title || src.id)}`).join('<br>');
+                box.innerHTML = `<strong>Memory Answer</strong><br>${escapeHtml(data.answer || 'No answer returned.')}<br><span style="color:var(--text-muted);">${sources}</span>`;
+                box.classList.add('active');
+                return;
+            }
             const docStatus = data.google_doc_status || 'not_synced';
             const docLine = data.google_doc_url
                 ? `<br><a href="${escapeHtml(data.google_doc_url)}" target="_blank" style="color:var(--success);">Google Doc synced</a>`
@@ -2750,10 +2816,12 @@
             const list = document.getElementById('voice-entry-list');
             if (!list) return;
             const folder = document.getElementById('voice-inbox-folder')?.value || '';
+            const mode = document.getElementById('voice-inbox-mode')?.value || 'all';
             list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">Loading...</div></div>';
             try {
                 const params = new URLSearchParams({ limit: '50' });
                 if (folder) params.set('folder_id', folder);
+                if (mode && mode !== 'all') params.set('mode', mode);
                 const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/entries?${params.toString()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
@@ -3879,13 +3947,13 @@
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
             formData.append('mode', voiceMode);
-            if (voiceMode === 'journal') {
+            if (['auto', 'journal', 'wiki', 'ask'].includes(voiceMode)) {
                 formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
                 if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
             }
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/transcribe`, {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
                     method: 'POST',
                     body: formData
                 });
@@ -3898,11 +3966,11 @@
                 const data = await response.json();
                 showLoading(false);
 
-                if (voiceMode === 'journal') {
+                if (data.mode !== 'schedule') {
                     showVoiceSaveResult(data);
                     document.getElementById('textarea-input').value = data.transcript || '';
                     await renderVoiceInbox();
-                    showToast('Voice note saved', 'success');
+                    showToast(data.mode === 'ask' ? 'Memory answer ready' : `${data.mode} saved`, 'success');
                     return;
                 }
 
@@ -3993,7 +4061,7 @@
                 scheduledStart: placement.start,
                 scheduledEnd: placement.end,
                 adjustedEstMins: finalMins,
-                notes: placement.reason
+                notes: parsed.memory_note ? `${placement.reason}\n${parsed.memory_note}` : placement.reason
             };
 
             // 绘制预览面板
@@ -4427,7 +4495,7 @@
                 document.getElementById('textarea-input').value = '';
                 document.getElementById('preview-result-card').classList.remove('active');
                 document.getElementById('voice-save-result')?.classList.remove('active');
-                setVoiceMode('schedule');
+                setVoiceMode('auto');
                 openSheet('sheet-input');
             });
 
@@ -4440,6 +4508,7 @@
             document.getElementById('btn-refresh-voice-prompt').addEventListener('click', refreshVoicePrompt);
             document.getElementById('btn-refresh-voice-inbox').addEventListener('click', renderVoiceInbox);
             document.getElementById('voice-inbox-folder').addEventListener('change', renderVoiceInbox);
+            document.getElementById('voice-inbox-mode')?.addEventListener('change', renderVoiceInbox);
 
             // 一键载入日程
             document.getElementById('btn-load-routines').addEventListener('click', () => {
@@ -4460,12 +4529,7 @@
                     showToast('💡 请先打字说点什么，比如：“下午写代码两小时”');
                     return;
                 }
-                if (voiceMode === 'journal') {
-                    await saveJournalText(txt);
-                    return;
-                }
-                const parsed = await parseSemanticInput(txt);
-                renderRecommendationPreview(parsed);
+                await submitVoiceText(txt);
             });
 
             // 语音录音按钮

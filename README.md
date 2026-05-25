@@ -101,6 +101,17 @@ GOOGLE_DOCS_CREDENTIALS_PATH=backend/credential/key.json
 GOOGLE_DOCS_ENABLED=true
 VOICE_DB_PATH=backend/data/chronoai.db
 VOICE_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
 ```
 
 Cloud Run note: local SQLite is fine for local development and short trials, but Cloud Run's container filesystem is not reliable long-term storage. For production use, migrate voice metadata to Cloud SQL or Firestore while keeping audio files in GCS.
+
+## v2.2.0 - Universal voice memory entry
+
+- Added `Auto / Schedule / Journal / Wiki / Ask` voice modes.
+- Added `POST /api/voice/submit` as the universal voice/text entrypoint.
+- Added Life Wiki storage via `wiki_entries` and memory lookup via `/api/memory/search`.
+- Added DeepSeek-backed `/api/memory/ask` for answers grounded in Journal + Wiki memory.
+- Schedule parsing now attaches relevant memory reminders when matching journal/wiki context exists.
