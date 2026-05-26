@@ -74,12 +74,28 @@ client = AsyncOpenAI(
     http_client=httpx.AsyncClient()
 )
 
+async def get_text_embedding(text: str) -> list[float] | None:
+    if not openai_key or openai_key == "placeholder":
+        return None
+    try:
+        logger.info(f"[Embedding] Generating embedding for text snippet of length {len(text)}")
+        response = await client.embeddings.create(
+            input=text,
+            model="text-embedding-3-small"
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.error(f"[Embedding] Failed to generate embedding: {e}")
+        return None
+
 VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+if DEEPSEEK_MODEL:
+    DEEPSEEK_MODEL = DEEPSEEK_MODEL.lower()
 GOOGLE_DOCS_ENABLED = os.getenv("GOOGLE_DOCS_ENABLED", "true").lower() not in {"0", "false", "no"}
 GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_DOCS_CREDENTIALS_PATH",
@@ -350,6 +366,8 @@ def resolve_google_docs_credentials() -> tuple[object | None, str, str | None]:
     scopes = [
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/documents",
+        "https://www.googleapis.com/auth/datastore",
+        "https://www.googleapis.com/auth/cloud-platform",
     ]
 
     credentials_info = parse_google_docs_credentials_json()
@@ -375,6 +393,24 @@ def resolve_google_docs_credentials() -> tuple[object | None, str, str | None]:
             logger.warning(f"[Voice] Google ADC unavailable: {e}")
 
     return None, "none", None
+
+
+# Initialize Firestore Repository if enabled
+firestore_repo = None
+if FIRESTORE_ENABLED:
+    try:
+        from repositories.firestore_repository import FirestoreRepository
+        creds, auth_mode, auth_email = resolve_google_docs_credentials()
+        firestore_repo = FirestoreRepository(
+            credentials=creds,
+            project_id=FIRESTORE_PROJECT_ID or getattr(creds, "project_id", None),
+            collection_name=FIRESTORE_COLLECTION
+        )
+        logger.info(f"Successfully initialized FirestoreRepository with auth mode: {auth_mode}")
+    except Exception as e:
+        logger.error(f"Failed to initialize FirestoreRepository: {e}")
+        FIRESTORE_ENABLED = False
+
 
 
 class GoogleDocAppender:
@@ -1016,12 +1052,270 @@ def list_wiki_entries(topic: str | None, q: str | None, limit: int) -> list[dict
     return entries
 
 
-def search_memory(query: str, types: list[str] | str | None = None, limit: int = 8) -> list[dict]:
+def parse_temporal_expression(query: str, current_time: datetime) -> tuple[datetime, datetime] | None:
+    from datetime import timedelta
+    try:
+        local_now = current_time.astimezone()
+        local_tz = local_now.tzinfo
+    except Exception:
+        local_tz = None
+
+    def day_range(day: datetime):
+        start_local = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = day.replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_tz:
+            if start_local.tzinfo is None:
+                start_local = start_local.replace(tzinfo=local_tz)
+            if end_local.tzinfo is None:
+                end_local = end_local.replace(tzinfo=local_tz)
+        return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+    query_lower = query.lower()
+    
+    if "昨天" in query or "yesterday" in query_lower:
+        yesterday = current_time - timedelta(days=1)
+        return day_range(yesterday)
+        
+    if "今天" in query or "today" in query_lower:
+        return day_range(current_time)
+        
+    if "前天" in query:
+        day_before = current_time - timedelta(days=2)
+        return day_range(day_before)
+
+    if "大前天" in query:
+        three_days_ago = current_time - timedelta(days=3)
+        return day_range(three_days_ago)
+
+    if "上周" in query or "last week" in query_lower:
+        days_to_last_monday = current_time.weekday() + 7
+        last_monday = current_time - timedelta(days=days_to_last_monday)
+        last_sunday = last_monday + timedelta(days=6)
+        start_local = last_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = last_sunday.replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_tz:
+            start_local = start_local.replace(tzinfo=local_tz)
+            end_local = end_local.replace(tzinfo=local_tz)
+        return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+    if "这周" in query or "本周" in query or "this week" in query_lower:
+        days_to_monday = current_time.weekday()
+        monday = current_time - timedelta(days=days_to_monday)
+        start_local = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = current_time.replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_tz:
+            start_local = start_local.replace(tzinfo=local_tz)
+            end_local = end_local.replace(tzinfo=local_tz)
+        return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+    if "最近" in query or "这几天" in query or "recent" in query_lower:
+        start_local = (current_time - timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = current_time.replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_tz:
+            start_local = start_local.replace(tzinfo=local_tz)
+            end_local = end_local.replace(tzinfo=local_tz)
+        return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+    match = re.search(r"(\d+|[一二两三四五六七八九十百]+)\s*天前", query)
+    if match:
+        num_str = match.group(1)
+        num = parse_chinese_number(num_str) if not num_str.isdigit() else int(num_str)
+        if num is not None:
+            target_day = current_time - timedelta(days=num)
+            return day_range(target_day)
+
+    return None
+
+
+async def search_memory(query: str, types: list[str] | str | None = None, limit: int = 8) -> list[dict]:
     query = (query or "").strip()
     selected_types = normalize_memory_types(types)
     if not query:
         return []
 
+    # Detect if user query contains temporal expression for Date-Range filtering (Scheme A)
+    date_range = parse_temporal_expression(query, datetime.now().astimezone())
+    if date_range:
+        start_date, end_date = date_range
+        logger.info(f"[Temporal Query] Detected date range: {start_date} to {end_date} (UTC)")
+        
+        category_filter = []
+        if "wiki" in selected_types:
+            category_filter.append("life_knowledge")
+        if "journal" in selected_types:
+            category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+            
+        results = []
+        
+        # 1. Query Firestore for records in date range
+        if FIRESTORE_ENABLED and firestore_repo:
+            try:
+                logger.info(f"[Firestore Search] Fetching records within date range: {start_date} to {end_date}")
+                records = await firestore_repo.list_records_in_date_range(start_date, end_date, limit=limit * 2)
+                
+                # Filter by category in memory
+                if category_filter:
+                    records = [r for r in records if r.category in category_filter]
+                    
+                for r in records:
+                    created_str = r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at)
+                    results.append({
+                        "type": r.category,
+                        "id": r.id,
+                        "record_id": r.id,
+                        "title": r.title,
+                        "category_label": r.category_label,
+                        "created_at": created_str,
+                        "snippet": (r.summary or r.cleaned_text or "")[:500]
+                    })
+                logger.info(f"[Firestore Search] Date-range query succeeded, found {len(results)} matches.")
+            except Exception as fe:
+                logger.error(f"[Firestore Search] Date-range query failed: {fe}. Falling back to SQLite.")
+                
+        # 2. SQLite Fallback query for records in date range
+        if not results:
+            try:
+                start_iso = start_date.isoformat()
+                end_iso = end_date.isoformat()
+                category_clause = ""
+                params = [start_iso, end_iso]
+                if category_filter:
+                    placeholders = ",".join("?" for _ in category_filter)
+                    category_clause = f"AND category IN ({placeholders})"
+                    params.extend(category_filter)
+                params.append(limit)
+                
+                with sqlite3.connect(VOICE_DB_PATH) as conn:
+                    conn.row_factory = sqlite3.Row
+                    record_rows = conn.execute(
+                        f"""
+                        SELECT id, category, category_label, title, summary, cleaned_text, created_at
+                        FROM records
+                        WHERE (created_at >= ? AND created_at <= ?)
+                        {category_clause}
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                        """,
+                        params,
+                    ).fetchall()
+                    
+                    for row in record_rows:
+                        results.append({
+                            "type": row["category"],
+                            "id": row["id"],
+                            "record_id": row["id"],
+                            "title": row["title"],
+                            "category_label": row["category_label"],
+                            "created_at": row["created_at"],
+                            "snippet": (row["summary"] or row["cleaned_text"] or "")[:500]
+                        })
+                logger.info(f"[SQLite Search] Date-range query succeeded, found {len(results)} matches.")
+            except Exception as se:
+                logger.error(f"[SQLite Search] Date-range query failed: {se}")
+                
+        if results:
+            return results[:limit]
+        else:
+            logger.info(f"[Temporal Query] No records found within {start_date} and {end_date}.")
+            return []
+    selected_types = normalize_memory_types(types)
+    if not query:
+        return []
+
+    # 1. Firestore Search if enabled
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            logger.info(f"[Firestore Search] Starting vector search query for: '{query}'")
+            category_filter = []
+            if "wiki" in selected_types:
+                category_filter.append("life_knowledge")
+            if "journal" in selected_types:
+                category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+            if "record" in selected_types or "records" in selected_types:
+                category_filter = []
+                
+            query_embedding = await get_text_embedding(query)
+            if query_embedding:
+                try:
+                    records = await firestore_repo.search_vector_nearest(
+                        query_embedding=query_embedding,
+                        category_filter=category_filter or None,
+                        limit=limit
+                    )
+                    results = []
+                    for r in records:
+                        created_str = r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at)
+                        results.append({
+                            "type": r.category,
+                            "id": r.id,
+                            "record_id": r.id,
+                            "title": r.title,
+                            "category_label": r.category_label,
+                            "created_at": created_str,
+                            "snippet": (r.summary or r.cleaned_text or "")[:500]
+                        })
+                    logger.info(f"[Firestore Search] Vector search succeeded, found {len(results)} matches.")
+                    return results
+                except Exception as ve_err:
+                    err_str = str(ve_err)
+                    if "FAILED_PRECONDITION" in err_str or "index" in err_str.lower():
+                        logger.warning(
+                            f"[Firestore Search] Vector Index not found. "
+                            f"Please create a Vector Index for 'embedding' in Firebase Console! "
+                            f"Falling back to high-precision local scanning. Error: {ve_err}"
+                        )
+                    else:
+                        logger.error(f"[Firestore Search] Vector search exception: {ve_err}. Falling back to local scanning.")
+            
+            # Local keyword scanning and scoring (Fallback)
+            logger.info("[Firestore Search] Executing local keyword scanning fallback...")
+            all_records = await firestore_repo.list_records(limit=150)
+            if category_filter:
+                all_records = [r for r in all_records if r.category in category_filter]
+                
+            scored_results = []
+            keywords = [w.lower() for w in re.findall(r"[\w\u4e00-\u9fff]+", query)]
+            
+            for r in all_records:
+                score = 0
+                title_lower = r.title.lower()
+                summary_lower = r.summary.lower()
+                text_lower = r.cleaned_text.lower()
+                
+                for kw in keywords:
+                    if kw in title_lower:
+                        score += 10
+                    if kw in summary_lower:
+                        score += 5
+                    if kw in text_lower:
+                        score += 2
+                
+                for tag in (r.metadata.tags or []):
+                    if tag.lower() in keywords:
+                        score += 8
+                        
+                if score > 0:
+                    scored_results.append((score, r))
+            
+            scored_results.sort(key=lambda x: (x[0], x[1].created_at), reverse=True)
+            
+            results = []
+            for score, r in scored_results[:limit]:
+                created_str = r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at)
+                results.append({
+                    "type": r.category,
+                    "id": r.id,
+                    "record_id": r.id,
+                    "title": r.title,
+                    "category_label": r.category_label,
+                    "created_at": created_str,
+                    "snippet": (r.summary or r.cleaned_text or "")[:500]
+                })
+            return results
+        except Exception as fe:
+            logger.error(f"[Firestore Search] Failed to search Firestore: {fe}. Falling back to SQLite.")
+
+    # 2. SQLite Search fallback
     rows = []
     results = []
     category_filter = []
@@ -1127,6 +1421,7 @@ def search_memory(query: str, types: list[str] | str | None = None, limit: int =
                 (like, limit - len(results)),
             ).fetchall():
                 results.append({"type": "journal", "id": row["id"], "title": row["folder_id"], "snippet": row["transcript"][:500]})
+
     return results[:limit]
 
 
@@ -1170,8 +1465,8 @@ def extract_wiki_entry_from_text(text: str) -> dict:
     }
 
 
-def build_memory_note(query: str) -> tuple[str | None, list[dict]]:
-    sources = search_memory(query, ["wiki", "journal"], 5)
+async def build_memory_note(query: str) -> tuple[str | None, list[dict]]:
+    sources = await search_memory(query, ["wiki", "journal"], 5)
     if not sources:
         return None, []
     snippets = " | ".join(f"{item['title']}: {item['snippet']}" for item in sources[:3])
@@ -1181,10 +1476,31 @@ def build_memory_note(query: str) -> tuple[str | None, list[dict]]:
 async def answer_with_deepseek(query: str, sources: list[dict]) -> str:
     if not DEEPSEEK_API_KEY:
         raise HTTPException(status_code=503, detail="DEEPSEEK_API_KEY is not configured.")
-    context = "\n".join(
-        f"[{idx + 1}] {item['type']} {item['title']}: {item['snippet']}"
-        for idx, item in enumerate(sources)
-    ) or "No relevant memory was found."
+    
+    # Premium timestamp formatting for context sources
+    context_lines = []
+    for idx, item in enumerate(sources):
+        created_at = item.get("created_at", "unknown")
+        # Prettify the timestamp format for clear LLM readability
+        if isinstance(created_at, str) and "T" in created_at:
+            created_at = created_at.replace("T", " ").split(".")[0]
+        context_lines.append(
+            f"[{idx + 1}] (Created at: {created_at}) Type: {item['type']} - Title: {item['title']}\nContent: {item['snippet']}"
+        )
+    context = "\n\n".join(context_lines) or "No relevant memory was found."
+    
+    # Inject current local system time into DeepSeek system prompt
+    current_time_str = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S (%Z)")
+    system_prompt = (
+        f"You are a helpful and precise personal memory assistant. Today's current date/time is {current_time_str}.\n"
+        "Answer the user's question using ONLY the supplied personal memory context. "
+        "Pay close attention to the 'Created at' timestamps of the memories relative to today's date "
+        "to resolve temporal references like 'yesterday' (昨天), 'today' (今天), 'last week' (上周), etc. "
+        "If a specific memory context is outside the requested time range of the user's query, DO NOT include it in your answer. "
+        "If the memory context does not contain records from the requested timeframe, explicitly state that you could not find any records for that period. "
+        "Keep your answer natural, concise, and in the same language as the user's query."
+    )
+    
     async with httpx.AsyncClient(timeout=30) as deepseek_client:
         response = await deepseek_client.post(
             f"{DEEPSEEK_BASE_URL}/chat/completions",
@@ -1192,7 +1508,7 @@ async def answer_with_deepseek(query: str, sources: list[dict]) -> str:
             json={
                 "model": DEEPSEEK_MODEL,
                 "messages": [
-                    {"role": "system", "content": "Answer using only the supplied personal memory context. If context is weak, say so briefly."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Question: {query}\n\nMemory context:\n{context}"},
                 ],
                 "temperature": 0.2,
@@ -1520,7 +1836,7 @@ async def get_memory_search(
     types: str = Query(default="wiki,journal"),
     limit: int = Query(default=8, ge=1, le=30),
 ):
-    return {"results": search_memory(q, types, limit)}
+    return {"results": await search_memory(q, types, limit)}
 
 
 @app.post("/api/memory/ask")
@@ -1528,7 +1844,7 @@ async def ask_memory(req: MemoryAskRequest):
     query = req.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
-    sources = search_memory(query, req.types, max(1, min(req.limit, 30)))
+    sources = await search_memory(query, req.types, max(1, min(req.limit, 30)))
     answer = await answer_with_deepseek(query, sources)
     return {"answer": answer, "sources": sources}
 
@@ -1585,7 +1901,7 @@ async def process_voice_submission(
     sources = []
 
     if resolved_mode == "schedule":
-        memory_note, sources = build_memory_note(transcript)
+        memory_note, sources = await build_memory_note(transcript)
         parsed_task = await call_gpt_parser(transcript)
         if memory_note:
             parsed_task["memory_note"] = memory_note
@@ -1599,25 +1915,43 @@ async def process_voice_submission(
         }
         insert_wiki_entry(wiki_entry)
     elif resolved_mode == "ask":
-        sources = search_memory(transcript, ["wiki", "journal"], 8)
+        sources = await search_memory(transcript, ["wiki", "journal"], 8)
         answer = await answer_with_deepseek(transcript, sources)
 
     record_draft = await create_record_draft(transcript, resolved_mode, source, route)
     record = build_record_from_draft(record_draft, transcript, source, now, resolved_mode)
-    primary_result = {
-        "backend": "google_doc",
-        "status": "skipped:ask_record_not_exported" if resolved_mode == "ask" else "skipped:not_attempted",
-        "doc_id": None,
-        "doc_url": None,
-    }
     if resolved_mode != "ask":
         primary_result = append_record_to_google_doc(record, folder_id)
-    record.storage_status = {
-        "primary": primary_result,
-        "index": {"backend": "sqlite", "status": "saved"},
-    }
-    index_result = insert_record(record, folder_id, resolved_mode, prompt_id)
-    record.storage_status["index"] = index_result
+        record.storage_status = {
+            "primary": primary_result,
+            "index": {"backend": "sqlite", "status": "saved"},
+        }
+        index_result = insert_record(record, folder_id, resolved_mode, prompt_id)
+        record.storage_status["index"] = index_result
+
+        if FIRESTORE_ENABLED and firestore_repo:
+            try:
+                tags_str = ", ".join(record.metadata.tags) if record.metadata.tags else ""
+                text_to_embed = f"Title: {record.title}\nSummary: {record.summary}\nContent: {record.cleaned_text}\nTags: {tags_str}"
+                embedding = await get_text_embedding(text_to_embed)
+                
+                firestore_res = await firestore_repo.save_record(record, embedding=embedding)
+                record.storage_status["firestore"] = firestore_res
+            except Exception as fe:
+                logger.error(f"[Firestore] Failed to save record: {fe}")
+                record.storage_status["firestore"] = {"backend": "firestore", "status": f"failed: {fe}"}
+    else:
+        # Ask queries are transient. We do not persist them as permanent memory.
+        primary_result = {
+            "doc_id": None,
+            "doc_url": None,
+            "status": "skipped:ask_query_not_persisted"
+        }
+        record.storage_status = {
+            "primary": primary_result,
+            "index": {"backend": "sqlite", "status": "skipped:ask_query_not_persisted"},
+            "firestore": {"backend": "firestore", "status": "skipped:ask_query_not_persisted"}
+        }
 
     entry = {
         "id": entry_id,
@@ -1695,3 +2029,30 @@ async def transcribe_voice_entry(
     prompt_id: str | None = Form(default=None),
 ):
     return await process_voice_submission(file, text, folder_id, mode, prompt_id)
+
+
+@app.post("/api/voice/draft")
+async def voice_draft_endpoint(
+    file: UploadFile | None = File(default=None),
+    text: str | None = Form(default=None),
+    folder_id: str = Form(default="LifeVoice"),
+    mode: str = Form(default="auto"),
+):
+    requested_mode = (mode or "auto").strip().lower()
+    folder_id = validate_folder_id(folder_id or "LifeVoice")
+    entry_id = f"voice_draft_{uuid.uuid4().hex}"
+    
+    transcript, audio_uri, source_filename, mime_type = await extract_submission_text(file, text, entry_id, folder_id)
+    
+    route = classify_voice_intent(transcript) if requested_mode == "auto" else {
+        "intent": requested_mode,
+        "confidence": 1.0,
+        "reason": "manual mode",
+    }
+    resolved_mode = route["intent"]
+    
+    return {
+        "transcript": transcript,
+        "mode": resolved_mode,
+        "ok": True
+    }
