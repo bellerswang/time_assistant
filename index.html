@@ -37,6 +37,8 @@
             --text-faint:  #4f5370;
             --primary:     #00f5ff; /* 极光青 */
             --primary-dim: rgba(0, 245, 255, 0.15);
+            --accent:      #bd93f9; /* 星云紫 */
+            --accent-dim:  rgba(189, 147, 249, 0.16);
             --success:     #00ff87; /* 超新星绿 */
             --warning:     #ffb86c; /* 星云金 */
             --error:       #ff5555; /* 超新星红 */
@@ -1181,7 +1183,9 @@
             height: 148px;
             border: 0;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
+            background:
+                radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.72), transparent 24%),
+                linear-gradient(135deg, var(--primary), var(--accent));
             color: #070514;
             font-size: 38px;
             display: flex;
@@ -1193,6 +1197,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             animation: planetary-pulse 3s infinite ease-in-out;
             position: relative;
+            isolation: isolate;
         }
         .record-orb-button::after {
             content: '';
@@ -1484,14 +1489,15 @@
         .loomi-mode-selector {
             display: flex;
             position: relative;
-            background: rgba(16, 12, 33, 0.7);
-            border: 1px solid var(--border);
+            background: rgba(8, 7, 18, 0.62);
+            border: 1px solid rgba(0, 245, 255, 0.22);
             border-radius: var(--radius-xl);
             padding: 4px;
-            width: 200px;
+            width: min(248px, 100%);
             margin: 0 auto 10px;
             z-index: 10;
             backdrop-filter: blur(10px);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 14px 34px rgba(0, 0, 0, 0.28);
         }
         .loomi-selector-btn {
             flex: 1;
@@ -1499,8 +1505,8 @@
             border: 0;
             color: var(--text-muted);
             font-size: 13px;
-            font-weight: 600;
-            padding: 8px 12px;
+            font-weight: 800;
+            padding: 10px 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1509,9 +1515,11 @@
             transition: color 0.3s;
             position: relative;
             z-index: 2;
+            border-radius: calc(var(--radius-xl) - 6px);
         }
         .loomi-selector-btn.active {
-            color: var(--text);
+            color: #070514;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
         }
         .loomi-selector-slider {
             position: absolute;
@@ -1519,11 +1527,12 @@
             bottom: 4px;
             left: 4px;
             width: calc(50% - 4px);
-            background: linear-gradient(135deg, rgba(0, 245, 255, 0.25), rgba(189, 147, 249, 0.2));
-            border: 1px solid rgba(0, 245, 255, 0.3);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: 1px solid rgba(255, 255, 255, 0.42);
             border-radius: calc(var(--radius-xl) - 4px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1;
+            box-shadow: 0 10px 28px rgba(0, 245, 255, 0.28);
         }
         .loomi-mode-selector button#loomi-sel-text.active ~ .loomi-selector-slider {
             transform: translateX(100%);
@@ -1583,8 +1592,9 @@
         }
         .loomi-mode-chip.active {
             border-color: var(--primary);
-            color: var(--primary);
-            background: var(--primary-dim);
+            color: #070514;
+            background: linear-gradient(135deg, var(--primary), rgba(189, 147, 249, 0.86));
+            box-shadow: 0 10px 22px rgba(0, 245, 255, 0.18);
         }
 
         /* Bottom Sheets */
@@ -2221,7 +2231,7 @@
             </div>
 
             <!-- VIEW 4: Voice (沉浸式智能输入 Loomi) -->
-            <div id="tab-voice" class="tab-panel record-home">
+            <div id="tab-voice" class="tab-panel record-home active">
                 <div class="loomi-immersive">
                     <div class="record-hero-title">LOOMI</div>
                     
@@ -2282,10 +2292,16 @@
             <div id="tab-records" class="tab-panel record-home">
                 <div class="record-section-head">
                     <div class="record-section-title">Records</div>
-                    <button class="action-pill primary" id="btn-refresh-voice-inbox" style="height:34px;">
-                        <i class="fa-solid fa-rotate"></i>
-                        Refresh
-                    </button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="action-pill secondary" id="btn-new-record" style="height:34px;">
+                            <i class="fa-solid fa-plus"></i>
+                            New
+                        </button>
+                        <button class="action-pill primary" id="btn-refresh-voice-inbox" style="height:34px;">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
                 </div>
 
                 <div class="record-filter-row" id="record-filter-row">
@@ -2296,6 +2312,13 @@
                     <button class="record-filter-chip" data-category="family_plan">Family Plan</button>
                     <button class="record-filter-chip" data-category="ask">Ask</button>
                     <button class="record-filter-chip" data-category="inbox">Inbox</button>
+                </div>
+
+                <div class="ask-input-row" style="margin: 2px 0 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px;">
+                    <input type="text" id="records-search-input" class="form-input" style="margin:0; height:38px; background: rgba(0,0,0,0.22); border-color: rgba(0,245,255,0.22);" placeholder="Search Firestore records...">
+                    <button class="record-primary-action" id="btn-search-records" style="height:38px; border-radius: var(--radius-md);">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
                 </div>
 
                 <!-- Ask Panel (Only visible when Ask filter is selected) -->
@@ -2353,7 +2376,7 @@
 
         <!-- 5. BottomNav -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-tab="timeline">
+            <button class="nav-item" data-tab="timeline">
                 <svg viewBox="0 0 24 24">
                     <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/>
                 </svg>
@@ -2365,7 +2388,7 @@
                 </svg>
                 <span>分析</span>
             </button>
-            <button class="nav-item" data-tab="voice">
+            <button class="nav-item active" data-tab="voice">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
@@ -2480,6 +2503,28 @@
                 <button class="category-choice-btn" data-category="self_reflection">Self Reflection <span>Journal and personal notes</span></button>
                 <button class="category-choice-btn" data-category="inbox">Inbox <span>Review later</span></button>
             </div>
+        </div>
+
+        <div class="bottom-sheet" id="sheet-record-edit">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <span class="sheet-title"><i class="fa-solid fa-pen"></i> Edit record</span>
+                <button class="sheet-close-btn" onclick="closeAllSheets()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <input type="hidden" id="record-edit-id">
+            <input type="text" class="form-input" id="record-edit-title" placeholder="Title" style="margin:0;">
+            <textarea class="semantic-textarea" id="record-edit-text" placeholder="Record text" style="height:140px;"></textarea>
+            <select class="form-input" id="record-edit-category" style="margin:0;">
+                <option value="work_idea">Work Idea</option>
+                <option value="family_plan">Family Plan</option>
+                <option value="life_knowledge">Life Knowledge</option>
+                <option value="self_reflection">Self Reflection</option>
+                <option value="ask">Ask</option>
+                <option value="inbox">Inbox</option>
+            </select>
+            <button class="btn-sheet-primary" id="btn-save-record-edit">
+                <i class="fa-solid fa-check"></i> Save changes
+            </button>
         </div>
 
         <div class="bottom-sheet" id="sheet-routine-edit">
@@ -2742,7 +2787,7 @@
 
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
-        let currentTab = 'timeline';
+        let currentTab = 'voice';
         let activeTimerInterval = null;
         let activeTimerTaskId = null;
         let voiceMode = 'auto';
@@ -3584,15 +3629,84 @@
                 .replaceAll("'", '&#039;');
         }
 
+        function recordEditPayload(record) {
+            return encodeURIComponent(JSON.stringify(record));
+        }
+
+        function openRecordEdit(encodedRecord) {
+            const record = JSON.parse(decodeURIComponent(encodedRecord));
+            document.getElementById('record-edit-id').value = record.id || '';
+            document.getElementById('record-edit-title').value = record.title || '';
+            document.getElementById('record-edit-text').value = record.cleaned_text || record.raw_transcript || record.transcript || record.summary || '';
+            document.getElementById('record-edit-category').value = record.category || 'inbox';
+            openSheet('sheet-record-edit');
+        }
+
+        function openNewRecord() {
+            document.getElementById('record-edit-id').value = '';
+            document.getElementById('record-edit-title').value = '';
+            document.getElementById('record-edit-text').value = '';
+            document.getElementById('record-edit-category').value = 'inbox';
+            openSheet('sheet-record-edit');
+        }
+
+        async function saveRecordEdit() {
+            const recordId = document.getElementById('record-edit-id')?.value;
+            const title = document.getElementById('record-edit-title')?.value.trim();
+            const cleaned_text = document.getElementById('record-edit-text')?.value.trim();
+            const category = document.getElementById('record-edit-category')?.value || 'inbox';
+            if (!cleaned_text) {
+                showToast('Record text cannot be empty.', 'error');
+                return;
+            }
+            try {
+                const response = recordId
+                    ? await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, cleaned_text, category })
+                    })
+                    : await fetch(`${CONFIG.BACKEND_URL}/api/records`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, text: cleaned_text, category, source: 'text' })
+                    });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                closeAllSheets();
+                await renderVoiceInbox();
+                showToast(recordId ? 'Record updated' : 'Record created', 'success');
+            } catch (e) {
+                console.error('[Records] Edit failed:', e);
+                showToast('Could not update record', 'error');
+            }
+        }
+
+        async function deleteRecord(recordId) {
+            if (!recordId || !window.confirm('Delete this record?')) return;
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                await renderVoiceInbox();
+                showToast('Record deleted', 'success');
+            } catch (e) {
+                console.error('[Records] Delete failed:', e);
+                showToast('Could not delete record', 'error');
+            }
+        }
+
         async function renderVoiceInbox() {
             const list = document.getElementById('voice-entry-list');
             if (!list) return;
             const folder = document.getElementById('voice-inbox-folder')?.value || '';
             const mode = document.getElementById('voice-inbox-mode')?.value || 'all';
+            const searchQuery = document.getElementById('records-search-input')?.value.trim() || '';
             list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">Loading...</div></div>';
             try {
-                const params = new URLSearchParams({ limit: '50' });
+                const params = new URLSearchParams({ limit: '10' });
                 if (mode && mode !== 'all') params.set('category', mode);
+                if (searchQuery) params.set('q', searchQuery);
                 const response = await fetch(`${CONFIG.BACKEND_URL}/api/records?${params.toString()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
@@ -3618,6 +3732,7 @@
                     const changeButton = entry.category
                         ? `<button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px;" onclick="changeRecordCategory('${escapeHtml(entry.id)}')">Change</button>`
                         : '';
+                    const editPayload = recordEditPayload(entry);
                     return `
                         <div class="voice-entry-card">
                             <div class="voice-entry-meta">
@@ -3626,7 +3741,11 @@
                             </div>
                             <div class="voice-entry-meta">
                                 <span>${docStatus}</span>
-                                ${changeButton}
+                                <span style="display:flex; gap:6px;">
+                                    ${changeButton}
+                                    <button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px;" onclick="openRecordEdit('${editPayload}')">Edit</button>
+                                    <button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px; color:var(--error);" onclick="deleteRecord('${escapeHtml(entry.id)}')">Delete</button>
+                                </span>
                             </div>
                             <div class="voice-entry-text">${title ? `<strong>${escapeHtml(title)}</strong><br>` : ''}${escapeHtml(body)}</div>
                             ${tags ? `<div class="voice-entry-meta"><span>${tags}</span></div>` : ''}
@@ -3640,7 +3759,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -5827,6 +5946,12 @@
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
+            document.getElementById('btn-search-records')?.addEventListener('click', renderVoiceInbox);
+            document.getElementById('records-search-input')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') renderVoiceInbox();
+            });
+            document.getElementById('btn-new-record')?.addEventListener('click', openNewRecord);
+            document.getElementById('btn-save-record-edit')?.addEventListener('click', saveRecordEdit);
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
                 btn.addEventListener('click', () => {

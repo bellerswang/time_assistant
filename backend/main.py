@@ -106,7 +106,7 @@ VOICE_DOC_MAX_CHARS = int(os.getenv("VOICE_DOC_MAX_CHARS", "800000"))
 STORAGE_MODE = os.getenv("STORAGE_MODE", "google_doc")
 INDEX_MODE = os.getenv("INDEX_MODE", "sqlite")
 GOOGLE_DOCS_DEFAULT_DOC_ID = os.getenv("GOOGLE_DOCS_DEFAULT_DOC_ID")
-FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "false").lower() in {"1", "true", "yes"}
+FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "true").lower() in {"1", "true", "yes"}
 FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
 FIRESTORE_COLLECTION = os.getenv("FIRESTORE_COLLECTION", "records")
 
@@ -147,6 +147,21 @@ class MemoryAskRequest(BaseModel):
 
 class RecordCategoryUpdateRequest(BaseModel):
     category: str
+
+
+class RecordCreateRequest(BaseModel):
+    text: str
+    title: str | None = None
+    summary: str | None = None
+    category: str = "inbox"
+    source: str = "text"
+
+
+class RecordUpdateRequest(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    cleaned_text: str | None = None
+    category: str | None = None
 
 
 def utc_now_iso() -> str:
@@ -881,12 +896,19 @@ def row_to_record_dict(row: sqlite3.Row) -> dict:
     return item
 
 
-def list_records(category: str | None, limit: int) -> list[dict]:
+def list_records(category: str | None, limit: int, q: str | None = None) -> list[dict]:
     params = []
     clause = ""
+    filters = []
     if category and category != "all":
-        clause = "WHERE category = ? OR mode = ?"
+        filters.append("(category = ? OR mode = ?)")
         params.extend([category, category])
+    if q:
+        filters.append("(title LIKE ? OR summary LIKE ? OR cleaned_text LIKE ? OR raw_transcript LIKE ?)")
+        like = f"%{q}%"
+        params.extend([like, like, like, like])
+    if filters:
+        clause = "WHERE " + " AND ".join(filters)
     params.append(limit)
     with sqlite3.connect(VOICE_DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -903,23 +925,126 @@ def list_records(category: str | None, limit: int) -> list[dict]:
     return [row_to_record_dict(row) for row in rows]
 
 
-def update_record_category(record_id: str, category: str) -> dict:
-    category = normalize_record_category(category)
-    label = CATEGORY_LABELS[category]
-    now = utc_now_iso()
+def update_record(record_id: str, updates: dict) -> dict:
+    allowed = {
+        "title",
+        "summary",
+        "cleaned_text",
+        "raw_transcript",
+        "category",
+        "category_label",
+    }
+    payload = {key: value for key, value in updates.items() if key in allowed and value is not None}
+    if not payload:
+        return {"ok": True, "record_id": record_id, "status": "skipped:no_updates"}
+    payload["updated_at"] = utc_now_iso()
+    columns = ", ".join(f"{key} = ?" for key in payload)
+    values = list(payload.values())
+    values.append(record_id)
     with sqlite3.connect(VOICE_DB_PATH) as conn:
         result = conn.execute(
-            """
-            UPDATE records
-            SET category = ?, category_label = ?, updated_at = ?
-            WHERE id = ?
-            """,
-            (category, label, now, record_id),
+            f"UPDATE records SET {columns} WHERE id = ?",
+            values,
         )
         conn.commit()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Record not found.")
+    return {"ok": True, "record_id": record_id, "status": "updated"}
+
+
+def delete_record(record_id: str) -> dict:
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        result = conn.execute("DELETE FROM records WHERE id = ?", (record_id,))
+        conn.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return {"ok": True, "record_id": record_id, "status": "deleted"}
+
+
+def update_record_category(record_id: str, category: str) -> dict:
+    category = normalize_record_category(category)
+    label = CATEGORY_LABELS[category]
+    update_record(record_id, {"category": category, "category_label": label})
     return {"ok": True, "record_id": record_id, "category": category, "category_label": label}
+
+
+async def list_records_any(category: str | None, limit: int, q: str | None = None) -> tuple[list[dict], str]:
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            if q:
+                records = await firestore_repo.search_records(q, category=category, limit=limit)
+            else:
+                records = await firestore_repo.list_records(category=category, limit=limit)
+            return [record_to_public_dict(record) for record in records], "firestore"
+        except Exception as e:
+            logger.error(f"[Records] Firestore list/search failed, falling back to SQLite: {e}")
+    return list_records(category, limit, q), "sqlite"
+
+
+async def save_record_any(record: Record, folder_id: str = "LifeVoice", mode: str = "manual") -> dict:
+    storage_status = {}
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            storage_status["firestore"] = await firestore_repo.save_record(record)
+        except Exception as e:
+            logger.error(f"[Records] Firestore save failed: {e}")
+            storage_status["firestore"] = {"backend": "firestore", "status": f"failed:{e}"}
+    storage_status["sqlite"] = insert_record(record, folder_id, mode, None)
+    return storage_status
+
+
+async def update_record_any(record_id: str, req: RecordUpdateRequest) -> dict:
+    updates = {}
+    if req.title is not None:
+        updates["title"] = req.title.strip()
+    if req.summary is not None:
+        updates["summary"] = req.summary.strip()
+    if req.cleaned_text is not None:
+        cleaned = req.cleaned_text.strip()
+        updates["cleaned_text"] = cleaned
+        updates["raw_transcript"] = cleaned
+        if "summary" not in updates:
+            updates["summary"] = cleaned[:180]
+    if req.category is not None:
+        category = normalize_record_category(req.category)
+        updates["category"] = category
+        updates["category_label"] = CATEGORY_LABELS[category]
+
+    results = {}
+    firestore_updated = False
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            results["firestore"] = await firestore_repo.update_record(record_id, updates)
+            firestore_updated = True
+        except Exception as e:
+            logger.error(f"[Records] Firestore update failed: {e}")
+            results["firestore"] = {"backend": "firestore", "status": f"failed:{e}"}
+    try:
+        results["sqlite"] = update_record(record_id, updates)
+    except HTTPException:
+        if not firestore_updated:
+            raise
+        results["sqlite"] = {"backend": "sqlite", "status": "skipped:not_found"}
+    return {"ok": True, "record_id": record_id, "results": results}
+
+
+async def delete_record_any(record_id: str) -> dict:
+    results = {}
+    firestore_deleted = False
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            results["firestore"] = await firestore_repo.delete_record(record_id)
+            firestore_deleted = True
+        except Exception as e:
+            logger.error(f"[Records] Firestore delete failed: {e}")
+            results["firestore"] = {"backend": "firestore", "status": f"failed:{e}"}
+    try:
+        results["sqlite"] = delete_record(record_id)
+    except HTTPException:
+        if not firestore_deleted:
+            raise
+        results["sqlite"] = {"backend": "sqlite", "status": "skipped:not_found"}
+    return {"ok": True, "record_id": record_id, "results": results}
 
 
 async def extract_submission_text(
@@ -1786,8 +1911,9 @@ async def health_check():
         "storage_mode": STORAGE_MODE,
         "index_mode": INDEX_MODE,
         "firestore_enabled": FIRESTORE_ENABLED,
-        "firestore_project_id": FIRESTORE_PROJECT_ID,
+        "firestore_project_id": FIRESTORE_PROJECT_ID or getattr(firestore_repo, "project_id", None),
         "firestore_collection": FIRESTORE_COLLECTION,
+        "firestore_ready": bool(FIRESTORE_ENABLED and firestore_repo),
     }
 
 
@@ -1852,14 +1978,55 @@ async def ask_memory(req: MemoryAskRequest):
 @app.get("/api/records")
 async def get_records(
     category: str | None = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=200),
+    q: str | None = Query(default=None),
+    limit: int = Query(default=10, ge=1, le=200),
 ):
-    return {"records": list_records(category, limit)}
+    records, source = await list_records_any(category, limit, q)
+    return {"records": records, "source": source, "limit": limit, "query": q or ""}
+
+
+@app.post("/api/records")
+async def post_record(req: RecordCreateRequest):
+    text = req.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Record text cannot be empty.")
+    category = normalize_record_category(req.category)
+    now = datetime.now(timezone.utc)
+    record = Record(
+        id=build_record_id(),
+        created_at=now,
+        updated_at=now,
+        source="voice" if req.source == "voice" else "text",
+        raw_transcript=text,
+        cleaned_text=text,
+        category=category,
+        category_label=CATEGORY_LABELS[category],
+        confidence=1.0,
+        needs_review=False,
+        title=(req.title or text.splitlines()[0] or "Record")[:120],
+        summary=(req.summary or text[:180]),
+        metadata=RecordMetadata(tags=simple_tags_from_text(text)),
+        storage_status={},
+    )
+    storage_status = await save_record_any(record)
+    record.storage_status = storage_status
+    return {"record": record_to_public_dict(record), "storage": storage_status}
+
+
+@app.patch("/api/records/{record_id}")
+async def patch_record(record_id: str, req: RecordUpdateRequest):
+    return await update_record_any(record_id, req)
+
+
+@app.delete("/api/records/{record_id}")
+async def delete_record_endpoint(record_id: str):
+    return await delete_record_any(record_id)
 
 
 @app.patch("/api/records/{record_id}/category")
 async def patch_record_category(record_id: str, req: RecordCategoryUpdateRequest):
-    return update_record_category(record_id, req.category)
+    category = normalize_record_category(req.category)
+    return await update_record_any(record_id, RecordUpdateRequest(category=category))
 
 
 @app.get("/api/voice/entries")

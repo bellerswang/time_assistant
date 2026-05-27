@@ -114,6 +114,44 @@ class FirestoreRepository(RecordRepository):
                 records.append(record)
         return records
 
+    async def search_records(self, query_text: str, category: str | None = None, limit: int = 10) -> list[Record]:
+        query_text = (query_text or "").strip().lower()
+        records = await self.list_records(category=category, limit=max(limit * 8, 80))
+        if not query_text:
+            return records[:limit]
+
+        def haystack(record: Record) -> str:
+            return " ".join(
+                [
+                    record.title,
+                    record.summary,
+                    record.cleaned_text,
+                    record.raw_transcript,
+                    record.category_label,
+                    " ".join(record.metadata.tags),
+                ]
+            ).lower()
+
+        return [record for record in records if query_text in haystack(record)][:limit]
+
+    async def update_record(self, record_id: str, updates: dict[str, Any]) -> dict:
+        allowed = {
+            "title",
+            "summary",
+            "cleaned_text",
+            "raw_transcript",
+            "category",
+            "category_label",
+            "needs_review",
+        }
+        payload = {key: value for key, value in updates.items() if key in allowed}
+        if not payload:
+            return {"backend": "firestore", "status": "skipped:no_updates"}
+        payload["updated_at"] = datetime.now(timezone.utc)
+        doc_ref = self.db.collection(self.collection_name).document(record_id)
+        await doc_ref.update(payload)
+        return {"backend": "firestore", "status": "updated"}
+
     async def update_record_category(self, record_id: str, category: str, category_label: str) -> dict:
         doc_ref = self.db.collection(self.collection_name).document(record_id)
         await doc_ref.update({
@@ -122,6 +160,11 @@ class FirestoreRepository(RecordRepository):
             "updated_at": datetime.now(timezone.utc)
         })
         return {"backend": "firestore", "status": "updated"}
+
+    async def delete_record(self, record_id: str) -> dict:
+        doc_ref = self.db.collection(self.collection_name).document(record_id)
+        await doc_ref.delete()
+        return {"backend": "firestore", "status": "deleted"}
 
     def _dict_to_record(self, data: dict[str, Any]) -> Record | None:
         if not data:
