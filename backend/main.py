@@ -151,10 +151,13 @@ class RecordCategoryUpdateRequest(BaseModel):
 
 class RecordCreateRequest(BaseModel):
     text: str
+    id: str | None = None
+    created_at: str | None = None
     title: str | None = None
     summary: str | None = None
     category: str = "inbox"
     source: str = "text"
+    tags: list[str] | None = None
 
 
 class RecordUpdateRequest(BaseModel):
@@ -1991,10 +1994,19 @@ async def post_record(req: RecordCreateRequest):
     if not text:
         raise HTTPException(status_code=400, detail="Record text cannot be empty.")
     category = normalize_record_category(req.category)
+    try:
+        created_at = datetime.fromisoformat(req.created_at) if req.created_at else datetime.now(timezone.utc)
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="created_at must be an ISO datetime.")
     now = datetime.now(timezone.utc)
+    record_id = req.id.strip() if req.id else build_record_id()
+    if not re.match(r"^[A-Za-z0-9_-]{3,120}$", record_id):
+        raise HTTPException(status_code=400, detail="Record id may only contain letters, numbers, underscore, and hyphen.")
     record = Record(
-        id=build_record_id(),
-        created_at=now,
+        id=record_id,
+        created_at=created_at,
         updated_at=now,
         source="voice" if req.source == "voice" else "text",
         raw_transcript=text,
@@ -2005,7 +2017,7 @@ async def post_record(req: RecordCreateRequest):
         needs_review=False,
         title=(req.title or text.splitlines()[0] or "Record")[:120],
         summary=(req.summary or text[:180]),
-        metadata=RecordMetadata(tags=simple_tags_from_text(text)),
+        metadata=RecordMetadata(tags=req.tags if req.tags is not None else simple_tags_from_text(text)),
         storage_status={},
     )
     storage_status = await save_record_any(record)
