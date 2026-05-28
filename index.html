@@ -1067,26 +1067,6 @@
         .voice-journal-tools.active {
             display: flex;
         }
-        .voice-prompt-box {
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            border-radius: var(--radius-lg);
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .voice-prompt-meta {
-            color: var(--primary);
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .voice-prompt-text {
-            color: var(--text);
-            font-size: 14px;
-            line-height: 1.45;
-        }
         .voice-inbox-toolbar {
             display: flex;
             gap: 8px;
@@ -1535,6 +1515,9 @@
             box-shadow: 0 10px 28px rgba(0, 245, 255, 0.28);
         }
         .loomi-mode-selector button#loomi-sel-text.active ~ .loomi-selector-slider {
+            transform: translateX(100%);
+        }
+        .loomi-mode-selector button#lang-en-btn.active ~ .loomi-selector-slider {
             transform: translateX(100%);
         }
 
@@ -2272,8 +2255,7 @@
 
                     <!-- Mode Chips -->
                     <div class="loomi-mode-row" id="loomi-mode-row">
-                        <button class="loomi-mode-chip active" data-mode="auto">Auto 自动</button>
-                        <button class="loomi-mode-chip" data-mode="journal">Journal 日记</button>
+                        <button class="loomi-mode-chip active" data-mode="journal">Journal 日记</button>
                         <button class="loomi-mode-chip" data-mode="wiki">Wiki 百科</button>
                         <button class="loomi-mode-chip" data-mode="ask">Ask 问答</button>
                         <button class="loomi-mode-chip" data-mode="schedule">Schedule 日程</button>
@@ -2414,23 +2396,14 @@
             </div>
             
             <div class="voice-mode-toggle" id="voice-mode-toggle">
-                <button class="voice-mode-btn active" data-mode="auto">Auto</button>
+                <button class="voice-mode-btn active" data-mode="journal">Journal</button>
                 <button class="voice-mode-btn" data-mode="schedule">Schedule</button>
-                <button class="voice-mode-btn" data-mode="journal">Journal</button>
                 <button class="voice-mode-btn" data-mode="wiki">Wiki</button>
                 <button class="voice-mode-btn" data-mode="ask">Ask</button>
             </div>
 
             <div class="voice-journal-tools" id="voice-journal-tools">
                 <select class="form-input" id="voice-folder-select" style="margin:0; height:36px; font-size:12px;"></select>
-                <div class="voice-prompt-box">
-                    <div class="voice-prompt-meta" id="voice-prompt-category">Prompt</div>
-                    <div class="voice-prompt-text" id="voice-prompt-text">Capture what is on your mind.</div>
-                    <button class="btn-sheet-secondary" id="btn-refresh-voice-prompt" style="align-self:flex-start; padding:6px 10px; font-size:11px;">
-                        <i class="fa-solid fa-rotate"></i>
-                        New prompt
-                    </button>
-                </div>
             </div>
 
             <textarea class="semantic-textarea" id="textarea-input" placeholder="输入你想做的事，例如：&#10;“下午三点写量化策略报告两小时”&#10;“明天早晨健身锻炼四十五分钟”"></textarea>
@@ -2620,6 +2593,15 @@
             </div>
             
             <div class="form-group">
+                <span class="form-label" data-i18n="settings.language">界面语言</span>
+                <div class="loomi-mode-selector" style="width: min(220px, 100%); margin: 0;">
+                    <button class="loomi-selector-btn active" id="lang-zh-btn" type="button" data-lang="zh">中文</button>
+                    <button class="loomi-selector-btn" id="lang-en-btn" type="button" data-lang="en">English</button>
+                    <div class="loomi-selector-slider" id="lang-selector-slider"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <span class="form-label">后端 API 服务端端点 (Backend URL)</span>
                 <input type="text" class="form-input" id="setting-backend-url" placeholder="例如：http://192.168.1.100:11337">
                 <span style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
@@ -2785,15 +2767,436 @@
             ]
         };
 
+        const I18N = {
+            zh: {
+                voice: '语音',
+                text: '文字',
+                journal: 'Journal 日记',
+                wiki: 'Wiki 百科',
+                ask: 'Ask 问答',
+                schedule: 'Schedule 日程',
+                clickRecord: '点击开始录音',
+                textPlaceholder: '输入你想记录的内容，或向 AI 提问...',
+                send: '发送',
+                records: '记录',
+                recordsTitle: 'Records',
+                newRecord: 'New',
+                refresh: 'Refresh',
+                searchRecords: '搜索 Firestore 记录...',
+                askMemory: '向记忆库提问',
+                askPlaceholder: '例如：最近朵朵骑车发生了什么事？',
+                settings: 'Settings',
+                settingsTitle: 'Loomi 系统设置',
+                language: '界面语言',
+                backendUrl: '后端 API 服务端端点 (Backend URL)',
+                backendHint: '在 GitHub Pages (HTTPS) 上必须使用云端 HTTPS API 服务端。本地测试可以使用局域网 IP。',
+                backendStatus: '后端连接状态',
+                pingBackend: '重新检测连接',
+                gcalTitle: 'Google Calendar 深度集成',
+                save: '保存',
+                calendarId: '同步日历 ID (Calendar ID)',
+                authStatus: '绑定授权状态',
+                disconnect: '断开',
+                connect: '授权绑定',
+                syncPrefs: '双向同步偏好',
+                autoImport: '自动导入忙碌日程为占位',
+                autoExport: '本地任务完成/创建自动写入日历',
+                dataManagement: '系统数据管理',
+                resetDemo: '重置并恢复初始演示数据',
+                saveSettings: '保存并生效设置',
+                editRecord: 'Edit record',
+                title: 'Title',
+                recordText: 'Record text',
+                saveChanges: 'Save changes'
+            },
+            en: {
+                voice: 'Voice',
+                text: 'Text',
+                journal: 'Journal',
+                wiki: 'Wiki',
+                ask: 'Ask',
+                schedule: 'Schedule',
+                clickRecord: 'Tap to record',
+                textPlaceholder: 'Type a note, wiki item, question, or schedule request...',
+                send: 'Send',
+                records: 'Records',
+                recordsTitle: 'Records',
+                newRecord: 'New',
+                refresh: 'Refresh',
+                searchRecords: 'Search Firestore records...',
+                askMemory: 'Ask your memory',
+                askPlaceholder: 'Example: what happened recently with Duoduo riding the bike?',
+                settings: 'Settings',
+                settingsTitle: 'Loomi Settings',
+                language: 'Language',
+                backendUrl: 'Backend URL',
+                backendHint: 'GitHub Pages uses HTTPS, so it must call a cloud HTTPS backend. Local testing can use a LAN IP.',
+                backendStatus: 'Backend connection',
+                pingBackend: 'Check connection again',
+                gcalTitle: 'Google Calendar integration',
+                save: 'Save',
+                calendarId: 'Calendar ID',
+                authStatus: 'Authorization status',
+                disconnect: 'Disconnect',
+                connect: 'Connect',
+                syncPrefs: 'Sync preferences',
+                autoImport: 'Import busy calendar events as placeholders',
+                autoExport: 'Export created/completed local tasks to Calendar',
+                dataManagement: 'Data management',
+                resetDemo: 'Reset demo data',
+                saveSettings: 'Save settings',
+                editRecord: 'Edit record',
+                title: 'Title',
+                recordText: 'Record text',
+                saveChanges: 'Save changes'
+            }
+        };
+        let appLanguage = DB.get('loomi_language', 'zh');
+
+        function langText(key) {
+            return (I18N[appLanguage] && I18N[appLanguage][key]) || I18N.zh[key] || key;
+        }
+
+        function setNodeText(selector, value) {
+            const node = document.querySelector(selector);
+            if (node) node.textContent = value;
+        }
+
+        function setNodeHTML(selector, value) {
+            const node = document.querySelector(selector);
+            if (node) node.innerHTML = value;
+        }
+
+        function setPlaceholder(selector, value) {
+            const node = document.querySelector(selector);
+            if (node) node.setAttribute('placeholder', value);
+        }
+
+        const EN_TEXT_REPLACEMENTS = {
+            '操作已成功执行': 'Action completed',
+            '今日时间': 'Today',
+            '一键载入常规': 'Load routines',
+            '模板管理': 'Templates',
+            '已完成': 'Done',
+            '专注': 'Focus',
+            '今天': 'Today',
+            '本周': 'Week',
+            '本月': 'Month',
+            '任务完成率': 'Completion rate',
+            '专注总时长': 'Focus time',
+            '实际投入时间': 'Actual time spent',
+            '最准确常规': 'Most accurate routine',
+            '暂无数据': 'No data',
+            '偏差率最小事项': 'Smallest estimate error',
+            '最低效时段': 'Least efficient time',
+            '实测偏离预估最多': 'Largest estimate gap',
+            '分类时间分布': 'Time by category',
+            '工作 (Work)': 'Work',
+            '健康 (Health)': 'Health',
+            '个人 (Personal)': 'Personal',
+            '自适应乘数趋势': 'Adaptive multiplier trend',
+            '导出原始 JSON 数据': 'Export raw JSON',
+            '常规日程模板': 'Routine templates',
+            '返回日程': 'Back',
+            '新日常模板': 'New routine',
+            '语音': 'Voice',
+            '文字': 'Text',
+            'Journal 日记': 'Journal',
+            'Wiki 百科': 'Wiki',
+            'Ask 问答': 'Ask',
+            'Schedule 日程': 'Schedule',
+            '点击开始录音': 'Tap to record',
+            '发送': 'Send',
+            '向记忆库提问': 'Ask your memory',
+            '日程': 'Schedule',
+            '分析': 'Analytics',
+            '记录': 'Records',
+            '新日程智能解析安排': 'Smart schedule parser',
+            '按键录音': 'Record',
+            '完成录音并发送': 'Stop and send',
+            '丢弃': 'Discard',
+            '智能安排': 'Smart schedule',
+            'Loomi 正在提取解析中...': 'Loomi is parsing...',
+            'Loomi 结构化解析结果': 'Loomi structured result',
+            '事项名称': 'Task name',
+            '日程分类': 'Category',
+            '预估用时': 'Estimated time',
+            '安排方案': 'Plan',
+            '安排说明': 'Reason',
+            '确认编入今日日程': 'Add to today',
+            '新建常规模板': 'New routine template',
+            '编辑常规模板': 'Edit routine template',
+            '模板名称': 'Template name',
+            '主题配色': 'Color',
+            '预计基准用时（分钟）': 'Base duration (minutes)',
+            '偏好时间（可选，留空则由空档探测器安排）': 'Preferred time (optional)',
+            '重复规则': 'Repeat rule',
+            '每天 (Daily)': 'Daily',
+            '工作日 (Weekdays)': 'Weekdays',
+            '每周相同周几 (Weekly)': 'Weekly',
+            '仅今日一次 (Once)': 'Once',
+            '取消': 'Cancel',
+            '保存常规': 'Save routine',
+            '确定删除吗？': 'Delete?',
+            '删除常规模板会一并清除累计学习的效率特征数据，此操作不可逆。历史任务日志将予以保留。': 'Deleting this routine template will also clear its learned efficiency data. This cannot be undone. Historical task logs will be kept.',
+            '确认删除': 'Confirm delete',
+            '中文': 'Chinese',
+            'Loomi 系统设置': 'Loomi Settings',
+            '界面语言': 'Language',
+            '后端 API 服务端端点 (Backend URL)': 'Backend URL',
+            '后端连接状态': 'Backend connection',
+            '正在检测连接...': 'Checking connection...',
+            '重新检测连接': 'Check again',
+            'Google Calendar 深度集成': 'Google Calendar integration',
+            '保存': 'Save',
+            '去 Google Cloud 申请 Web Client ID': 'Open Google Cloud for Web Client ID',
+            '同步日历 ID (Calendar ID)': 'Calendar ID',
+            '绑定授权状态': 'Authorization status',
+            '未配置 Client ID': 'Client ID not configured',
+            '已授权连接': 'Connected',
+            '授权已过期': 'Authorization expired',
+            '未绑定授权': 'Not connected',
+            '断开': 'Disconnect',
+            '授权绑定': 'Connect',
+            '双向同步偏好': 'Sync preferences',
+            '自动导入忙碌日程为占位': 'Import busy events as placeholders',
+            '本地任务完成/创建自动写入日历': 'Export local task changes to Calendar',
+            '系统数据管理': 'Data management',
+            '重置并恢复初始演示数据': 'Reset demo data',
+            '保存并生效设置': 'Save settings',
+            '在此插针': 'Add here',
+            '谷歌日历': 'Google Calendar',
+            '日历锁定': 'Calendar locked',
+            '谷歌日历中编辑': 'Edit in Google Calendar',
+            '跳过': 'Skip',
+            '开始': 'Start',
+            '完成': 'Done',
+            '已投入': 'Spent',
+            '撤销': 'Undo',
+            '删除': 'Delete',
+            '编辑': 'Edit',
+            '强制同步': 'Force sync',
+            '重新授权': 'Reconnect',
+            '暂无任何学习中的特征参数': 'No learned routine features yet',
+            '暂无常规事项模板。点击右上角“新日常模板”轻松配置': 'No routine templates yet. Use New routine to create one.',
+            '每日重复': 'Daily',
+            '工作日重复': 'Weekdays',
+            '每周相同时间': 'Weekly',
+            '不重复': 'No repeat',
+            '随遇而安(无特定时间)': 'Flexible',
+            '乘数': 'Multiplier',
+            '特征估计时长': 'Adjusted estimate',
+            '请输入一些文字！': 'Please type something first.',
+            'Loomi 正在处理...': 'Loomi is processing...',
+            '理解完成！': 'Done.',
+            '理解失败，请重试': 'Failed. Please try again.',
+            '正在录音... 再次点击停止': 'Recording... tap again to stop',
+            '麦克风权限被拒绝': 'Microphone permission denied',
+            '完成！点击重新录音': 'Done. Tap to record again',
+            '处理失败，请重试': 'Failed. Please try again.',
+            '工作': 'Work',
+            '健康': 'Health',
+            '个人': 'Personal'
+        };
+
+        const EN_PLACEHOLDER_REPLACEMENTS = {
+            '输入你想记录的内容，或向 AI 提问...': 'Type a note, wiki item, question, or schedule request...',
+            'Search Firestore records...': 'Search Firestore records...',
+            '例如"最近朵朵骑车发生了什么事？"': 'Example: what happened recently with Duoduo riding the bike?',
+            '例如：最近朵朵骑车发生了什么事？': 'Example: what happened recently with Duoduo riding the bike?',
+            '输入你想做的事，例如：\n“下午三点写量化策略报告两小时”\n“明天早晨健身锻炼四十五分钟”': 'Type a schedule request, for example:\n"Write code at 3pm for two hours"\n"Go to the gym tomorrow morning for 45 minutes"',
+            '例如：晨间复盘、健身跑步、看书学习': 'Example: morning review, workout, reading',
+            '例如：30': 'Example: 30',
+            '例如：http://192.168.1.100:11337': 'Example: https://your-backend.run.app'
+        };
+
+        const EN_MESSAGE_PATTERNS = [
+            [/^🔌 API 离线或配额不足，已无缝降级为本地规则解析$/, 'API is offline or quota-limited. Falling back to local parsing.'],
+            [/^🗑️ 任务“(.+)”已删除$/, 'Task "$1" deleted.'],
+            [/^🗑️ 正在从 Google Calendar 云端删除事件\.\.\.$/, 'Deleting the event from Google Calendar...'],
+            [/^🗑️ 谷歌日历事件已从本地和云端同步删除$/, 'Google Calendar event deleted locally and remotely.'],
+            [/^⚠️ 谷歌日历云端删除失败（已从本地视图移出）$/, 'Could not delete the Google Calendar event remotely. It was removed locally.'],
+            [/^🗑️ 谷歌日历事件缓存已清除$/, 'Google Calendar event cache cleared.'],
+            [/^⏱️ 专注事项：“(.+)” 已拉开序幕$/, 'Started focus task: "$1".'],
+            [/^✅ 完成！用时 (.+)，原预估 (.+) \\(AI已学习\\)$/, 'Done. Actual time: $1, original estimate: $2. AI learned from it.'],
+            [/^✅ 恭喜完成：“(.+)” 用时 (.+)分钟！$/, 'Completed "$1" in $2 minutes.'],
+            [/^⏭️ 已跳过该事项安排$/, 'Task skipped.'],
+            [/^🎙️ 正在录音\.\.\. 说完后请再次点击该按钮停止并安排$/, 'Recording... tap again to stop and send.'],
+            [/^🎙️ 录音授权失败，请在浏览器权限设置中开启麦克风权限！$/, 'Microphone permission failed. Please enable microphone access in the browser.'],
+            [/^处理失败: (.+)$/, 'Processing failed: $1'],
+            [/^录音处理失败: (.+)$/, 'Recording failed: $1'],
+            [/^✨ 智能日程已解析$/, 'Schedule parsed.'],
+            [/^✨ 语音日程已解析$/, 'Voice schedule parsed.'],
+            [/^🎙️ 录音识别成功！请微调文字或分类后点击【确认提交】$/, 'Transcription succeeded. Review the text/category, then submit.'],
+            [/^💳 OpenAI 额度不足，无法进行语音听写。请使用本地正则文本输入！$/, 'OpenAI quota is insufficient for transcription. Please type instead.'],
+            [/^⚠️ 全天时段爆满，无法安排，请清空部分日程后再试！$/, 'The day is full. Clear some schedule items and try again.'],
+            [/^⚠️ 授权失败: (.+)$/, 'Authorization failed: $1'],
+            [/^🟢 Google Calendar 授权成功，正在同步数据\.\.\.$/, 'Google Calendar connected. Syncing...'],
+            [/^⚠️ 请先配置并保存 Google Client ID$/, 'Please configure and save the Google Client ID first.'],
+            [/^⚠️ Google SDK 载入失败，请检查网络或稍后重试$/, 'Google SDK failed to load. Check the network and try again.'],
+            [/^🔌 已解除 Google 账号绑定并清除缓存$/, 'Google account disconnected and local cache cleared.'],
+            [/^🔑 谷歌授权已失效，请重新连接账号$/, 'Google authorization expired. Please reconnect.'],
+            [/^⚠️ 同步失败: (.+)$/, 'Sync failed: $1'],
+            [/^✨ 成功一键智能同步 (.+) 个常规事项！$/, 'Loaded $1 routine items.'],
+            [/^💡 任务已同步，或今天已无适合的模板空档$/, 'Tasks are synced, or no suitable routine slots remain today.'],
+            [/^💡 请先打字说点什么，比如：“下午写代码两小时”$/, 'Type something first, for example: "write code at 3pm for two hours".'],
+            [/^🗑️ 草稿已成功放弃并清空$/, 'Draft discarded.'],
+            [/^✅ 安排入座！事项已智能插入最佳空档位置。$/, 'Added to the best available slot.'],
+            [/^🔄 系统已恢复初始演示模板与数据！$/, 'Demo templates and data restored.'],
+            [/^⚠️ 后端 API 地址不能为空$/, 'Backend URL cannot be empty.'],
+            [/^💾 系统设置已成功保存并立即生效！$/, 'Settings saved.'],
+            [/^💾 Google 日历配置已成功保存！$/, 'Google Calendar settings saved.'],
+            [/^🔄 自动导入忙碌日程已开启$/, 'Busy-event auto import is on.'],
+            [/^🔄 自动导入忙碌日程已关闭$/, 'Busy-event auto import is off.'],
+            [/^📤 本地任务自动写入已开启$/, 'Local task auto export is on.'],
+            [/^📤 本地任务自动写入已关闭$/, 'Local task auto export is off.'],
+            [/^⚠️ 事项模板名称不能为空$/, 'Routine name cannot be empty.'],
+            [/^⚠️ 基准分钟必须为正整数$/, 'Base minutes must be a positive integer.'],
+            [/^💾 模板保存成功$/, 'Template saved.'],
+            [/^💾 新建模板保存成功$/, 'New template saved.'],
+            [/^🗑️ 常规模板已成功删除$/, 'Routine template deleted.'],
+            [/^📤 数据已成功打包导出为 JSON$/, 'Data exported as JSON.']
+        ];
+
+        let languageObserver = null;
+        let languageObserverTimer = null;
+
+        function localizeTextValue(value) {
+            if (appLanguage !== 'en' || typeof value !== 'string') return value;
+            const trimmed = value.trim();
+            if (!trimmed) return value;
+            let translated = EN_TEXT_REPLACEMENTS[trimmed] || EN_PLACEHOLDER_REPLACEMENTS[trimmed] || null;
+            if (!translated) {
+                translated = trimmed
+                    .replaceAll('分钟', ' min')
+                    .replaceAll('预计', 'Est.')
+                    .replaceAll('修正为', 'adjusted to')
+                    .replaceAll('全天最早空档', 'earliest available slot')
+                    .replaceAll('之后有连续', ' has a continuous ')
+                    .replaceAll('空闲', 'free')
+                    .replaceAll('任务', 'tasks');
+            }
+            return value.replace(trimmed, translated);
+        }
+
+        function localizeMessage(message) {
+            if (appLanguage !== 'en' || typeof message !== 'string') return message;
+            const exact = EN_TEXT_REPLACEMENTS[message] || EN_PLACEHOLDER_REPLACEMENTS[message];
+            if (exact) return exact;
+            for (const [pattern, replacement] of EN_MESSAGE_PATTERNS) {
+                if (pattern.test(message)) return message.replace(pattern, replacement);
+            }
+            return localizeTextValue(message);
+        }
+
+        function localizeDynamicDom(root = document.body) {
+            if (appLanguage !== 'en' || !root) return;
+            root.querySelectorAll?.('[placeholder]').forEach(node => {
+                node.setAttribute('placeholder', localizeTextValue(node.getAttribute('placeholder') || ''));
+            });
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+                    if (!parent || ['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                }
+            });
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const translated = localizeTextValue(node.nodeValue);
+                if (translated !== node.nodeValue) node.nodeValue = translated;
+            });
+        }
+
+        function syncLanguageObserver() {
+            if (languageObserver) {
+                languageObserver.disconnect();
+                languageObserver = null;
+            }
+            if (appLanguage !== 'en') return;
+            languageObserver = new MutationObserver(() => {
+                clearTimeout(languageObserverTimer);
+                languageObserverTimer = setTimeout(() => localizeDynamicDom(document.body), 30);
+            });
+            languageObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+        }
+
+        function applyLanguage(lang = appLanguage) {
+            appLanguage = lang === 'en' ? 'en' : 'zh';
+            DB.set('loomi_language', appLanguage);
+            document.documentElement.lang = appLanguage === 'en' ? 'en' : 'zh-CN';
+
+            document.getElementById('lang-zh-btn')?.classList.toggle('active', appLanguage === 'zh');
+            document.getElementById('lang-en-btn')?.classList.toggle('active', appLanguage === 'en');
+            setNodeText('#lang-zh-btn', appLanguage === 'en' ? 'Chinese' : '中文');
+            setNodeText('#lang-en-btn', 'English');
+
+            setNodeHTML('#loomi-sel-voice', `<i class="fa-solid fa-microphone"></i> ${langText('voice')}`);
+            setNodeHTML('#loomi-sel-text', `<i class="fa-solid fa-keyboard"></i> ${langText('text')}`);
+            setNodeText('#loomi-status', langText('clickRecord'));
+            setPlaceholder('#loomi-text-input', langText('textPlaceholder'));
+            setNodeHTML('#btn-loomi-text-submit', `<i class="fa-solid fa-paper-plane"></i> ${langText('send')}`);
+
+            const modeLabels = {
+                journal: langText('journal'),
+                wiki: langText('wiki'),
+                ask: langText('ask'),
+                schedule: langText('schedule')
+            };
+            document.querySelectorAll('#loomi-mode-row .loomi-mode-chip, .voice-mode-btn').forEach(btn => {
+                const mode = btn.getAttribute('data-mode');
+                if (modeLabels[mode]) btn.textContent = modeLabels[mode];
+            });
+
+            setNodeText('#tab-records .record-section-title', langText('recordsTitle'));
+            setNodeHTML('#btn-new-record', `<i class="fa-solid fa-plus"></i> ${langText('newRecord')}`);
+            setNodeHTML('#btn-refresh-voice-inbox', `<i class="fa-solid fa-rotate"></i> ${langText('refresh')}`);
+            setPlaceholder('#records-search-input', langText('searchRecords'));
+            setNodeHTML('#records-ask-panel > div:first-child', `<i class="fa-solid fa-brain"></i> ${langText('askMemory')}`);
+            setPlaceholder('#ask-memory-input', langText('askPlaceholder'));
+
+            setNodeText('#tab-settings-home .record-hero-title', langText('settings'));
+            setNodeHTML('#sheet-settings .sheet-title', `<i class="fa-solid fa-sliders"></i> ${langText('settingsTitle')}`);
+            setNodeText('[data-i18n="settings.language"]', langText('language'));
+            const settingLabels = document.querySelectorAll('#sheet-settings .form-label');
+            if (settingLabels[1]) settingLabels[1].textContent = langText('backendUrl');
+            if (settingLabels[2]) settingLabels[2].textContent = langText('backendStatus');
+            if (settingLabels[3]) settingLabels[3].innerHTML = `<i class="fa-brands fa-google" style="color: #4285f4;"></i> ${langText('gcalTitle')}`;
+            if (settingLabels[4]) settingLabels[4].textContent = langText('dataManagement');
+            const backendHint = document.querySelector('#setting-backend-url')?.nextElementSibling;
+            if (backendHint) backendHint.textContent = langText('backendHint');
+            setPlaceholder('#setting-backend-url', appLanguage === 'en' ? 'Example: https://your-backend.run.app' : '例如：http://192.168.1.100:11337');
+            setNodeHTML('#btn-ping-backend', `<i class="fa-solid fa-rotate"></i> ${langText('pingBackend')}`);
+            setNodeText('#btn-save-gcal-client', langText('save'));
+            setNodeText('#setting-gcal-calendar-id', document.getElementById('setting-gcal-calendar-id')?.value || 'primary');
+            setNodeText('#btn-disconnect-gcal', langText('disconnect'));
+            setNodeHTML('#btn-connect-gcal', `<i class="fa-brands fa-google"></i> ${langText('connect')}`);
+            setNodeHTML('#btn-reset-demo', `<i class="fa-solid fa-trash-can"></i> ${langText('resetDemo')}`);
+            setNodeText('#btn-save-settings', langText('saveSettings'));
+
+            setNodeHTML('#sheet-record-edit .sheet-title', `<i class="fa-solid fa-pen"></i> ${langText('editRecord')}`);
+            setPlaceholder('#record-edit-title', langText('title'));
+            setPlaceholder('#record-edit-text', langText('recordText'));
+            setNodeHTML('#btn-save-record-edit', `<i class="fa-solid fa-check"></i> ${langText('saveChanges')}`);
+
+            setActiveAppMode(currentTab);
+            localizeDynamicDom(document.body);
+            syncLanguageObserver();
+        }
+        window.applyLanguage = applyLanguage;
+        const nativeConfirm = window.confirm.bind(window);
+        window.confirm = (message) => nativeConfirm(localizeMessage(message));
+
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
         let currentTab = 'voice';
         let activeTimerInterval = null;
         let activeTimerTaskId = null;
-        let voiceMode = 'auto';
+        let voiceMode = 'journal';
         let voiceFolders = [];
-        let voicePrompts = [];
-        let currentVoicePrompt = null;
 
         // ==================== 初始示例数据 ====================
         function checkAndInitSampleData() {
@@ -3224,7 +3627,7 @@
             const icon = document.getElementById('toast-icon-class');
             const text = document.getElementById('toast-msg-text');
             
-            text.innerText = message;
+            text.innerText = localizeMessage(message);
             
             if (type === 'success') {
                 icon.className = 'fa-solid fa-circle-check';
@@ -3251,32 +3654,34 @@
         }
 
         function setVoiceMode(mode) {
-            voiceMode = ['auto', 'schedule', 'journal', 'wiki', 'ask'].includes(mode) ? mode : 'auto';
+            voiceMode = ['schedule', 'journal', 'wiki', 'ask'].includes(mode) ? mode : 'journal';
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-mode') === voiceMode);
+            });
+            document.querySelectorAll('#loomi-mode-row .loomi-mode-chip').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-mode') === voiceMode);
             });
             const tools = document.getElementById('voice-journal-tools');
             const parseBtn = document.getElementById('btn-parse-text');
             const result = document.getElementById('voice-save-result');
-            if (tools) tools.classList.toggle('active', ['auto', 'journal', 'wiki', 'ask'].includes(voiceMode));
+            if (tools) tools.classList.toggle('active', ['journal', 'wiki', 'ask'].includes(voiceMode));
             if (parseBtn) parseBtn.innerHTML = voiceMode === 'journal'
                 ? '<i class="fa-solid fa-inbox"></i> Save note'
                 : '<i class="fa-solid fa-wand-magic"></i> 智能安排';
             if (parseBtn) {
                 const labels = {
-                    auto: '<i class="fa-solid fa-wand-magic-sparkles"></i> Submit',
                     schedule: '<i class="fa-solid fa-wand-magic"></i> Schedule',
                     journal: '<i class="fa-solid fa-inbox"></i> Save note',
                     wiki: '<i class="fa-solid fa-book"></i> Save wiki',
                     ask: '<i class="fa-solid fa-magnifying-glass"></i> Ask memory'
                 };
-                parseBtn.innerHTML = labels[voiceMode] || labels.auto;
+                parseBtn.innerHTML = labels[voiceMode] || labels.journal;
             }
             if (result) result.classList.remove('active');
             document.getElementById('preview-result-card')?.classList.remove('active');
         }
 
-        function openVoiceCapture(mode = 'auto') {
+        function openVoiceCapture(mode = 'journal') {
             document.getElementById('textarea-input').value = '';
             document.getElementById('preview-result-card')?.classList.remove('active');
             document.getElementById('voice-save-result')?.classList.remove('active');
@@ -3288,10 +3693,10 @@
             const memoryTabs = ['voice', 'records'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
-                timeline: '日程',
-                analytics: '分析',
+                timeline: appLanguage === 'en' ? 'Schedule' : '日程',
+                analytics: appLanguage === 'en' ? 'Analytics' : '分析',
                 voice: 'Loomi',
-                records: '记录'
+                records: langText('records')
             };
             document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
                 const label = labels[item.getAttribute('data-tab')];
@@ -3325,7 +3730,7 @@
                 return;
             }
             const previousMode = voiceMode;
-            setVoiceMode(modeSelect?.value || 'auto');
+            setVoiceMode(modeSelect?.value || 'journal');
             await submitVoiceText(text);
             setVoiceMode(previousMode);
             if (textarea) textarea.value = '';
@@ -3367,60 +3772,12 @@
             });
         }
 
-        async function loadVoicePrompts() {
-            try {
-                const response = await fetch(`question_list.txt?t=${Date.now()}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const raw = await response.text();
-                voicePrompts = parseVoicePrompts(raw);
-            } catch (e) {
-                console.warn('[Voice] Failed to load question_list.txt:', e);
-                voicePrompts = [
-                    { id: 'fallback_1', category: 'Prompt', text: 'What is worth remembering from today?' },
-                    { id: 'fallback_2', category: 'Prompt', text: 'What idea should I capture before it fades?' }
-                ];
-            }
-            refreshVoicePrompt();
-        }
-
-        function parseVoicePrompts(raw) {
-            const prompts = [];
-            let category = 'Prompt';
-            raw.split(/\r?\n/).forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
-                if (trimmed.startsWith('###')) {
-                    category = trimmed.replace(/^#+\s*/, '').trim() || 'Prompt';
-                    return;
-                }
-                const match = trimmed.match(/^\d+\.\s*(.+)$/);
-                if (match) {
-                    prompts.push({
-                        id: `prompt_${prompts.length + 1}`,
-                        category,
-                        text: match[1].trim()
-                    });
-                }
-            });
-            return prompts;
-        }
-
-        function refreshVoicePrompt() {
-            if (!voicePrompts.length) return;
-            currentVoicePrompt = voicePrompts[Math.floor(Math.random() * voicePrompts.length)];
-            const cat = document.getElementById('voice-prompt-category');
-            const text = document.getElementById('voice-prompt-text');
-            if (cat) cat.innerText = currentVoicePrompt.category;
-            if (text) text.innerText = currentVoicePrompt.text;
-        }
-
         async function saveJournalText(text) {
             const folderSelect = document.getElementById('voice-folder-select');
             const formData = new FormData();
             formData.append('text', text);
             formData.append('mode', 'journal');
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
-            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
 
             showLoading(true, 'Saving voice note...');
             try {
@@ -3450,7 +3807,6 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
-            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
 
             showLoading(true, 'Sending to Loomi...');
             try {
@@ -4966,7 +5322,7 @@
 
             // 从 mode chip 读取当前选择的模式
             const activeChip = document.querySelector('#loomi-mode-row .loomi-mode-chip.active');
-            const selectedMode = activeChip?.getAttribute('data-mode') || 'auto';
+            const selectedMode = activeChip?.getAttribute('data-mode') || 'journal';
             setVoiceMode(selectedMode);
 
             if (!isRecording) {
@@ -5065,7 +5421,7 @@
                 metaEl.innerText = (data.record.tags || []).join(' · ');
                 await renderVoiceInbox();
             } else {
-                titleEl.innerText = `✅ ${data.mode || 'auto'} saved`;
+                titleEl.innerText = `✅ ${data.mode || 'journal'} saved`;
                 bodyEl.innerText = data.transcript || data.text || '';
                 metaEl.innerText = '';
                 await renderVoiceInbox();
@@ -5088,7 +5444,6 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-            if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
 
             statusEl.innerText = 'Loomi 正在处理...';
             statusEl.className = 'loomi-status-text processing';
@@ -5112,7 +5467,7 @@
                 statusEl.innerText = '理解完成！';
                 statusEl.className = 'loomi-status-text';
                 if (textarea) textarea.value = '';
-                showToast(data.mode === 'schedule' ? '✨ 智能日程已解析' : `✅ ${data.mode || 'auto'} saved`, 'success');
+                showToast(data.mode === 'schedule' ? '✨ 智能日程已解析' : `✅ ${data.mode || 'journal'} saved`, 'success');
             } catch (e) {
                 console.error('[Loomi Text] Submit failed:', e);
                 statusEl.innerText = '理解失败，请重试';
@@ -5154,9 +5509,8 @@
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
             formData.append('mode', voiceMode);
-            if (['auto', 'journal', 'wiki', 'ask'].includes(voiceMode)) {
+            if (['journal', 'wiki', 'ask'].includes(voiceMode)) {
                 formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-                if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
             }
 
             try {
@@ -5176,7 +5530,7 @@
                 statusEl.innerText = '完成！点击重新录音';
                 statusEl.className = 'loomi-status-text';
                 orbBtn.style.animation = 'planetary-pulse 3s infinite ease-in-out';
-                showToast(data.mode === 'schedule' ? '✨ 语音日程已解析' : `✅ ${data.mode || 'auto'} saved`, 'success');
+                showToast(data.mode === 'schedule' ? '✨ 语音日程已解析' : `✅ ${data.mode || 'journal'} saved`, 'success');
 
             } catch (e) {
                 console.error('[Loomi] Upload failed:', e);
@@ -5194,9 +5548,8 @@
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
             formData.append('mode', voiceMode);
-            if (['auto', 'journal', 'wiki', 'ask'].includes(voiceMode)) {
+            if (['journal', 'wiki', 'ask'].includes(voiceMode)) {
                 formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-                if (currentVoicePrompt?.id) formData.append('prompt_id', currentVoicePrompt.id);
             }
 
             try {
@@ -5816,8 +6169,9 @@
             initStarrySky();
             checkAndInitSampleData();
             loadVoiceFolders().then(renderVoiceInbox);
-            loadVoicePrompts();
             setActiveAppMode(currentTab);
+            setVoiceMode(voiceMode);
+            applyLanguage(appLanguage);
             
             // Google Calendar 初始化 (v3.0.0)
             initGCalClient();
@@ -5896,7 +6250,7 @@
 
             // FAB 触发解析 Sheet
             document.getElementById('voice-fab-trigger').addEventListener('click', () => {
-                openVoiceCapture('auto');
+                openVoiceCapture('journal');
             });
 
             // Loomi Tab 沉浸式录音 — 直接在页面上录音，不弹出 sheet
@@ -5959,7 +6313,6 @@
                 });
             });
 
-            document.getElementById('btn-refresh-voice-prompt').addEventListener('click', refreshVoicePrompt);
             document.getElementById('btn-refresh-voice-inbox').addEventListener('click', renderVoiceInbox);
             document.getElementById('voice-inbox-folder').addEventListener('change', renderVoiceInbox);
             document.getElementById('voice-inbox-mode')?.addEventListener('change', renderVoiceInbox);
@@ -6054,6 +6407,10 @@
                     await Promise.all(registrations.map(reg => reg.update()));
                 }
                 window.location.reload();
+            });
+
+            document.querySelectorAll('[data-lang]').forEach(btn => {
+                btn.addEventListener('click', () => applyLanguage(btn.getAttribute('data-lang') || 'zh'));
             });
 
             document.getElementById('btn-reset-demo').addEventListener('click', () => {
