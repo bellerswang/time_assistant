@@ -2482,10 +2482,16 @@
                         <div class="record-section-title">14 天睡眠实验</div>
                         <div class="sleep-card-meta">每天只点一下，不做复杂打分。</div>
                     </div>
-                    <button class="action-pill primary" id="btn-sleep-start" style="height:34px;">
-                        <i class="fa-solid fa-play"></i>
-                        开始
-                    </button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="action-pill secondary" id="btn-sleep-reset" style="height:34px;">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            重置
+                        </button>
+                        <button class="action-pill primary" id="btn-sleep-start" style="height:34px;">
+                            <i class="fa-solid fa-play"></i>
+                            开始
+                        </button>
+                    </div>
                 </div>
 
                 <section class="sleep-hero">
@@ -3602,6 +3608,29 @@
                 console.warn('[Sleep] Failed to save backend experiment:', e);
                 sleepSyncStatus = '已保存到浏览器；后端 JSON 同步失败。';
                 if (showSuccess) showToast('已本地保存，后端暂时不可用', 'info');
+            }
+            renderSleepExperiment();
+        }
+
+        async function resetSleepExperiment() {
+            if (!nativeConfirm('确定要重置 14 天睡眠实验吗？当前记录会被清空。')) return;
+            const emptyExperiment = { startedOn: null, updatedAt: null, days: [] };
+            sleepExperiment = null;
+            selectedSleepDayIndex = 0;
+            sleepSyncStatus = '已重置。点击开始后会重新创建 14 天实验。';
+            DB.remove('chrono_sleep_experiment');
+            renderSleepExperiment();
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emptyExperiment)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                showToast('睡眠实验已重置', 'success');
+            } catch (e) {
+                console.warn('[Sleep] Failed to reset backend experiment:', e);
+                showToast('已重置本地记录，后端 JSON 同步失败', 'info');
             }
             renderSleepExperiment();
         }
@@ -6732,6 +6761,7 @@
             document.getElementById('btn-new-record')?.addEventListener('click', openNewRecord);
             document.getElementById('btn-save-record-edit')?.addEventListener('click', saveRecordEdit);
             document.getElementById('btn-sleep-start')?.addEventListener('click', startSleepExperiment);
+            document.getElementById('btn-sleep-reset')?.addEventListener('click', resetSleepExperiment);
             loadSleepExperiment();
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
