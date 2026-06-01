@@ -91,6 +91,7 @@ async def get_text_embedding(text: str) -> list[float] | None:
 VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
+SLEEP_EXPERIMENT_PATH = os.getenv("SLEEP_EXPERIMENT_PATH", os.path.join(root_dir, "sleep_experiment.json"))
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
@@ -165,6 +166,12 @@ class RecordUpdateRequest(BaseModel):
     summary: str | None = None
     cleaned_text: str | None = None
     category: str | None = None
+
+
+class SleepExperimentRequest(BaseModel):
+    startedOn: str | None = None
+    updatedAt: str | None = None
+    days: list[dict] = []
 
 
 def utc_now_iso() -> str:
@@ -1918,6 +1925,40 @@ async def health_check():
         "firestore_collection": FIRESTORE_COLLECTION,
         "firestore_ready": bool(FIRESTORE_ENABLED and firestore_repo),
     }
+
+
+@app.get("/api/sleep-experiment")
+async def get_sleep_experiment():
+    if not os.path.exists(SLEEP_EXPERIMENT_PATH):
+        return {"experiment": None, "source": "empty", "path": SLEEP_EXPERIMENT_PATH}
+    try:
+        with open(SLEEP_EXPERIMENT_PATH, "r", encoding="utf-8") as f:
+            return {"experiment": json.load(f), "source": "file", "path": SLEEP_EXPERIMENT_PATH}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Sleep experiment JSON is invalid: {e}") from e
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read sleep experiment: {e}") from e
+
+
+@app.put("/api/sleep-experiment")
+async def put_sleep_experiment(req: SleepExperimentRequest):
+    experiment = req.model_dump()
+    experiment["updatedAt"] = utc_now_iso()
+    try:
+        directory = os.path.dirname(SLEEP_EXPERIMENT_PATH) or "."
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(prefix=".sleep_experiment_", suffix=".json", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(experiment, f, ensure_ascii=False, indent=2)
+                f.write("\n")
+            os.replace(tmp_path, SLEEP_EXPERIMENT_PATH)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save sleep experiment: {e}") from e
+    return {"experiment": experiment, "status": "saved", "path": SLEEP_EXPERIMENT_PATH}
 
 
 @app.get("/api/voice/folders")

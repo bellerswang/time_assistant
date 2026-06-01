@@ -1348,6 +1348,147 @@
             font-weight: 600;
         }
 
+        .sleep-hero {
+            border: 1px solid rgba(0, 245, 255, 0.18);
+            background: linear-gradient(180deg, rgba(0, 245, 255, 0.08), rgba(189, 147, 249, 0.08));
+            border-radius: var(--radius-lg);
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+        .sleep-hero-title {
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+        .sleep-hero-subtitle {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .sleep-progress-track {
+            height: 8px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+        .sleep-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.2s ease;
+        }
+        .sleep-day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .sleep-day-btn {
+            min-height: 38px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .sleep-day-btn.active {
+            border-color: var(--primary);
+            color: #000;
+            background: var(--primary);
+        }
+        .sleep-day-btn.complete {
+            border-color: rgba(0, 255, 135, 0.45);
+            color: var(--success);
+        }
+        .sleep-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+        .sleep-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .sleep-card-title {
+            font-size: 14px;
+            font-weight: 900;
+        }
+        .sleep-card-meta {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        .sleep-status-pill {
+            border-radius: var(--radius-full);
+            background: var(--primary-dim);
+            color: var(--primary);
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .sleep-action-list {
+            display: grid;
+            gap: 8px;
+        }
+        .sleep-action-btn {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            padding: 11px;
+            display: grid;
+            grid-template-columns: 26px 1fr auto;
+            align-items: center;
+            gap: 9px;
+            text-align: left;
+            cursor: pointer;
+        }
+        .sleep-action-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+        .sleep-action-btn.done .sleep-action-icon {
+            background: var(--success);
+            border-color: var(--success);
+            color: #000;
+        }
+        .sleep-action-name {
+            font-size: 13px;
+            font-weight: 850;
+        }
+        .sleep-action-hint {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .sleep-action-value {
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .sleep-sync-note {
+            color: var(--text-muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
         .app-container.record-home-mode .week-strip {
             display: none;
         }
@@ -2334,6 +2475,42 @@
                 </div>
             </div>
 
+            <!-- VIEW 7: Sleep Experiment -->
+            <div id="tab-sleep" class="tab-panel record-home">
+                <div class="record-section-head">
+                    <div>
+                        <div class="record-section-title">14 天睡眠实验</div>
+                        <div class="sleep-card-meta">每天只点一下，不做复杂打分。</div>
+                    </div>
+                    <button class="action-pill primary" id="btn-sleep-start" style="height:34px;">
+                        <i class="fa-solid fa-play"></i>
+                        开始
+                    </button>
+                </div>
+
+                <section class="sleep-hero">
+                    <div class="sleep-hero-title" id="sleep-hero-title">从今天开始</div>
+                    <div class="sleep-hero-subtitle" id="sleep-hero-subtitle">Day 1-3 只记录；Day 4-10 试 23:45；Day 11-14 推进到 23:30。</div>
+                    <div class="sleep-progress-track">
+                        <div class="sleep-progress-fill" id="sleep-progress-fill"></div>
+                    </div>
+                    <div class="sleep-sync-note" id="sleep-sync-note">尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。</div>
+                </section>
+
+                <div class="sleep-day-grid" id="sleep-day-grid"></div>
+
+                <section class="sleep-card">
+                    <div class="sleep-card-head">
+                        <div>
+                            <div class="sleep-card-title" id="sleep-day-title">今日记录</div>
+                            <div class="sleep-card-meta" id="sleep-day-meta">选择一天开始记录。</div>
+                        </div>
+                        <div class="sleep-status-pill" id="sleep-day-status">0/4</div>
+                    </div>
+                    <div class="sleep-action-list" id="sleep-action-list"></div>
+                </section>
+            </div>
+
             <!-- VIEW 7: Settings -->
             <div id="tab-settings-home" class="tab-panel record-home">
                 <section class="record-hero compact">
@@ -2381,6 +2558,12 @@
                     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
                 </svg>
                 <span>记录</span>
+            </button>
+            <button class="nav-item" data-tab="sleep">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3c-1.2 0-2.35.23-3.41.64A8.5 8.5 0 1 0 20.36 15.4 8.94 8.94 0 0 1 12 3zm0 17a6.5 6.5 0 0 1-5.44-10.05 10.98 10.98 0 0 0 7.49 7.49A6.47 6.47 0 0 1 12 20z"/>
+                </svg>
+                <span>睡眠</span>
             </button>
         </nav>
 
@@ -2731,6 +2914,8 @@
         const saveTasks = (date, data) => DB.set(`chrono_tasks_${date}`, data);
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
+        const loadSleepExperimentLocal = () => DB.get('chrono_sleep_experiment', null);
+        const saveSleepExperimentLocal = (data) => DB.set('chrono_sleep_experiment', data);
 
         // Google Calendar Helper functions (v3.0.0)
         const DEFAULT_BACKEND_URL = 'https://voice-assistant-1090997558704.europe-west2.run.app';
@@ -3289,6 +3474,244 @@
             return `${h}:${m}`;
         }
 
+        let sleepExperiment = null;
+        let selectedSleepDayIndex = 0;
+        let sleepSyncStatus = '尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。';
+
+        function getSleepPhase(dayNumber) {
+            if (dayNumber <= 3) return { label: '只记录', target: '观察，不强行改变' };
+            if (dayNumber <= 10) return { label: '23:45', target: '目标 23:45 关灯' };
+            return { label: '23:30', target: '目标 23:30 关灯' };
+        }
+
+        function addDaysISO(startDate, offset) {
+            const [y, m, d] = startDate.split('-').map(Number);
+            const date = new Date(y, m - 1, d + offset);
+            return formatDateISO(date);
+        }
+
+        function createSleepExperiment(startedOn = getTodayString()) {
+            return {
+                startedOn,
+                updatedAt: new Date().toISOString(),
+                days: Array.from({ length: 14 }, (_, i) => {
+                    const phase = getSleepPhase(i + 1);
+                    return {
+                        day: i + 1,
+                        date: addDaysISO(startedOn, i),
+                        phase: phase.label,
+                        cognitiveCurfewAt: null,
+                        phoneAwayAt: null,
+                        lightsOutAt: null,
+                        noCaffeineAfter2: false
+                    };
+                })
+            };
+        }
+
+        function normalizeSleepExperiment(data) {
+            if (!data || !Array.isArray(data.days) || !data.startedOn) return null;
+            const base = createSleepExperiment(data.startedOn);
+            base.updatedAt = data.updatedAt || base.updatedAt;
+            base.days = base.days.map((day, index) => ({
+                ...day,
+                ...(data.days[index] || {}),
+                day: index + 1,
+                date: data.days[index]?.date || day.date,
+                phase: getSleepPhase(index + 1).label
+            }));
+            return base;
+        }
+
+        function getSleepDayDoneCount(day) {
+            if (!day) return 0;
+            return [
+                Boolean(day.cognitiveCurfewAt),
+                Boolean(day.phoneAwayAt),
+                Boolean(day.lightsOutAt),
+                Boolean(day.noCaffeineAfter2)
+            ].filter(Boolean).length;
+        }
+
+        function getCurrentSleepDayIndex() {
+            if (!sleepExperiment) return 0;
+            const today = getTodayString();
+            const exact = sleepExperiment.days.findIndex(day => day.date === today);
+            if (exact >= 0) return exact;
+            const firstIncomplete = sleepExperiment.days.findIndex(day => getSleepDayDoneCount(day) < 4);
+            return firstIncomplete >= 0 ? firstIncomplete : 13;
+        }
+
+        function getSleepNowTime() {
+            const now = new Date();
+            return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function getSleepCompletion() {
+            if (!sleepExperiment) return { done: 0, total: 56 };
+            const done = sleepExperiment.days.reduce((sum, day) => sum + getSleepDayDoneCount(day), 0);
+            return { done, total: sleepExperiment.days.length * 4 };
+        }
+
+        async function loadSleepExperiment() {
+            sleepExperiment = normalizeSleepExperiment(loadSleepExperimentLocal());
+            if (sleepExperiment) {
+                selectedSleepDayIndex = getCurrentSleepDayIndex();
+                renderSleepExperiment();
+            }
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const fromFile = normalizeSleepExperiment(data.experiment);
+                if (fromFile) {
+                    sleepExperiment = fromFile;
+                    saveSleepExperimentLocal(sleepExperiment);
+                    selectedSleepDayIndex = getCurrentSleepDayIndex();
+                    sleepSyncStatus = '已从 sleep_experiment.json 恢复。';
+                } else if (!sleepExperiment) {
+                    sleepSyncStatus = '尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。';
+                }
+            } catch (e) {
+                console.warn('[Sleep] Failed to load backend experiment:', e);
+                sleepSyncStatus = sleepExperiment
+                    ? '后端暂时不可用，当前显示浏览器本地记录。'
+                    : '后端暂时不可用；开始后会先保存在浏览器本地。';
+            }
+            renderSleepExperiment();
+        }
+
+        async function persistSleepExperiment(showSuccess = false) {
+            if (!sleepExperiment) return;
+            sleepExperiment.updatedAt = new Date().toISOString();
+            saveSleepExperimentLocal(sleepExperiment);
+            renderSleepExperiment();
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sleepExperiment)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                sleepExperiment = normalizeSleepExperiment(data.experiment) || sleepExperiment;
+                saveSleepExperimentLocal(sleepExperiment);
+                sleepSyncStatus = '已保存到浏览器和 sleep_experiment.json。';
+                if (showSuccess) showToast('睡眠实验已保存', 'success');
+            } catch (e) {
+                console.warn('[Sleep] Failed to save backend experiment:', e);
+                sleepSyncStatus = '已保存到浏览器；后端 JSON 同步失败。';
+                if (showSuccess) showToast('已本地保存，后端暂时不可用', 'info');
+            }
+            renderSleepExperiment();
+        }
+
+        function startSleepExperiment() {
+            if (!sleepExperiment) {
+                sleepExperiment = createSleepExperiment(getTodayString());
+                selectedSleepDayIndex = 0;
+            } else {
+                selectedSleepDayIndex = getCurrentSleepDayIndex();
+            }
+            persistSleepExperiment(true);
+        }
+
+        function toggleSleepAction(field) {
+            if (!sleepExperiment) {
+                sleepExperiment = createSleepExperiment(getTodayString());
+                selectedSleepDayIndex = 0;
+            }
+            const day = sleepExperiment.days[selectedSleepDayIndex];
+            if (!day) return;
+            if (field === 'noCaffeineAfter2') {
+                day.noCaffeineAfter2 = !day.noCaffeineAfter2;
+            } else {
+                day[field] = day[field] ? null : getSleepNowTime();
+            }
+            persistSleepExperiment();
+        }
+
+        function renderSleepExperiment() {
+            const title = document.getElementById('sleep-hero-title');
+            const subtitle = document.getElementById('sleep-hero-subtitle');
+            const fill = document.getElementById('sleep-progress-fill');
+            const note = document.getElementById('sleep-sync-note');
+            const grid = document.getElementById('sleep-day-grid');
+            const dayTitle = document.getElementById('sleep-day-title');
+            const dayMeta = document.getElementById('sleep-day-meta');
+            const status = document.getElementById('sleep-day-status');
+            const list = document.getElementById('sleep-action-list');
+            const startBtn = document.getElementById('btn-sleep-start');
+            if (!title || !subtitle || !fill || !note || !grid || !dayTitle || !dayMeta || !status || !list) return;
+
+            if (!sleepExperiment) {
+                title.innerText = '从今天开始';
+                subtitle.innerText = 'Day 1-3 只记录；Day 4-10 试 23:45；Day 11-14 推进到 23:30。';
+                fill.style.width = '0%';
+                note.innerText = sleepSyncStatus;
+                grid.innerHTML = Array.from({ length: 14 }, (_, i) => `<button class="sleep-day-btn" disabled>D${i + 1}</button>`).join('');
+                dayTitle.innerText = '今日记录';
+                dayMeta.innerText = '选择开始后，每天只需要点 4 个项目。';
+                status.innerText = '0/4';
+                list.innerHTML = '<div class="sleep-sync-note">时间项目点击后自动记录当前时间；咖啡因项目只打钩。</div>';
+                if (startBtn) startBtn.innerHTML = '<i class="fa-solid fa-play"></i> 开始';
+                return;
+            }
+
+            const completion = getSleepCompletion();
+            const percent = Math.round((completion.done / completion.total) * 100);
+            const currentDay = sleepExperiment.days[selectedSleepDayIndex] || sleepExperiment.days[0];
+            const phase = getSleepPhase(currentDay.day);
+            title.innerText = `Day ${currentDay.day} · ${phase.label}`;
+            subtitle.innerText = `${formatDateLabel(currentDay.date)} · ${phase.target}`;
+            fill.style.width = `${percent}%`;
+            note.innerText = `${completion.done}/${completion.total} 项完成 · ${sleepSyncStatus}`;
+            if (startBtn) startBtn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> 今天';
+
+            grid.innerHTML = sleepExperiment.days.map((day, index) => {
+                const done = getSleepDayDoneCount(day);
+                const active = index === selectedSleepDayIndex ? ' active' : '';
+                const complete = done === 4 ? ' complete' : '';
+                return `<button class="sleep-day-btn${active}${complete}" data-sleep-day="${index}">D${day.day}<br>${done}/4</button>`;
+            }).join('');
+            grid.querySelectorAll('[data-sleep-day]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedSleepDayIndex = Number(btn.getAttribute('data-sleep-day') || 0);
+                    renderSleepExperiment();
+                });
+            });
+
+            const doneCount = getSleepDayDoneCount(currentDay);
+            dayTitle.innerText = `Day ${currentDay.day}`;
+            dayMeta.innerText = `${currentDay.date} · ${phase.target}`;
+            status.innerText = `${doneCount}/4`;
+            const actions = [
+                { field: 'cognitiveCurfewAt', name: '10:15 后认知宵禁', hint: '不启动股票、代码、工作、大决策', value: currentDay.cognitiveCurfewAt, icon: 'fa-brain' },
+                { field: 'phoneAwayAt', name: '23:15 手机离床', hint: '点一下记录实际放远时间', value: currentDay.phoneAwayAt, icon: 'fa-mobile-screen' },
+                { field: 'lightsOutAt', name: '关灯 / 上床', hint: phase.label === '只记录' ? '先观察真实时间' : `${phase.target}，点一下记录实际时间`, value: currentDay.lightsOutAt, icon: 'fa-moon' },
+                { field: 'noCaffeineAfter2', name: '下午 2 点后无咖啡因', hint: '咖啡、浓茶、能量饮料都算', value: currentDay.noCaffeineAfter2 ? 'Done' : '', icon: 'fa-mug-saucer' }
+            ];
+            list.innerHTML = actions.map(action => {
+                const done = Boolean(action.value);
+                const value = action.field === 'noCaffeineAfter2'
+                    ? (done ? '已完成' : '点击打钩')
+                    : (done ? action.value : '记录现在');
+                return `
+                    <button class="sleep-action-btn${done ? ' done' : ''}" data-sleep-action="${action.field}">
+                        <span class="sleep-action-icon"><i class="fa-solid ${action.icon}"></i></span>
+                        <span>
+                            <span class="sleep-action-name">${escapeHtml(action.name)}</span>
+                            <span class="sleep-action-hint">${escapeHtml(action.hint)}</span>
+                        </span>
+                        <span class="sleep-action-value">${escapeHtml(value)}</span>
+                    </button>
+                `;
+            }).join('');
+            list.querySelectorAll('[data-sleep-action]').forEach(btn => {
+                btn.addEventListener('click', () => toggleSleepAction(btn.getAttribute('data-sleep-action')));
+            });
+        }
+
         // ==================== 6. 效率特征乘数自适应算法 ====================
         function recalculateMultiplier(routineId) {
             const allLogs = loadEfficiencyLogs();
@@ -3690,13 +4113,14 @@
         }
 
         function setActiveAppMode(tabName) {
-            const memoryTabs = ['voice', 'records'];
+            const memoryTabs = ['voice', 'records', 'sleep'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
                 timeline: appLanguage === 'en' ? 'Schedule' : '日程',
                 analytics: appLanguage === 'en' ? 'Analytics' : '分析',
                 voice: 'Loomi',
-                records: langText('records')
+                records: langText('records'),
+                sleep: '睡眠'
             };
             document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
                 const label = labels[item.getAttribute('data-tab')];
@@ -6202,6 +6626,7 @@
                     else if (targetTab === 'analytics') renderAnalytics();
                     else if (targetTab === 'routines') renderRoutines();
                     else if (targetTab === 'records') renderVoiceInbox();
+                    else if (targetTab === 'sleep') renderSleepExperiment();
                 });
             });
 
@@ -6306,6 +6731,8 @@
             });
             document.getElementById('btn-new-record')?.addEventListener('click', openNewRecord);
             document.getElementById('btn-save-record-edit')?.addEventListener('click', saveRecordEdit);
+            document.getElementById('btn-sleep-start')?.addEventListener('click', startSleepExperiment);
+            loadSleepExperiment();
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -6623,7 +7050,8 @@
                     exportedAt: new Date().toISOString(),
                     routines: routines,
                     efficiencyLogs: logs,
-                    tasks: tasksData
+                    tasks: tasksData,
+                    sleepExperiment: sleepExperiment || loadSleepExperimentLocal()
                 };
 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
