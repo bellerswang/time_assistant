@@ -710,170 +710,6 @@
             filter: brightness(1.2);
         }
 
-        /* Tab 2 Analytics */
-        .analytics-tabs {
-            display: flex;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            padding: 2px;
-            border-radius: var(--radius-full);
-            width: 100%;
-        }
-        .analytics-tab-btn {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 0;
-            border-radius: var(--radius-full);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .analytics-tab-btn.active {
-            background: var(--surface-3);
-            color: #ffffff;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            width: 100%;
-        }
-        .stat-card {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .stat-card-label {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .stat-card-val {
-            font-size: 15px;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .stat-card-sub {
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-
-        /* 分类分布 */
-        .analytics-section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 4px;
-        }
-        
-        .cat-bars-box {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .cat-bar-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .cat-bar-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .cat-bar-header .cat-bar-name {
-            color: var(--text);
-        }
-        .cat-bar-header .cat-bar-stat {
-            color: var(--text-muted);
-        }
-        .cat-bar-track {
-            height: 6px;
-            background: var(--divider);
-            border-radius: var(--radius-full);
-            overflow: hidden;
-        }
-        .cat-bar-fill {
-            height: 100%;
-            border-radius: var(--radius-full);
-            transition: width 0.5s ease-out;
-        }
-
-        /* Routine Efficiency List */
-        .routine-trend-box {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .routine-trend-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--divider);
-            padding-bottom: 10px;
-        }
-        .routine-trend-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        .trend-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .trend-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .trend-meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .confidence-tag {
-            font-size: 9px;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: var(--radius-sm);
-        }
-        .conf-new { background-color: var(--divider); color: var(--text-muted); }
-        .conf-learning { background-color: rgba(91, 168, 181, 0.15); color: var(--primary); }
-        .conf-accurate { background-color: rgba(109, 170, 69, 0.15); color: var(--success); }
-        .conf-high { background-color: var(--success); color: #000; }
-
-        .trend-val {
-            font-size: 13px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: var(--radius-md);
-        }
-        .multiplier-green { background-color: rgba(109, 170, 69, 0.15); color: var(--success); }
-        .multiplier-yellow { background-color: rgba(232, 175, 52, 0.15); color: var(--warning); }
-        .multiplier-red { background-color: rgba(217, 107, 107, 0.15); color: var(--error); }
-        .multiplier-blue { background-color: rgba(91, 168, 181, 0.15); color: var(--primary); }
-
         /* Tab 3 Routines */
         .routines-header {
             display: flex;
@@ -1002,6 +838,7 @@
 
         .nav-item {
             flex: 1;
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1034,6 +871,111 @@
         .nav-item.active svg {
             transform: scale(1.1);
         }
+
+        .inbox-nav-badge {
+            position: absolute;
+            top: 9px;
+            margin-left: 22px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #070514;
+            font-size: 9px !important;
+            font-weight: 800;
+            line-height: 16px;
+            text-align: center;
+        }
+
+        .inbox-summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .inbox-metric,
+        .inbox-card {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .inbox-metric {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .inbox-metric-label,
+        .inbox-last-sync,
+        .inbox-card-meta {
+            color: var(--text-muted);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+        .inbox-metric-value {
+            color: var(--text);
+            font-size: 25px;
+            font-weight: 800;
+        }
+        .inbox-filter-row,
+        .inbox-card-actions {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+        }
+        .inbox-filter-row {
+            padding-bottom: 12px;
+        }
+        .inbox-filter-chip {
+            flex: 0 0 auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 6px 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .inbox-filter-chip.active {
+            border-color: rgba(0, 245, 255, 0.65);
+            background: rgba(0, 245, 255, 0.12);
+            color: var(--primary);
+        }
+        .inbox-list {
+            display: grid;
+            gap: 10px;
+        }
+        .inbox-card {
+            padding: 14px;
+        }
+        .inbox-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .inbox-status {
+            flex: 0 0 auto;
+            border-radius: var(--radius-full);
+            padding: 4px 8px;
+            background: rgba(0, 245, 255, 0.12);
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .inbox-status.waiting { background: rgba(232, 175, 52, 0.15); color: #e8af34; }
+        .inbox-status.done { background: rgba(109, 170, 69, 0.16); color: #8acb61; }
+        .inbox-status.dismissed { background: rgba(136, 136, 132, 0.17); color: var(--text-muted); }
+        .inbox-card-title { font-size: 15px; font-weight: 750; line-height: 1.35; }
+        .inbox-card-copy { margin-top: 8px; color: var(--text-muted); font-size: 12px; line-height: 1.55; }
+        .inbox-card-action { margin-top: 8px; color: var(--text); font-size: 12px; line-height: 1.55; }
+        .inbox-card-actions { margin-top: 12px; flex-wrap: wrap; }
+        .inbox-card-actions .action-pill { min-height: 30px; padding: 5px 10px; font-size: 11px; }
+        .inbox-empty { padding: 42px 18px; text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
 
         /* Voice Inbox */
         .voice-mode-toggle {
@@ -1348,147 +1290,6 @@
             font-weight: 600;
         }
 
-        .sleep-hero {
-            border: 1px solid rgba(0, 245, 255, 0.18);
-            background: linear-gradient(180deg, rgba(0, 245, 255, 0.08), rgba(189, 147, 249, 0.08));
-            border-radius: var(--radius-lg);
-            padding: 14px;
-            display: grid;
-            gap: 10px;
-        }
-        .sleep-hero-title {
-            font-size: 18px;
-            font-weight: 900;
-            letter-spacing: 0;
-        }
-        .sleep-hero-subtitle {
-            color: var(--text-muted);
-            font-size: 12px;
-            line-height: 1.6;
-        }
-        .sleep-progress-track {
-            height: 8px;
-            border-radius: var(--radius-full);
-            background: rgba(255, 255, 255, 0.08);
-            overflow: hidden;
-        }
-        .sleep-progress-fill {
-            height: 100%;
-            width: 0%;
-            border-radius: inherit;
-            background: linear-gradient(90deg, var(--primary), var(--success));
-            transition: width 0.2s ease;
-        }
-        .sleep-day-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-        }
-        .sleep-day-btn {
-            min-height: 38px;
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            color: var(--text-muted);
-            border-radius: var(--radius-sm);
-            font-size: 11px;
-            font-weight: 800;
-            cursor: pointer;
-        }
-        .sleep-day-btn.active {
-            border-color: var(--primary);
-            color: #000;
-            background: var(--primary);
-        }
-        .sleep-day-btn.complete {
-            border-color: rgba(0, 255, 135, 0.45);
-            color: var(--success);
-        }
-        .sleep-card {
-            border: 1px solid var(--border);
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 12px;
-            display: grid;
-            gap: 10px;
-        }
-        .sleep-card-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-        }
-        .sleep-card-title {
-            font-size: 14px;
-            font-weight: 900;
-        }
-        .sleep-card-meta {
-            color: var(--text-muted);
-            font-size: 11px;
-            margin-top: 3px;
-        }
-        .sleep-status-pill {
-            border-radius: var(--radius-full);
-            background: var(--primary-dim);
-            color: var(--primary);
-            padding: 5px 9px;
-            font-size: 11px;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-        .sleep-action-list {
-            display: grid;
-            gap: 8px;
-        }
-        .sleep-action-btn {
-            width: 100%;
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            color: var(--text);
-            border-radius: var(--radius-md);
-            padding: 11px;
-            display: grid;
-            grid-template-columns: 26px 1fr auto;
-            align-items: center;
-            gap: 9px;
-            text-align: left;
-            cursor: pointer;
-        }
-        .sleep-action-icon {
-            width: 26px;
-            height: 26px;
-            border-radius: var(--radius-full);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-        }
-        .sleep-action-btn.done .sleep-action-icon {
-            background: var(--success);
-            border-color: var(--success);
-            color: #000;
-        }
-        .sleep-action-name {
-            font-size: 13px;
-            font-weight: 850;
-        }
-        .sleep-action-hint {
-            color: var(--text-muted);
-            font-size: 11px;
-            margin-top: 2px;
-        }
-        .sleep-action-value {
-            color: var(--primary);
-            font-size: 12px;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-        .sleep-sync-note {
-            color: var(--text-muted);
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
         .app-container.record-home-mode .week-strip {
             display: none;
         }
@@ -1497,7 +1298,6 @@
         }
         .app-container.record-home-mode .voice-fab,
         .app-container.record-home-mode #tab-timeline,
-        .app-container.record-home-mode #tab-analytics,
         .app-container.record-home-mode #tab-routines {
             display: none;
         }
@@ -2262,79 +2062,6 @@
                 </div>
             </div>
 
-            <!-- VIEW 2: 数据分析 -->
-            <div id="tab-analytics" class="tab-panel">
-                <div class="analytics-tabs">
-                    <button class="analytics-tab-btn active" data-range="day">今天</button>
-                    <button class="analytics-tab-btn" data-range="week">本周</button>
-                    <button class="analytics-tab-btn" data-range="month">本月</button>
-                </div>
-
-                <div class="stat-grid">
-                    <div class="stat-card">
-                        <span class="stat-card-label">任务完成率</span>
-                        <span class="stat-card-val" id="stat-completion">0%</span>
-                        <span class="stat-card-sub" id="stat-completion-sub">0/0 任务</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-card-label">专注总时长</span>
-                        <span class="stat-card-val" id="stat-focus-time">0m</span>
-                        <span class="stat-card-sub">实际投入时间</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-card-label">最准确常规</span>
-                        <span class="stat-card-val" id="stat-accurate-rtn">暂无数据</span>
-                        <span class="stat-card-sub">偏差率最小事项</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-card-label">最低效时段</span>
-                        <span class="stat-card-val" id="stat-inefficient-time">暂无数据</span>
-                        <span class="stat-card-sub">实测偏离预估最多</span>
-                    </div>
-                </div>
-
-                <div class="analytics-section-title">分类时间分布</div>
-                <div class="cat-bars-box">
-                    <div class="cat-bar-item">
-                        <div class="cat-bar-header">
-                            <span class="cat-bar-name">工作 (Work)</span>
-                            <span class="cat-bar-stat" id="stat-bar-work-text">0m (0%)</span>
-                        </div>
-                        <div class="cat-bar-track">
-                            <div class="cat-bar-fill" id="stat-bar-work-fill" style="width: 0%; background-color: var(--primary);"></div>
-                        </div>
-                    </div>
-                    <div class="cat-bar-item">
-                        <div class="cat-bar-header">
-                            <span class="cat-bar-name">健康 (Health)</span>
-                            <span class="cat-bar-stat" id="stat-bar-health-text">0m (0%)</span>
-                        </div>
-                        <div class="cat-bar-track">
-                            <div class="cat-bar-fill" id="stat-bar-health-fill" style="width: 0%; background-color: var(--success);"></div>
-                        </div>
-                    </div>
-                    <div class="cat-bar-item">
-                        <div class="cat-bar-header">
-                            <span class="cat-bar-name">个人 (Personal)</span>
-                            <span class="cat-bar-stat" id="stat-bar-personal-text">0m (0%)</span>
-                        </div>
-                        <div class="cat-bar-track">
-                            <div class="cat-bar-fill" id="stat-bar-personal-fill" style="width: 0%; background-color: var(--warning);"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="analytics-section-title">自适应乘数趋势</div>
-                <div class="routine-trend-box" id="routine-trend-list">
-                    <!-- Routine multipliers list here -->
-                </div>
-
-                <button class="btn-sheet-secondary" id="btn-export-data" style="margin-top: 8px;">
-                    <i class="fa-solid fa-file-export"></i>
-                    导出原始 JSON 数据
-                </button>
-            </div>
-
             <!-- VIEW 3: 常规任务管理 -->
             <div id="tab-routines" class="tab-panel">
                 <div class="routines-header">
@@ -2411,6 +2138,30 @@
                 </div>
             </div>
 
+            <div id="tab-inbox" class="tab-panel record-home">
+                <div class="record-section-head">
+                    <div class="record-section-title" id="inbox-title">Inbox</div>
+                    <button class="action-pill primary" id="btn-refresh-inbox" style="height:34px;" aria-label="Refresh inbox">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span id="inbox-refresh-label">Refresh</span>
+                    </button>
+                </div>
+                <div class="inbox-summary">
+                    <div class="inbox-metric"><span class="inbox-metric-label" id="inbox-open-label">Open</span><strong class="inbox-metric-value" id="inbox-open-count">-</strong></div>
+                    <div class="inbox-metric"><span class="inbox-metric-label" id="inbox-waiting-label">Waiting</span><strong class="inbox-metric-value" id="inbox-waiting-count">-</strong></div>
+                </div>
+                <div class="inbox-last-sync" id="inbox-last-sync">Loading email workflow...</div>
+                <div class="inbox-filter-row" id="inbox-filter-row" style="margin-top:14px;">
+                    <button class="inbox-filter-chip" data-inbox-filter="all">All</button>
+                    <button class="inbox-filter-chip active" data-inbox-filter="open">Open</button>
+                    <button class="inbox-filter-chip" data-inbox-filter="waiting">Waiting</button>
+                    <button class="inbox-filter-chip" data-inbox-filter="done">Done</button>
+                    <button class="inbox-filter-chip" data-inbox-filter="dismissed">Dismissed</button>
+                </div>
+                <div class="inbox-list" id="inbox-list"></div>
+                <div class="inbox-empty" id="inbox-empty" hidden></div>
+            </div>
+
             <!-- VIEW 6: Records -->
             <div id="tab-records" class="tab-panel record-home">
                 <div class="record-section-head">
@@ -2475,48 +2226,6 @@
                 </div>
             </div>
 
-            <!-- VIEW 7: Sleep Experiment -->
-            <div id="tab-sleep" class="tab-panel record-home">
-                <div class="record-section-head">
-                    <div>
-                        <div class="record-section-title">14 天睡眠实验</div>
-                        <div class="sleep-card-meta">每天只点一下，不做复杂打分。</div>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="action-pill secondary" id="btn-sleep-reset" style="height:34px;">
-                            <i class="fa-solid fa-rotate-left"></i>
-                            重置
-                        </button>
-                        <button class="action-pill primary" id="btn-sleep-start" style="height:34px;">
-                            <i class="fa-solid fa-play"></i>
-                            开始
-                        </button>
-                    </div>
-                </div>
-
-                <section class="sleep-hero">
-                    <div class="sleep-hero-title" id="sleep-hero-title">从今天开始</div>
-                    <div class="sleep-hero-subtitle" id="sleep-hero-subtitle">Day 1-3 只记录；Day 4-10 试 23:45；Day 11-14 推进到 23:30。</div>
-                    <div class="sleep-progress-track">
-                        <div class="sleep-progress-fill" id="sleep-progress-fill"></div>
-                    </div>
-                    <div class="sleep-sync-note" id="sleep-sync-note">尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。</div>
-                </section>
-
-                <div class="sleep-day-grid" id="sleep-day-grid"></div>
-
-                <section class="sleep-card">
-                    <div class="sleep-card-head">
-                        <div>
-                            <div class="sleep-card-title" id="sleep-day-title">今日记录</div>
-                            <div class="sleep-card-meta" id="sleep-day-meta">选择一天开始记录。</div>
-                        </div>
-                        <div class="sleep-status-pill" id="sleep-day-status">0/4</div>
-                    </div>
-                    <div class="sleep-action-list" id="sleep-action-list"></div>
-                </section>
-            </div>
-
             <!-- VIEW 7: Settings -->
             <div id="tab-settings-home" class="tab-panel record-home">
                 <section class="record-hero compact">
@@ -2539,37 +2248,23 @@
             </svg>
         </button>
 
-        <!-- 5. BottomNav -->
+        <!-- Bottom navigation -->
         <nav class="bottom-nav">
             <button class="nav-item" data-tab="timeline">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/>
-                </svg>
-                <span>日程</span>
-            </button>
-            <button class="nav-item" data-tab="analytics">
-                <svg viewBox="0 0 24 24">
-                    <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
-                </svg>
-                <span>分析</span>
+                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+                <span>Timeline</span>
             </button>
             <button class="nav-item active" data-tab="voice">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 <span>Loomi</span>
             </button>
-            <button class="nav-item" data-tab="records">
-                <svg viewBox="0 0 24 24">
-                    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
-                </svg>
-                <span>记录</span>
+            <button class="nav-item" data-tab="inbox">
+                <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                <span>Inbox</span><span class="inbox-nav-badge" id="inbox-nav-badge" hidden>0</span>
             </button>
-            <button class="nav-item" data-tab="sleep">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 3c-1.2 0-2.35.23-3.41.64A8.5 8.5 0 1 0 20.36 15.4 8.94 8.94 0 0 1 12 3zm0 17a6.5 6.5 0 0 1-5.44-10.05 10.98 10.98 0 0 0 7.49 7.49A6.47 6.47 0 0 1 12 20z"/>
-                </svg>
-                <span>睡眠</span>
+            <button class="nav-item" data-tab="records">
+                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+                <span>Records</span>
             </button>
         </nav>
 
@@ -2920,8 +2615,6 @@
         const saveTasks = (date, data) => DB.set(`chrono_tasks_${date}`, data);
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
-        const loadSleepExperimentLocal = () => DB.get('chrono_sleep_experiment', null);
-        const saveSleepExperimentLocal = (data) => DB.set('chrono_sleep_experiment', data);
 
         // Google Calendar Helper functions (v3.0.0)
         const DEFAULT_BACKEND_URL = 'https://voice-assistant-1090997558704.europe-west2.run.app';
@@ -2998,7 +2691,22 @@
                 editRecord: 'Edit record',
                 title: 'Title',
                 recordText: 'Record text',
-                saveChanges: 'Save changes'
+                saveChanges: 'Save changes',
+                inbox: '\u90ae\u4ef6',
+                inboxOpen: '\u5f85\u5904\u7406',
+                inboxWaiting: '\u7b49\u5f85\u5bf9\u65b9',
+                inboxAll: '\u5168\u90e8',
+                inboxDone: '\u5df2\u5b8c\u6210',
+                inboxDismissed: '\u5df2\u5ffd\u7565',
+                inboxRefresh: '\u5237\u65b0',
+                inboxOpenEmail: '\u6253\u5f00\u90ae\u4ef6',
+                inboxMarkWaiting: '\u7b49\u5f85\u5bf9\u65b9',
+                inboxDismiss: '\u5ffd\u7565',
+                inboxNoRun: '\u5c1a\u672a\u540c\u6b65\u90ae\u4ef6\uff0c\u7b49\u5f85\u4e0b\u6b21\u90ae\u4ef6\u68c0\u67e5\u4efb\u52a1\u5b8c\u6210\u3002',
+                inboxEmpty: '\u5f53\u524d\u6ca1\u6709\u8fd9\u7c7b\u90ae\u4ef6\u5f85\u529e\u3002',
+                inboxLastSync: '\u6700\u8fd1\u540c\u6b65',
+                inboxLoadFailed: '\u65e0\u6cd5\u52a0\u8f7d\u90ae\u4ef6\u5f85\u529e\u3002',
+                inboxUpdated: '\u90ae\u4ef6\u72b6\u6001\u5df2\u66f4\u65b0\u3002'
             },
             en: {
                 voice: 'Voice',
@@ -3039,7 +2747,22 @@
                 editRecord: 'Edit record',
                 title: 'Title',
                 recordText: 'Record text',
-                saveChanges: 'Save changes'
+                saveChanges: 'Save changes',
+                inbox: 'Inbox',
+                inboxOpen: 'Open',
+                inboxWaiting: 'Waiting',
+                inboxAll: 'All',
+                inboxDone: 'Done',
+                inboxDismissed: 'Dismissed',
+                inboxRefresh: 'Refresh',
+                inboxOpenEmail: 'Open email',
+                inboxMarkWaiting: 'Waiting',
+                inboxDismiss: 'Dismiss',
+                inboxNoRun: 'No email check has been synced yet. It will appear here after the next email check finishes.',
+                inboxEmpty: 'No email action items in this view.',
+                inboxLastSync: 'Last synced',
+                inboxLoadFailed: 'Could not load Inbox.',
+                inboxUpdated: 'Email status updated.'
             }
         };
         let appLanguage = DB.get('loomi_language', 'zh');
@@ -3349,6 +3072,15 @@
             setNodeHTML('#records-ask-panel > div:first-child', `<i class="fa-solid fa-brain"></i> ${langText('askMemory')}`);
             setPlaceholder('#ask-memory-input', langText('askPlaceholder'));
 
+            setNodeText('#inbox-title', langText('inbox'));
+            setNodeText('#inbox-refresh-label', langText('inboxRefresh'));
+            setNodeText('#inbox-open-label', langText('inboxOpen'));
+            setNodeText('#inbox-waiting-label', langText('inboxWaiting'));
+            const inboxFilterLabels = { all: 'inboxAll', open: 'inboxOpen', waiting: 'inboxWaiting', done: 'inboxDone', dismissed: 'inboxDismissed' };
+            document.querySelectorAll('[data-inbox-filter]').forEach(btn => {
+                btn.textContent = langText(inboxFilterLabels[btn.getAttribute('data-inbox-filter')] || 'inboxAll');
+            });
+
             setNodeText('#tab-settings-home .record-hero-title', langText('settings'));
             setNodeHTML('#sheet-settings .sheet-title', `<i class="fa-solid fa-sliders"></i> ${langText('settingsTitle')}`);
             setNodeText('[data-i18n="settings.language"]', langText('language'));
@@ -3480,268 +3212,6 @@
             return `${h}:${m}`;
         }
 
-        let sleepExperiment = null;
-        let selectedSleepDayIndex = 0;
-        let sleepSyncStatus = '尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。';
-
-        function getSleepPhase(dayNumber) {
-            if (dayNumber <= 3) return { label: '只记录', target: '观察，不强行改变' };
-            if (dayNumber <= 10) return { label: '23:45', target: '目标 23:45 关灯' };
-            return { label: '23:30', target: '目标 23:30 关灯' };
-        }
-
-        function addDaysISO(startDate, offset) {
-            const [y, m, d] = startDate.split('-').map(Number);
-            const date = new Date(y, m - 1, d + offset);
-            return formatDateISO(date);
-        }
-
-        function createSleepExperiment(startedOn = getTodayString()) {
-            return {
-                startedOn,
-                updatedAt: new Date().toISOString(),
-                days: Array.from({ length: 14 }, (_, i) => {
-                    const phase = getSleepPhase(i + 1);
-                    return {
-                        day: i + 1,
-                        date: addDaysISO(startedOn, i),
-                        phase: phase.label,
-                        cognitiveCurfewAt: null,
-                        phoneAwayAt: null,
-                        lightsOutAt: null,
-                        noCaffeineAfter2: false
-                    };
-                })
-            };
-        }
-
-        function normalizeSleepExperiment(data) {
-            if (!data || !Array.isArray(data.days) || !data.startedOn) return null;
-            const base = createSleepExperiment(data.startedOn);
-            base.updatedAt = data.updatedAt || base.updatedAt;
-            base.days = base.days.map((day, index) => ({
-                ...day,
-                ...(data.days[index] || {}),
-                day: index + 1,
-                date: data.days[index]?.date || day.date,
-                phase: getSleepPhase(index + 1).label
-            }));
-            return base;
-        }
-
-        function getSleepDayDoneCount(day) {
-            if (!day) return 0;
-            return [
-                Boolean(day.cognitiveCurfewAt),
-                Boolean(day.phoneAwayAt),
-                Boolean(day.lightsOutAt),
-                Boolean(day.noCaffeineAfter2)
-            ].filter(Boolean).length;
-        }
-
-        function getCurrentSleepDayIndex() {
-            if (!sleepExperiment) return 0;
-            const today = getTodayString();
-            const exact = sleepExperiment.days.findIndex(day => day.date === today);
-            if (exact >= 0) return exact;
-            const firstIncomplete = sleepExperiment.days.findIndex(day => getSleepDayDoneCount(day) < 4);
-            return firstIncomplete >= 0 ? firstIncomplete : 13;
-        }
-
-        function getSleepNowTime() {
-            const now = new Date();
-            return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        }
-
-        function getSleepCompletion() {
-            if (!sleepExperiment) return { done: 0, total: 56 };
-            const done = sleepExperiment.days.reduce((sum, day) => sum + getSleepDayDoneCount(day), 0);
-            return { done, total: sleepExperiment.days.length * 4 };
-        }
-
-        async function loadSleepExperiment() {
-            sleepExperiment = normalizeSleepExperiment(loadSleepExperimentLocal());
-            if (sleepExperiment) {
-                selectedSleepDayIndex = getCurrentSleepDayIndex();
-                renderSleepExperiment();
-            }
-            try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const fromFile = normalizeSleepExperiment(data.experiment);
-                if (fromFile) {
-                    sleepExperiment = fromFile;
-                    saveSleepExperimentLocal(sleepExperiment);
-                    selectedSleepDayIndex = getCurrentSleepDayIndex();
-                    sleepSyncStatus = '已从 sleep_experiment.json 恢复。';
-                } else if (!sleepExperiment) {
-                    sleepSyncStatus = '尚未开始。点击开始后会保存到浏览器，并同步到 sleep_experiment.json。';
-                }
-            } catch (e) {
-                console.warn('[Sleep] Failed to load backend experiment:', e);
-                sleepSyncStatus = sleepExperiment
-                    ? '后端暂时不可用，当前显示浏览器本地记录。'
-                    : '后端暂时不可用；开始后会先保存在浏览器本地。';
-            }
-            renderSleepExperiment();
-        }
-
-        async function persistSleepExperiment(showSuccess = false) {
-            if (!sleepExperiment) return;
-            sleepExperiment.updatedAt = new Date().toISOString();
-            saveSleepExperimentLocal(sleepExperiment);
-            renderSleepExperiment();
-            try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sleepExperiment)
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                sleepExperiment = normalizeSleepExperiment(data.experiment) || sleepExperiment;
-                saveSleepExperimentLocal(sleepExperiment);
-                sleepSyncStatus = '已保存到浏览器和 sleep_experiment.json。';
-                if (showSuccess) showToast('睡眠实验已保存', 'success');
-            } catch (e) {
-                console.warn('[Sleep] Failed to save backend experiment:', e);
-                sleepSyncStatus = '已保存到浏览器；后端 JSON 同步失败。';
-                if (showSuccess) showToast('已本地保存，后端暂时不可用', 'info');
-            }
-            renderSleepExperiment();
-        }
-
-        async function resetSleepExperiment() {
-            if (!nativeConfirm('确定要重置 14 天睡眠实验吗？当前记录会被清空。')) return;
-            const emptyExperiment = { startedOn: null, updatedAt: null, days: [] };
-            sleepExperiment = null;
-            selectedSleepDayIndex = 0;
-            sleepSyncStatus = '已重置。点击开始后会重新创建 14 天实验。';
-            DB.remove('chrono_sleep_experiment');
-            renderSleepExperiment();
-            try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/sleep-experiment`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(emptyExperiment)
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                showToast('睡眠实验已重置', 'success');
-            } catch (e) {
-                console.warn('[Sleep] Failed to reset backend experiment:', e);
-                showToast('已重置本地记录，后端 JSON 同步失败', 'info');
-            }
-            renderSleepExperiment();
-        }
-
-        function startSleepExperiment() {
-            if (!sleepExperiment) {
-                sleepExperiment = createSleepExperiment(getTodayString());
-                selectedSleepDayIndex = 0;
-            } else {
-                selectedSleepDayIndex = getCurrentSleepDayIndex();
-            }
-            persistSleepExperiment(true);
-        }
-
-        function toggleSleepAction(field) {
-            if (!sleepExperiment) {
-                sleepExperiment = createSleepExperiment(getTodayString());
-                selectedSleepDayIndex = 0;
-            }
-            const day = sleepExperiment.days[selectedSleepDayIndex];
-            if (!day) return;
-            if (field === 'noCaffeineAfter2') {
-                day.noCaffeineAfter2 = !day.noCaffeineAfter2;
-            } else {
-                day[field] = day[field] ? null : getSleepNowTime();
-            }
-            persistSleepExperiment();
-        }
-
-        function renderSleepExperiment() {
-            const title = document.getElementById('sleep-hero-title');
-            const subtitle = document.getElementById('sleep-hero-subtitle');
-            const fill = document.getElementById('sleep-progress-fill');
-            const note = document.getElementById('sleep-sync-note');
-            const grid = document.getElementById('sleep-day-grid');
-            const dayTitle = document.getElementById('sleep-day-title');
-            const dayMeta = document.getElementById('sleep-day-meta');
-            const status = document.getElementById('sleep-day-status');
-            const list = document.getElementById('sleep-action-list');
-            const startBtn = document.getElementById('btn-sleep-start');
-            if (!title || !subtitle || !fill || !note || !grid || !dayTitle || !dayMeta || !status || !list) return;
-
-            if (!sleepExperiment) {
-                title.innerText = '从今天开始';
-                subtitle.innerText = 'Day 1-3 只记录；Day 4-10 试 23:45；Day 11-14 推进到 23:30。';
-                fill.style.width = '0%';
-                note.innerText = sleepSyncStatus;
-                grid.innerHTML = Array.from({ length: 14 }, (_, i) => `<button class="sleep-day-btn" disabled>D${i + 1}</button>`).join('');
-                dayTitle.innerText = '今日记录';
-                dayMeta.innerText = '选择开始后，每天只需要点 4 个项目。';
-                status.innerText = '0/4';
-                list.innerHTML = '<div class="sleep-sync-note">时间项目点击后自动记录当前时间；咖啡因项目只打钩。</div>';
-                if (startBtn) startBtn.innerHTML = '<i class="fa-solid fa-play"></i> 开始';
-                return;
-            }
-
-            const completion = getSleepCompletion();
-            const percent = Math.round((completion.done / completion.total) * 100);
-            const currentDay = sleepExperiment.days[selectedSleepDayIndex] || sleepExperiment.days[0];
-            const phase = getSleepPhase(currentDay.day);
-            title.innerText = `Day ${currentDay.day} · ${phase.label}`;
-            subtitle.innerText = `${formatDateLabel(currentDay.date)} · ${phase.target}`;
-            fill.style.width = `${percent}%`;
-            note.innerText = `${completion.done}/${completion.total} 项完成 · ${sleepSyncStatus}`;
-            if (startBtn) startBtn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> 今天';
-
-            grid.innerHTML = sleepExperiment.days.map((day, index) => {
-                const done = getSleepDayDoneCount(day);
-                const active = index === selectedSleepDayIndex ? ' active' : '';
-                const complete = done === 4 ? ' complete' : '';
-                return `<button class="sleep-day-btn${active}${complete}" data-sleep-day="${index}">D${day.day}<br>${done}/4</button>`;
-            }).join('');
-            grid.querySelectorAll('[data-sleep-day]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    selectedSleepDayIndex = Number(btn.getAttribute('data-sleep-day') || 0);
-                    renderSleepExperiment();
-                });
-            });
-
-            const doneCount = getSleepDayDoneCount(currentDay);
-            dayTitle.innerText = `Day ${currentDay.day}`;
-            dayMeta.innerText = `${currentDay.date} · ${phase.target}`;
-            status.innerText = `${doneCount}/4`;
-            const actions = [
-                { field: 'cognitiveCurfewAt', name: '10:15 后认知宵禁', hint: '不启动股票、代码、工作、大决策', value: currentDay.cognitiveCurfewAt, icon: 'fa-brain' },
-                { field: 'phoneAwayAt', name: '23:15 手机离床', hint: '点一下记录实际放远时间', value: currentDay.phoneAwayAt, icon: 'fa-mobile-screen' },
-                { field: 'lightsOutAt', name: '关灯 / 上床', hint: phase.label === '只记录' ? '先观察真实时间' : `${phase.target}，点一下记录实际时间`, value: currentDay.lightsOutAt, icon: 'fa-moon' },
-                { field: 'noCaffeineAfter2', name: '下午 2 点后无咖啡因', hint: '咖啡、浓茶、能量饮料都算', value: currentDay.noCaffeineAfter2 ? 'Done' : '', icon: 'fa-mug-saucer' }
-            ];
-            list.innerHTML = actions.map(action => {
-                const done = Boolean(action.value);
-                const value = action.field === 'noCaffeineAfter2'
-                    ? (done ? '已完成' : '点击打钩')
-                    : (done ? action.value : '记录现在');
-                return `
-                    <button class="sleep-action-btn${done ? ' done' : ''}" data-sleep-action="${action.field}">
-                        <span class="sleep-action-icon"><i class="fa-solid ${action.icon}"></i></span>
-                        <span>
-                            <span class="sleep-action-name">${escapeHtml(action.name)}</span>
-                            <span class="sleep-action-hint">${escapeHtml(action.hint)}</span>
-                        </span>
-                        <span class="sleep-action-value">${escapeHtml(value)}</span>
-                    </button>
-                `;
-            }).join('');
-            list.querySelectorAll('[data-sleep-action]').forEach(btn => {
-                btn.addEventListener('click', () => toggleSleepAction(btn.getAttribute('data-sleep-action')));
-            });
-        }
-
-        // ==================== 6. 效率特征乘数自适应算法 ====================
         function recalculateMultiplier(routineId) {
             const allLogs = loadEfficiencyLogs();
             const logs = allLogs
@@ -4142,7 +3612,7 @@
         }
 
         function setActiveAppMode(tabName) {
-            const memoryTabs = ['voice', 'records', 'sleep'];
+            const memoryTabs = ['voice', 'inbox', 'records'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
                 timeline: appLanguage === 'en' ? 'Schedule' : '日程',
@@ -4156,6 +3626,101 @@
                 const span = item.querySelector('span');
                 if (label && span) span.innerText = label;
             });
+            const inboxLabel = document.querySelector('.bottom-nav [data-tab="inbox"] > span:first-of-type');
+            if (inboxLabel) inboxLabel.innerText = langText('inbox');
+        }
+
+        let inboxFilter = 'open';
+
+        function inboxStatusLabel(status) {
+            const labels = { open: 'inboxOpen', waiting: 'inboxWaiting', done: 'inboxDone', dismissed: 'inboxDismissed' };
+            return langText(labels[status] || 'inboxAll');
+        }
+
+        function renderInbox(run) {
+            const items = run?.items || [];
+            const openCount = items.filter(item => item.status === 'open').length;
+            const waitingCount = items.filter(item => item.status === 'waiting').length;
+            const visibleItems = inboxFilter === 'all' ? items : items.filter(item => item.status === inboxFilter);
+            const list = document.getElementById('inbox-list');
+            const empty = document.getElementById('inbox-empty');
+            const badge = document.getElementById('inbox-nav-badge');
+
+            setNodeText('#inbox-open-count', String(openCount));
+            setNodeText('#inbox-waiting-count', String(waitingCount));
+            if (badge) {
+                badge.hidden = openCount === 0;
+                badge.textContent = openCount > 99 ? '99+' : String(openCount);
+            }
+            document.querySelectorAll('[data-inbox-filter]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-inbox-filter') === inboxFilter);
+            });
+
+            const syncedAt = run?.finished_at || run?.started_at;
+            setNodeText('#inbox-last-sync', run
+                ? `${langText('inboxLastSync')}: ${syncedAt ? new Date(syncedAt).toLocaleString(appLanguage === 'en' ? 'en-GB' : 'zh-CN') : '-'}`
+                : langText('inboxNoRun'));
+
+            if (!list || !empty) return;
+            if (!run || visibleItems.length === 0) {
+                list.innerHTML = '';
+                empty.hidden = false;
+                empty.textContent = run ? langText('inboxEmpty') : langText('inboxNoRun');
+                return;
+            }
+            empty.hidden = true;
+            list.innerHTML = visibleItems.map(item => {
+                const source = item.source_url
+                    ? `<a class="action-pill secondary" href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${langText('inboxOpenEmail')}</a>`
+                    : '';
+                const actions = [
+                    source,
+                    item.status !== 'done' ? `<button class="action-pill secondary" data-inbox-action="done" data-inbox-item="${escapeHtml(item.id)}"><i class="fa-solid fa-check"></i> ${langText('inboxDone')}</button>` : '',
+                    item.status !== 'waiting' ? `<button class="action-pill secondary" data-inbox-action="waiting" data-inbox-item="${escapeHtml(item.id)}"><i class="fa-solid fa-clock"></i> ${langText('inboxMarkWaiting')}</button>` : '',
+                    item.status !== 'dismissed' ? `<button class="action-pill secondary" data-inbox-action="dismissed" data-inbox-item="${escapeHtml(item.id)}"><i class="fa-solid fa-xmark"></i> ${langText('inboxDismiss')}</button>` : ''
+                ].filter(Boolean).join('');
+                return `<article class="inbox-card">
+                    <div class="inbox-card-top"><span class="inbox-card-meta">${escapeHtml(item.mailbox || '')}</span><span class="inbox-status ${escapeHtml(item.status || 'open')}">${escapeHtml(inboxStatusLabel(item.status))}</span></div>
+                    <div class="inbox-card-title">${escapeHtml(item.title || '')}</div>
+                    ${item.event_summary ? `<div class="inbox-card-copy">${escapeHtml(item.event_summary)}</div>` : ''}
+                    ${item.action_required ? `<div class="inbox-card-action">${escapeHtml(item.action_required)}</div>` : ''}
+                    <div class="inbox-card-actions">${actions}</div>
+                </article>`;
+            }).join('');
+        }
+
+        async function loadInbox() {
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/latest`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                renderInbox(data.run || null);
+            } catch (error) {
+                console.error('[Inbox] Load failed:', error);
+                renderInbox(null);
+                setNodeText('#inbox-last-sync', langText('inboxLoadFailed'));
+            }
+        }
+
+        async function updateInboxStatus(itemId, status) {
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/items/${encodeURIComponent(itemId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                await loadInbox();
+                showToast(langText('inboxUpdated'), 'success');
+            } catch (error) {
+                console.error('[Inbox] Update failed:', error);
+                showToast(langText('inboxLoadFailed'), 'error');
+            }
+        }
+
+        function setInboxFilter(filter) {
+            inboxFilter = ['all', 'open', 'waiting', 'done', 'dismissed'].includes(filter) ? filter : 'open';
+            loadInbox();
         }
 
         function setRecordFilter(category) {
@@ -5258,170 +4823,6 @@
         }
 
         // ==================== Tab 2: 数据分析控制渲染 ====================
-        let activeRange = 'day';
-
-        function renderAnalytics() {
-            const tasks = [];
-            const logs = loadEfficiencyLogs();
-            const routines = loadRoutines();
-
-            // 1. 搜罗指定时间跨度的数据
-            const todayStr = getTodayString();
-            const parts = todayStr.split('-');
-            const today = new Date(parts[0], parts[1] - 1, parts[2]);
-
-            // 加载当前日期的全部任务
-            const allStorageKeys = Object.keys(localStorage);
-            const taskKeys = allStorageKeys.filter(k => k.startsWith('chrono_tasks_'));
-            
-            const dateRangeTasks = [];
-            
-            taskKeys.forEach(k => {
-                const datePart = k.replace('chrono_tasks_', '');
-                const dParts = datePart.split('-');
-                const itemDate = new Date(dParts[0], dParts[1] - 1, dParts[2]);
-                
-                let inRange = false;
-                if (activeRange === 'day') {
-                    inRange = (datePart === selectedDate);
-                } else if (activeRange === 'week') {
-                    // 本周内 (最近 7 天)
-                    const diffTime = today - itemDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    inRange = (diffDays >= 0 && diffDays < 7);
-                } else if (activeRange === 'month') {
-                    // 本月内 (最近 30 天)
-                    const diffTime = today - itemDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    inRange = (diffDays >= 0 && diffDays < 30);
-                }
-
-                if (inRange) {
-                    const dayTasks = DB.get(k, []);
-                    dateRangeTasks.push(...dayTasks);
-                }
-            });
-
-            // 2. 核心指标数值统计
-            const total = dateRangeTasks.length;
-            const done = dateRangeTasks.filter(t => t.status === 'done');
-            const rate = total > 0 ? Math.round((done.length / total) * 100) : 0;
-            const totalMins = done.reduce((s, t) => s + (t.actualMins || 0), 0);
-
-            document.getElementById('stat-completion').innerText = `${rate}%`;
-            document.getElementById('stat-completion-sub').innerText = `${done.length}/${total} 任务`;
-            
-            if (totalMins >= 60) {
-                const hr = Math.floor(totalMins / 60);
-                const mn = totalMins % 60;
-                document.getElementById('stat-focus-time').innerText = `${hr}h ${mn}m`;
-            } else {
-                document.getElementById('stat-focus-time').innerText = `${totalMins}m`;
-            }
-
-            // 3. 自适应最优偏低算法分析
-            // 最准确的 Routine
-            let bestRtnName = '暂无数据';
-            let minDev = Infinity;
-            
-            // 最低效时段识别 (实测偏离预估最多，即 ratio 最大的时段)
-            let worstHourStr = '暂无数据';
-
-            if (logs.length > 0 && routines.length > 0) {
-                // 计算每个 routine 的平均 ratio 偏差
-                routines.forEach(rtn => {
-                    const rtnLogs = logs.filter(l => l.routineId === rtn.id);
-                    if (rtnLogs.length >= 3) {
-                        const avgRatio = rtnLogs.reduce((s, l) => s + l.ratio, 0) / rtnLogs.length;
-                        const dev = Math.abs(avgRatio - 1.0);
-                        if (dev < minDev) {
-                            minDev = dev;
-                            bestRtnName = rtn.name;
-                        }
-                    }
-                });
-
-                // 按小时段归档 ratio
-                const hourStats = {};
-                dateRangeTasks.filter(t => t.status === 'done' && t.actualStart).forEach(t => {
-                    const startH = parseInt(t.scheduledStart.split(':')[0]);
-                    const est = t.adjustedEstMins || 30;
-                    const act = t.actualMins || 30;
-                    const ratio = act / est;
-
-                    if (!hourStats[startH]) {
-                        hourStats[startH] = { count: 0, sum: 0 };
-                    }
-                    hourStats[startH].sum += ratio;
-                    hourStats[startH].count += 1;
-                });
-
-                let worstRatio = -1;
-                Object.keys(hourStats).forEach(h => {
-                    const avg = hourStats[h].sum / hourStats[h].count;
-                    if (avg > worstRatio && avg > 1.1) {
-                        worstRatio = avg;
-                        worstHourStr = `${String(h).padStart(2, '0')}:00 - ${String(parseInt(h) + 1).padStart(2, '0')}:00`;
-                    }
-                });
-            }
-
-            document.getElementById('stat-accurate-rtn').innerText = bestRtnName;
-            document.getElementById('stat-inefficient-time').innerText = worstHourStr;
-
-            // 4. 分类时段图表百分比绘制
-            const catMins = { work: 0, health: 0, personal: 0 };
-            done.forEach(t => {
-                if (catMins[t.category] !== undefined) {
-                    catMins[t.category] += (t.actualMins || 0);
-                }
-            });
-            const catTotal = catMins.work + catMins.health + catMins.personal;
-
-            ['work', 'health', 'personal'].forEach(cat => {
-                const mins = catMins[cat];
-                const pct = catTotal > 0 ? Math.round((mins / catTotal) * 100) : 0;
-                document.getElementById(`stat-bar-${cat}-text`).innerText = `${mins}m (${pct}%)`;
-                document.getElementById(`stat-bar-${cat}-fill`).style.width = `${pct}%`;
-            });
-
-            // 5. 常规模板乘数列表变化渲染
-            const trendList = document.getElementById('routine-trend-list');
-            trendList.innerHTML = '';
-
-            if (routines.length === 0) {
-                trendList.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size:12px;">暂无任何学习中的特征参数</div>`;
-                return;
-            }
-
-            routines.forEach(rtn => {
-                const conf = getConfidenceLabel(rtn.efficiencyLogCount || 0);
-                const mult = rtn.efficiencyMultiplier || 1.0;
-                
-                let colorClass = 'multiplier-green';
-                if (mult > 1.5) colorClass = 'multiplier-red';
-                else if (mult > 1.1) colorClass = 'multiplier-yellow';
-                else if (mult < 0.8) colorClass = 'multiplier-blue';
-
-                const item = document.createElement('div');
-                item.className = 'routine-trend-item';
-                item.innerHTML = `
-                    <div class="trend-info">
-                        <span class="trend-name">${rtn.name}</span>
-                        <span class="trend-meta">
-                            基准: ${rtn.estMins}m
-                            <span class="confidence-tag ${conf.class}">${conf.text}</span>
-                        </span>
-                    </div>
-                    <div class="trend-val ${colorClass}">
-                        ${mult.toFixed(2)}x 效率
-                    </div>
-                `;
-                trendList.appendChild(item);
-            });
-        }
-
-        // ==================== Tab 3: 常规日程模板管理 ====================
         function renderRoutines() {
             const list = document.getElementById('routines-list');
             list.innerHTML = '';
@@ -6622,6 +6023,7 @@
             initStarrySky();
             checkAndInitSampleData();
             loadVoiceFolders().then(renderVoiceInbox);
+            loadInbox();
             setActiveAppMode(currentTab);
             setVoiceMode(voiceMode);
             applyLanguage(appLanguage);
@@ -6635,7 +6037,6 @@
             renderWeekStrip();
             renderMonthPicker();
             renderTimeline();
-            renderAnalytics();
             renderRoutines();
 
             // Tab 导航按钮绑定
@@ -6652,10 +6053,9 @@
                     currentTab = targetTab;
                     setActiveAppMode(targetTab);
                     if (targetTab === 'timeline') renderTimeline();
-                    else if (targetTab === 'analytics') renderAnalytics();
                     else if (targetTab === 'routines') renderRoutines();
+                    else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
-                    else if (targetTab === 'sleep') renderSleepExperiment();
                 });
             });
 
@@ -6760,9 +6160,14 @@
             });
             document.getElementById('btn-new-record')?.addEventListener('click', openNewRecord);
             document.getElementById('btn-save-record-edit')?.addEventListener('click', saveRecordEdit);
-            document.getElementById('btn-sleep-start')?.addEventListener('click', startSleepExperiment);
-            document.getElementById('btn-sleep-reset')?.addEventListener('click', resetSleepExperiment);
-            loadSleepExperiment();
+            document.getElementById('btn-refresh-inbox')?.addEventListener('click', loadInbox);
+            document.querySelectorAll('[data-inbox-filter]').forEach(btn => {
+                btn.addEventListener('click', () => setInboxFilter(btn.getAttribute('data-inbox-filter') || 'open'));
+            });
+            document.getElementById('inbox-list')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-inbox-action]');
+                if (button) updateInboxStatus(button.getAttribute('data-inbox-item'), button.getAttribute('data-inbox-action'));
+            });
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -6891,7 +6296,6 @@
                     document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
                     renderWeekStrip();
                     if (currentTab === 'timeline') renderTimeline();
-                    else if (currentTab === 'analytics') renderAnalytics();
                     else if (currentTab === 'routines') renderRoutines();
                 }
             });
@@ -6966,16 +6370,6 @@
             // Routine CRUD 弹框
             document.getElementById('btn-add-routine').addEventListener('click', () => {
                 openEditRoutineForm();
-            });
-
-            // Analytics 筛选
-            document.querySelectorAll('.analytics-tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.analytics-tab-btn').forEach(el => el.classList.remove('active'));
-                    e.currentTarget.classList.add('active');
-                    activeRange = e.currentTarget.getAttribute('data-range');
-                    renderAnalytics();
-                });
             });
 
             // Form 选项激活
@@ -7063,7 +6457,7 @@
             });
 
             // 导出原始 JSON 数据 (数据导出 4.5)
-            document.getElementById('btn-export-data').addEventListener('click', () => {
+            document.getElementById('btn-export-data')?.addEventListener('click', () => {
                 const routines = loadRoutines();
                 const logs = loadEfficiencyLogs();
                 
@@ -7080,8 +6474,7 @@
                     exportedAt: new Date().toISOString(),
                     routines: routines,
                     efficiencyLogs: logs,
-                    tasks: tasksData,
-                    sleepExperiment: sleepExperiment || loadSleepExperimentLocal()
+                    tasks: tasksData
                 };
 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));

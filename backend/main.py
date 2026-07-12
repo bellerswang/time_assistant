@@ -12,9 +12,21 @@ import uuid
 import re
 import base64
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import httpx
 
 from models import CATEGORY_LABELS, Record, RecordMetadata
+from services.workflow_service import (
+    ensure_workflow_schema,
+    create_run as create_workflow_run,
+    finish_run as finish_workflow_run,
+    get_run as get_workflow_run,
+    latest_run as get_latest_workflow_run,
+    list_runs as list_workflow_runs,
+    save_result as save_workflow_result,
+    update_item_status as update_workflow_item_status,
+)
+from services.email_workflow_runner import build_workflow_items
 
 try:
     from google.cloud import storage
@@ -91,7 +103,6 @@ async def get_text_embedding(text: str) -> list[float] | None:
 VOICE_TRANSCRIBE_MODEL = os.getenv("VOICE_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
-SLEEP_EXPERIMENT_PATH = os.getenv("SLEEP_EXPERIMENT_PATH", os.path.join(root_dir, "sleep_experiment.json"))
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
@@ -168,10 +179,20 @@ class RecordUpdateRequest(BaseModel):
     category: str | None = None
 
 
-class SleepExperimentRequest(BaseModel):
-    startedOn: str | None = None
-    updatedAt: str | None = None
-    days: list[dict] = []
+class WorkflowResultRequest(BaseModel):
+    items: list[dict] = []
+    raw_messages: list[dict] = []
+    status: str = "succeeded"
+    error: str | None = None
+
+
+class WorkflowItemStatusRequest(BaseModel):
+    status: str
+
+
+class WorkflowIngestRequest(BaseModel):
+    inbox_messages: list[dict] = []
+    sent_messages: list[dict] = []
 
 
 def utc_now_iso() -> str:
@@ -267,6 +288,7 @@ def init_voice_db() -> None:
             """
         )
         conn.commit()
+    ensure_workflow_schema(VOICE_DB_PATH)
 
 
 def load_voice_folders() -> dict:
@@ -1927,40 +1949,6 @@ async def health_check():
     }
 
 
-@app.get("/api/sleep-experiment")
-async def get_sleep_experiment():
-    if not os.path.exists(SLEEP_EXPERIMENT_PATH):
-        return {"experiment": None, "source": "empty", "path": SLEEP_EXPERIMENT_PATH}
-    try:
-        with open(SLEEP_EXPERIMENT_PATH, "r", encoding="utf-8") as f:
-            return {"experiment": json.load(f), "source": "file", "path": SLEEP_EXPERIMENT_PATH}
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Sleep experiment JSON is invalid: {e}") from e
-    except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read sleep experiment: {e}") from e
-
-
-@app.put("/api/sleep-experiment")
-async def put_sleep_experiment(req: SleepExperimentRequest):
-    experiment = req.model_dump()
-    experiment["updatedAt"] = utc_now_iso()
-    try:
-        directory = os.path.dirname(SLEEP_EXPERIMENT_PATH) or "."
-        os.makedirs(directory, exist_ok=True)
-        fd, tmp_path = tempfile.mkstemp(prefix=".sleep_experiment_", suffix=".json", dir=directory)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(experiment, f, ensure_ascii=False, indent=2)
-                f.write("\n")
-            os.replace(tmp_path, SLEEP_EXPERIMENT_PATH)
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-    except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save sleep experiment: {e}") from e
-    return {"experiment": experiment, "status": "saved", "path": SLEEP_EXPERIMENT_PATH}
-
-
 @app.get("/api/voice/folders")
 async def get_voice_folders():
     return load_voice_folders()
@@ -2276,3 +2264,75 @@ async def voice_draft_endpoint(
         "mode": resolved_mode,
         "ok": True
     }
+
+
+# --- Workflow API ---------------------------------------------------------
+
+@app.get("/api/workflows/email-action-check/latest")
+async def workflow_latest_endpoint():
+    return {"run": get_latest_workflow_run(VOICE_DB_PATH)}
+
+
+@app.get("/api/workflows/email-action-check/runs")
+async def workflow_runs_endpoint(limit: int = Query(default=30, ge=1, le=200)):
+    return {"runs": list_workflow_runs(VOICE_DB_PATH, limit)}
+
+
+@app.get("/api/workflows/email-action-check/runs/{run_id}")
+async def workflow_run_endpoint(run_id: str):
+    result = get_workflow_run(VOICE_DB_PATH, run_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    return {"run": result}
+
+
+@app.post("/api/workflows/email-action-check/runs")
+async def workflow_create_run_endpoint():
+    return {"run": create_workflow_run(VOICE_DB_PATH)}
+
+
+@app.post("/api/workflows/email-action-check/runs/{run_id}/result")
+async def workflow_result_endpoint(run_id: str, req: WorkflowResultRequest):
+    if not get_workflow_run(VOICE_DB_PATH, run_id):
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    save_workflow_result(VOICE_DB_PATH, run_id, req.items, req.raw_messages)
+    finish_workflow_run(VOICE_DB_PATH, run_id, req.status, req.error)
+    return {"run": get_workflow_run(VOICE_DB_PATH, run_id)}
+
+
+@app.post("/api/workflows/email-action-check/ingest")
+async def workflow_ingest_endpoint(req: WorkflowIngestRequest):
+    """Persist connector snapshots and the deduplicated actionable view in one call."""
+    run = create_workflow_run(VOICE_DB_PATH)
+    try:
+        items, raw = build_workflow_items(req.inbox_messages, req.sent_messages)
+        save_workflow_result(VOICE_DB_PATH, run["id"], items, raw)
+        finish_workflow_run(VOICE_DB_PATH, run["id"], "succeeded")
+    except Exception as exc:
+        finish_workflow_run(VOICE_DB_PATH, run["id"], "failed", str(exc))
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"run": get_workflow_run(VOICE_DB_PATH, run["id"])}
+
+
+@app.patch("/api/workflows/email-action-check/items/{item_id}")
+async def workflow_item_status_endpoint(item_id: str, req: WorkflowItemStatusRequest):
+    if req.status not in {"open", "done", "waiting", "dismissed"}:
+        raise HTTPException(status_code=400, detail="Invalid workflow item status")
+    if not update_workflow_item_status(VOICE_DB_PATH, item_id, req.status):
+        raise HTTPException(status_code=404, detail="Workflow item not found")
+    return {"ok": True, "item_id": item_id, "status": req.status}
+
+
+@app.get("/api/workflows/email-action-check/catch-up-needed")
+async def workflow_catch_up_needed_endpoint():
+    """Expose the once-per-day missed-07:30 check for the app and scheduler."""
+    local_now = datetime.now(ZoneInfo("Europe/London"))
+    latest = get_latest_workflow_run(VOICE_DB_PATH)
+    latest_day = None
+    if latest and latest.get("started_at"):
+        try:
+            latest_day = datetime.fromisoformat(latest["started_at"].replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/London")).date().isoformat()
+        except ValueError:
+            latest_day = None
+    needed = latest_day != local_now.date().isoformat() and (local_now.hour > 7 or (local_now.hour == 7 and local_now.minute >= 30))
+    return {"needed": needed, "date": local_now.date().isoformat(), "latest_run_date": latest_day, "scheduled_time": "07:30", "timezone": "Europe/London"}
