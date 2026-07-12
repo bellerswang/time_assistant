@@ -140,9 +140,11 @@ STORAGE_MODE=google_doc
 INDEX_MODE=sqlite
 GOOGLE_DOCS_ENABLED=true
 GOOGLE_DOCS_DEFAULT_DOC_ID=optional-doc-id
-FIRESTORE_ENABLED=false
-FIRESTORE_PROJECT_ID=
+FIRESTORE_ENABLED=true
+FIRESTORE_PROJECT_ID=mercurial-weft-455321
 FIRESTORE_COLLECTION=records
+WORKFLOW_RUNS_COLLECTION=email_workflow_runs
+WORKFLOW_ITEMS_COLLECTION=email_action_items
 ```
 
 Record categories:
@@ -223,6 +225,12 @@ Common sync statuses:
 - `failed:google_docs_api_disabled`: enable Google Docs API for the active project.
 - `failed:doc_not_found_or_not_shared`: configured doc id is wrong or not shared with the service account.
 
-### Cloud persistence note
+### Email Workflow persistence
 
-Local SQLite is fine for development. Cloud Run container storage is not reliable long-term storage, so production memory should eventually move to Cloud SQL, Firestore, or another persistent backend. Until then, Cloud Run SQLite memory can disappear across container rebuilds or instance replacement.
+Email Workflow results are stored in Firestore, not in the local SQLite file. The daily Codex task posts structured email metadata to the Cloud Run ingest API; the web and phone Inbox then read the same Firestore collections.
+
+- `email_workflow_runs`: run metadata and status counts.
+- `email_action_items`: current actionable threads, including status and an email link.
+- Full email bodies are not persisted. The workflow stores only the structured action card data needed by Loomi.
+
+Cloud Run must run with a service account that has `roles/datastore.user` for the Firestore project.

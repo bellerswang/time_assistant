@@ -16,16 +16,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from models import CATEGORY_LABELS, Record, RecordMetadata
-from services.workflow_service import (
-    ensure_workflow_schema,
-    create_run as create_workflow_run,
-    finish_run as finish_workflow_run,
-    get_run as get_workflow_run,
-    latest_run as get_latest_workflow_run,
-    list_runs as list_workflow_runs,
-    save_result as save_workflow_result,
-    update_item_status as update_workflow_item_status,
-)
+from services.firestore_workflow_service import FirestoreWorkflowService
 from services.email_workflow_runner import build_workflow_items
 
 try:
@@ -121,6 +112,8 @@ GOOGLE_DOCS_DEFAULT_DOC_ID = os.getenv("GOOGLE_DOCS_DEFAULT_DOC_ID")
 FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "true").lower() in {"1", "true", "yes"}
 FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
 FIRESTORE_COLLECTION = os.getenv("FIRESTORE_COLLECTION", "records")
+WORKFLOW_RUNS_COLLECTION = os.getenv("WORKFLOW_RUNS_COLLECTION", "email_workflow_runs")
+WORKFLOW_ITEMS_COLLECTION = os.getenv("WORKFLOW_ITEMS_COLLECTION", "email_action_items")
 
 
 def resolve_folders_config_path() -> str:
@@ -288,7 +281,6 @@ def init_voice_db() -> None:
             """
         )
         conn.commit()
-    ensure_workflow_schema(VOICE_DB_PATH)
 
 
 def load_voice_folders() -> dict:
@@ -444,6 +436,7 @@ def resolve_google_docs_credentials() -> tuple[object | None, str, str | None]:
 
 # Initialize Firestore Repository if enabled
 firestore_repo = None
+workflow_store = None
 if FIRESTORE_ENABLED:
     try:
         from repositories.firestore_repository import FirestoreRepository
@@ -453,10 +446,21 @@ if FIRESTORE_ENABLED:
             project_id=FIRESTORE_PROJECT_ID or getattr(creds, "project_id", None),
             collection_name=FIRESTORE_COLLECTION
         )
+        workflow_store = FirestoreWorkflowService(
+            firestore_repo.db,
+            runs_collection=WORKFLOW_RUNS_COLLECTION,
+            items_collection=WORKFLOW_ITEMS_COLLECTION,
+        )
         logger.info(f"Successfully initialized FirestoreRepository with auth mode: {auth_mode}")
     except Exception as e:
         logger.error(f"Failed to initialize FirestoreRepository: {e}")
         FIRESTORE_ENABLED = False
+
+
+def get_workflow_store() -> FirestoreWorkflowService:
+    if workflow_store is None:
+        raise HTTPException(status_code=503, detail="Firestore workflow storage is not configured")
+    return workflow_store
 
 
 
@@ -2270,17 +2274,17 @@ async def voice_draft_endpoint(
 
 @app.get("/api/workflows/email-action-check/latest")
 async def workflow_latest_endpoint():
-    return {"run": get_latest_workflow_run(VOICE_DB_PATH)}
+    return {"run": await get_workflow_store().latest_run()}
 
 
 @app.get("/api/workflows/email-action-check/runs")
 async def workflow_runs_endpoint(limit: int = Query(default=30, ge=1, le=200)):
-    return {"runs": list_workflow_runs(VOICE_DB_PATH, limit)}
+    return {"runs": await get_workflow_store().list_runs(limit)}
 
 
 @app.get("/api/workflows/email-action-check/runs/{run_id}")
 async def workflow_run_endpoint(run_id: str):
-    result = get_workflow_run(VOICE_DB_PATH, run_id)
+    result = await get_workflow_store().get_run(run_id)
     if not result:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     return {"run": result}
@@ -2288,37 +2292,40 @@ async def workflow_run_endpoint(run_id: str):
 
 @app.post("/api/workflows/email-action-check/runs")
 async def workflow_create_run_endpoint():
-    return {"run": create_workflow_run(VOICE_DB_PATH)}
+    return {"run": await get_workflow_store().create_run()}
 
 
 @app.post("/api/workflows/email-action-check/runs/{run_id}/result")
 async def workflow_result_endpoint(run_id: str, req: WorkflowResultRequest):
-    if not get_workflow_run(VOICE_DB_PATH, run_id):
+    store = get_workflow_store()
+    if not await store.get_run(run_id):
         raise HTTPException(status_code=404, detail="Workflow run not found")
-    save_workflow_result(VOICE_DB_PATH, run_id, req.items, req.raw_messages)
-    finish_workflow_run(VOICE_DB_PATH, run_id, req.status, req.error)
-    return {"run": get_workflow_run(VOICE_DB_PATH, run_id)}
+    if req.status == "failed":
+        await store.fail_run(run_id, req.error or "Workflow failed")
+    else:
+        await store.save_result(run_id, req.items, len(req.raw_messages))
+    return {"run": await store.get_run(run_id)}
 
 
 @app.post("/api/workflows/email-action-check/ingest")
 async def workflow_ingest_endpoint(req: WorkflowIngestRequest):
-    """Persist connector snapshots and the deduplicated actionable view in one call."""
-    run = create_workflow_run(VOICE_DB_PATH)
+    """Persist structured email actions in Firestore without storing full email bodies."""
+    store = get_workflow_store()
+    run = await store.create_run()
     try:
         items, raw = build_workflow_items(req.inbox_messages, req.sent_messages)
-        save_workflow_result(VOICE_DB_PATH, run["id"], items, raw)
-        finish_workflow_run(VOICE_DB_PATH, run["id"], "succeeded")
+        await store.save_result(run["id"], items, len(raw))
     except Exception as exc:
-        finish_workflow_run(VOICE_DB_PATH, run["id"], "failed", str(exc))
+        await store.fail_run(run["id"], str(exc))
         raise HTTPException(status_code=500, detail=str(exc))
-    return {"run": get_workflow_run(VOICE_DB_PATH, run["id"])}
+    return {"run": await store.get_run(run["id"])}
 
 
 @app.patch("/api/workflows/email-action-check/items/{item_id}")
 async def workflow_item_status_endpoint(item_id: str, req: WorkflowItemStatusRequest):
     if req.status not in {"open", "done", "waiting", "dismissed"}:
         raise HTTPException(status_code=400, detail="Invalid workflow item status")
-    if not update_workflow_item_status(VOICE_DB_PATH, item_id, req.status):
+    if not await get_workflow_store().update_item_status(item_id, req.status):
         raise HTTPException(status_code=404, detail="Workflow item not found")
     return {"ok": True, "item_id": item_id, "status": req.status}
 
@@ -2327,7 +2334,7 @@ async def workflow_item_status_endpoint(item_id: str, req: WorkflowItemStatusReq
 async def workflow_catch_up_needed_endpoint():
     """Expose the once-per-day missed-07:30 check for the app and scheduler."""
     local_now = datetime.now(ZoneInfo("Europe/London"))
-    latest = get_latest_workflow_run(VOICE_DB_PATH)
+    latest = await get_workflow_store().latest_run()
     latest_day = None
     if latest and latest.get("started_at"):
         try:
