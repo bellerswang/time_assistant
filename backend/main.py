@@ -1964,6 +1964,7 @@ async def call_deepseek_schedule_parser(text: str) -> dict:
             "estMins": est_mins,
             "anchorTime": anchor_time,
             "confidence": result.get("confidence") if result.get("confidence") in {"high", "medium", "low"} else "medium",
+            "original_text": text,
         }
         logger.info(f"[Schedule] DeepSeek parsed task: {parsed}")
         return parsed
