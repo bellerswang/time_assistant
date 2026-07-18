@@ -370,6 +370,209 @@
             display: flex;
         }
 
+        .today-command-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px;
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.12), rgba(189, 147, 249, 0.08));
+            border: 1px solid rgba(0, 245, 255, 0.28);
+            border-radius: var(--radius-lg);
+        }
+        .today-command-copy {
+            min-width: 0;
+        }
+        .today-command-kicker,
+        .today-section-kicker {
+            display: block;
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+        .today-command-copy h2,
+        .today-section-head h3 {
+            margin: 5px 0 0;
+            color: var(--text);
+            font-size: 18px;
+            line-height: 1.25;
+        }
+        .today-command-copy p {
+            margin: 5px 0 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        .today-command-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 0 0 min(230px, 42%);
+        }
+        .today-command-btn {
+            min-height: 38px;
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, background 0.2s;
+        }
+        .today-command-btn:active {
+            transform: scale(0.97);
+        }
+        .today-command-btn.primary {
+            background: var(--primary);
+            border: 1px solid var(--primary);
+            color: #070514;
+            box-shadow: 0 0 18px rgba(0, 245, 255, 0.22);
+        }
+        .today-command-btn.secondary {
+            background: rgba(7, 5, 20, 0.3);
+            border: 1px solid rgba(0, 245, 255, 0.35);
+            color: var(--text);
+        }
+        .today-command-btn.secondary:hover {
+            border-color: var(--primary);
+            background: rgba(0, 245, 255, 0.08);
+        }
+        .today-attention {
+            width: 100%;
+            border: 1px solid rgba(232, 175, 52, 0.38);
+            background: rgba(232, 175, 52, 0.09);
+            color: var(--text);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .today-attention span:first-child {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            flex: 1;
+        }
+        .today-attention span:first-child i {
+            color: var(--warning);
+        }
+        .today-attention strong {
+            color: var(--warning);
+            font-size: 16px;
+        }
+        .today-attention > i {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .today-todo-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .today-section-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .today-section-head h3 {
+            font-size: 15px;
+        }
+        .today-section-count {
+            min-width: 24px;
+            height: 24px;
+            padding: 0 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-full);
+            background: rgba(0, 245, 255, 0.12);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .today-todo-list {
+            display: grid;
+            gap: 8px;
+        }
+        .today-todo-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.035);
+        }
+        .today-todo-check {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            border: 1px solid rgba(0, 245, 255, 0.4);
+            border-radius: var(--radius-full);
+            background: rgba(0, 245, 255, 0.08);
+            color: var(--primary);
+            cursor: pointer;
+        }
+        .today-todo-copy {
+            min-width: 0;
+            flex: 1;
+        }
+        .today-todo-name {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 750;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .today-todo-meta {
+            margin-top: 3px;
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+        .today-todo-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .today-todo-action {
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .today-todo-action:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .today-todo-empty {
+            padding: 14px;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: center;
+        }
+        @media (max-width: 560px) {
+            .today-command-card {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .today-command-actions {
+                flex-basis: auto;
+                width: 100%;
+            }
+        }
+
         /* 快捷操作栏 Banner */
         .action-banner {
             display: flex;
@@ -585,14 +788,6 @@
         .task-btn:hover {
             background: var(--border);
         }
-        .task-btn.btn-start {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: #000000;
-        }
-        .task-btn.btn-start:hover {
-            filter: brightness(1.1);
-        }
         .task-btn.btn-complete {
             background: var(--success);
             border-color: var(--success);
@@ -612,20 +807,6 @@
             background: var(--text-faint);
         }
         
-        .task-card-wrapper.in_progress .timeline-node {
-            background: var(--primary);
-            box-shadow: 0 0 0 4px rgba(91, 168, 181, 0.25);
-            animation: pulse-node 1.5s infinite;
-        }
-        .task-card-wrapper.in_progress .task-card {
-            border-color: rgba(91, 168, 181, 0.4);
-            background: linear-gradient(135deg, var(--surface-2) 0%, rgba(91,168,181,0.03) 100%);
-            animation: pulse-card-border 1.5s infinite;
-        }
-        .task-card-wrapper.in_progress .task-time-range {
-            color: var(--primary);
-        }
-
         .task-card-wrapper.done .timeline-node {
             background: var(--success);
         }
@@ -648,18 +829,6 @@
         .task-card-wrapper.skipped .task-name {
             text-decoration: line-through;
             color: var(--text-faint);
-        }
-
-        /* 实时专注卡计时器样式 */
-        .timer-display {
-            font-family: monospace;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--primary);
-            background-color: var(--surface-3);
-            padding: 2px 6px;
-            border-radius: var(--radius-sm);
-            font-variant-numeric: tabular-nums;
         }
 
         /* 3.2 空白时间槽卡片 */
@@ -708,91 +877,6 @@
         }
         .gap-action-btn:hover {
             filter: brightness(1.2);
-        }
-
-        /* Tab 3 Routines */
-        .routines-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-        .routines-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .routines-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 100%;
-        }
-        .routine-card {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 14px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-        .routine-card::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background-color: var(--routine-color, var(--primary));
-        }
-        .routine-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .routine-title-box {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .routine-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .routine-sub {
-            font-size: 11px;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .recur-badge {
-            background: var(--surface-3);
-            color: var(--text-muted);
-            padding: 1px 6px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 9px;
-        }
-        .routine-multiplier-text {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-        .routine-multiplier-text span {
-            color: var(--primary);
-            font-weight: 700;
-        }
-        .routine-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            border-top: 1px solid var(--divider);
-            padding-top: 8px;
         }
 
         /* VoiceFAB 右下角浮动语音按钮 */
@@ -1297,8 +1381,7 @@
             display: none;
         }
         .app-container.record-home-mode .voice-fab,
-        .app-container.record-home-mode #tab-timeline,
-        .app-container.record-home-mode #tab-routines {
+        .app-container.record-home-mode #tab-timeline {
             display: none;
         }
         .app-container.record-home-mode .main-content {
@@ -2037,22 +2120,42 @@
         <div class="main-content">
             
             <!-- VIEW 1: 今日时间轴 -->
-            <div id="tab-timeline" class="tab-panel">
-                <div class="action-banner">
-                    <button class="action-pill primary" id="btn-load-routines">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        一键载入常规
-                    </button>
-                    <button class="action-pill secondary" id="btn-goto-routines">
-                        <i class="fa-solid fa-gears"></i>
-                        模板管理
-                    </button>
-                    <div class="summary-banner" style="flex: 1; padding: 4px 12px; height: 30px; border-radius: var(--radius-full);">
-                        <div class="summary-stat" id="timeline-stat-text" style="font-size: 11px; font-weight: 600;">
-                            已完成 <span>0/0</span> (专注 0m)
-                        </div>
+            <div id="tab-timeline" class="tab-panel active">
+                <section class="today-command-card">
+                    <div class="today-command-copy">
+                        <span class="today-command-kicker" id="today-command-kicker">TODAY</span>
+                        <h2 id="today-command-title">现在要做什么？</h2>
+                        <p id="today-command-subtitle">直接说一个日程或待办</p>
                     </div>
-                </div>
+                    <div class="today-command-actions">
+                        <button class="today-command-btn primary" id="btn-today-voice-todo" type="button">
+                            <i class="fa-solid fa-microphone"></i>
+                            <span id="today-voice-label">说一个日程 / 待办</span>
+                        </button>
+                        <button class="today-command-btn secondary" id="btn-today-text-todo" type="button">
+                            <i class="fa-solid fa-keyboard"></i>
+                            <span id="today-text-label">输入一个日程 / 待办</span>
+                        </button>
+                    </div>
+                </section>
+
+                <button class="today-attention" id="today-attention" type="button" hidden>
+                    <span><i class="fa-solid fa-envelope"></i> <span id="today-email-action-label">邮件待处理</span></span>
+                    <strong id="today-email-count">0</strong>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+
+                <section class="today-todo-section">
+                    <div class="today-section-head">
+                        <div>
+                            <span class="today-section-kicker" id="today-todo-kicker">TODO</span>
+                            <h3 id="today-todo-title">未安排的行动</h3>
+                        </div>
+                        <span class="today-section-count" id="today-todo-count">0</span>
+                    </div>
+                    <div class="today-todo-list" id="today-todo-list"></div>
+                    <div class="today-todo-empty" id="today-todo-empty">还没有未安排的待办。</div>
+                </section>
 
                 <div class="timeline-container">
                     <div class="timeline-line"></div>
@@ -2062,26 +2165,7 @@
                 </div>
             </div>
 
-            <!-- VIEW 3: 常规任务管理 -->
-            <div id="tab-routines" class="tab-panel">
-                <div class="routines-header">
-                    <span class="routines-title">常规日程模板</span>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="action-pill secondary" id="btn-back-to-timeline" style="padding: 5px 12px;">
-                            <i class="fa-solid fa-arrow-left"></i> 返回日程
-                        </button>
-                        <button class="action-pill primary" id="btn-add-routine" style="padding: 5px 12px;">
-                            <i class="fa-solid fa-plus"></i> 新日常模板
-                        </button>
-                    </div>
-                </div>
-
-                <div class="routines-list" id="routines-list">
-                    <!-- Routines templates here -->
-                </div>
-            </div>
-
-            <!-- VIEW 4: Voice (沉浸式智能输入 Loomi) -->
+            <!-- VIEW 3: Voice (沉浸式智能输入 Loomi) -->
             <div id="tab-voice" class="tab-panel record-home active">
                 <div class="loomi-immersive">
                     <div class="record-hero-title">LOOMI</div>
@@ -2250,11 +2334,11 @@
 
         <!-- Bottom navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item" data-tab="timeline">
+            <button class="nav-item active" data-tab="timeline">
                 <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                <span>Timeline</span>
+                <span>Today</span>
             </button>
-            <button class="nav-item active" data-tab="voice">
+            <button class="nav-item" data-tab="voice">
                 <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 <span>Loomi</span>
             </button>
@@ -2319,6 +2403,10 @@
             <div class="preview-card" id="preview-result-card">
                 <div class="preview-header">✨ Loomi 结构化解析结果</div>
                 <div class="preview-item">
+                    <span class="preview-label">类型</span>
+                    <span class="preview-val" id="prev-type">-</span>
+                </div>
+                <div class="preview-item">
                     <span class="preview-label">事项名称</span>
                     <span class="preview-val" id="prev-name">-</span>
                 </div>
@@ -2345,7 +2433,7 @@
             </div>
         </div>
 
-        <!-- SHEET 2: 新增/编辑日常模板 -->
+        <!-- SHEET 1: 记录分类 -->
         <div class="bottom-sheet" id="sheet-record-category">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -2384,86 +2472,7 @@
             </button>
         </div>
 
-        <div class="bottom-sheet" id="sheet-routine-edit">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <span class="sheet-title" id="routine-sheet-title">新建常规模板</span>
-                <button class="sheet-close-btn">&times;</button>
-            </div>
-
-            <input type="hidden" id="form-rtn-id">
-
-            <div class="form-group">
-                <span class="form-label">模板名称</span>
-                <input type="text" class="form-input" id="form-rtn-name" placeholder="例如：晨间复盘、健身跑步、看书学习">
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">日程分类</span>
-                <div class="capsule-select" id="form-rtn-category">
-                    <button class="capsule-btn active" data-val="work">工作 (Work)</button>
-                    <button class="capsule-btn" data-val="health">健康 (Health)</button>
-                    <button class="capsule-btn" data-val="personal">个人 (Personal)</button>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">主题配色</span>
-                <div class="color-palette" id="form-rtn-colors">
-                    <!-- Populated dynamically -->
-                </div>
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">预计基准用时（分钟）</span>
-                <input type="number" class="form-input" id="form-rtn-duration" min="5" max="480" placeholder="例如：30">
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">偏好时间（可选，留空则由空档探测器安排）</span>
-                <input type="time" class="form-input" id="form-rtn-time">
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">重复规则</span>
-                <select class="form-input" id="form-rtn-recur" style="appearance: none; background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px); background-position: right 12px center; background-size: 8px 8px; background-repeat: no-repeat;">
-                    <option value="daily">每天 (Daily)</option>
-                    <option value="weekdays">工作日 (Weekdays)</option>
-                    <option value="weekly">每周相同周几 (Weekly)</option>
-                    <option value="none">仅今日一次 (Once)</option>
-                </select>
-            </div>
-
-            <div class="sheet-action-row" style="margin-top: 8px;">
-                <button class="btn-sheet-secondary cancel-sheet-btn">取消</button>
-                <button class="btn-sheet-primary" id="btn-save-routine">保存常规</button>
-            </div>
-        </div>
-
-        <!-- SHEET 3: 删除确认 -->
-        <div class="bottom-sheet" id="sheet-delete-confirm" style="gap:20px;">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <span class="sheet-title" style="color:var(--error);"><i class="fa-solid fa-triangle-exclamation"></i> 确定删除吗？</span>
-                <button class="sheet-close-btn">&times;</button>
-            </div>
-
-            <input type="hidden" id="delete-target-type">
-            <input type="hidden" id="delete-target-id">
-
-            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;" id="delete-confirm-text">
-                删除常规模板会一并清除累计学习的效率特征数据，此操作不可逆。历史任务日志将予以保留。
-            </div>
-
-            <div class="sheet-action-row">
-                <button class="btn-sheet-secondary cancel-sheet-btn">取消</button>
-                <button class="btn-sheet-primary" id="btn-confirm-delete" style="background-color: var(--error); border-color: var(--error); color: #ffffff;">
-                    确认删除
-                </button>
-            </div>
-        </div>
-
-        <!-- SHEET 4: 系统设置 -->
+        <!-- SHEET 2: 系统设置 -->
         <div class="bottom-sheet" id="sheet-settings">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -2613,6 +2622,8 @@
         const saveRoutines = (data) => DB.set('chrono_routines', data);
         const loadTasks = (date) => DB.get(`chrono_tasks_${date}`, []);
         const saveTasks = (date, data) => DB.set(`chrono_tasks_${date}`, data);
+        const loadTodos = () => DB.get('chrono_todos', []);
+        const saveTodos = (data) => DB.set('chrono_todos', data);
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
@@ -2653,12 +2664,31 @@
 
         const I18N = {
             zh: {
+                today: '今日',
                 voice: '语音',
                 text: '文字',
                 journal: 'Journal 日记',
                 wiki: 'Wiki 百科',
                 ask: 'Ask 问答',
                 schedule: 'Schedule 日程',
+                todayCommandKicker: 'TODAY',
+                todayCommandTitle: '现在要做什么？',
+                todayCommandSubtitle: '直接说一个日程或待办',
+                sayScheduleTodo: '说一个日程 / 待办',
+                typeScheduleTodo: '输入一个日程 / 待办',
+                todayEmailAction: '邮件待处理',
+                todoKicker: 'TODO',
+                todoTitle: '未安排的行动',
+                todoEmpty: '还没有未安排的待办。',
+                todoType: '未安排 Todo',
+                scheduleType: '日程',
+                scheduleConfirm: '确认加入日程',
+                todoSave: '保存待办',
+                todoSaved: '待办已保存',
+                todoComplete: '完成待办',
+                todoArrange: '安排时间',
+                todoDelete: '删除待办',
+                todoMeta: '语音 / 文字录入',
                 clickRecord: '点击开始录音',
                 textPlaceholder: '输入你想记录的内容，或向 AI 提问...',
                 send: '发送',
@@ -2686,7 +2716,7 @@
                 autoImport: '自动导入忙碌日程为占位',
                 autoExport: '本地任务完成/创建自动写入日历',
                 dataManagement: '系统数据管理',
-                resetDemo: '重置并恢复初始演示数据',
+                resetDemo: '重置本地日程数据',
                 saveSettings: '保存并生效设置',
                 editRecord: 'Edit record',
                 title: 'Title',
@@ -2709,12 +2739,31 @@
                 inboxUpdated: '\u90ae\u4ef6\u72b6\u6001\u5df2\u66f4\u65b0\u3002'
             },
             en: {
+                today: 'Today',
                 voice: 'Voice',
                 text: 'Text',
                 journal: 'Journal',
                 wiki: 'Wiki',
                 ask: 'Ask',
                 schedule: 'Schedule',
+                todayCommandKicker: 'TODAY',
+                todayCommandTitle: 'What needs doing?',
+                todayCommandSubtitle: 'Speak a schedule or to-do',
+                sayScheduleTodo: 'Speak a schedule / to-do',
+                typeScheduleTodo: 'Type a schedule / to-do',
+                todayEmailAction: 'Email actions waiting',
+                todoKicker: 'TO-DO',
+                todoTitle: 'Unscheduled actions',
+                todoEmpty: 'No unscheduled to-dos yet.',
+                todoType: 'Unscheduled to-do',
+                scheduleType: 'Schedule',
+                scheduleConfirm: 'Add to schedule',
+                todoSave: 'Save to-do',
+                todoSaved: 'To-do saved',
+                todoComplete: 'Complete to-do',
+                todoArrange: 'Schedule it',
+                todoDelete: 'Delete to-do',
+                todoMeta: 'Voice / text capture',
                 clickRecord: 'Tap to record',
                 textPlaceholder: 'Type a note, wiki item, question, or schedule request...',
                 send: 'Send',
@@ -2742,7 +2791,7 @@
                 autoImport: 'Import busy calendar events as placeholders',
                 autoExport: 'Export created/completed local tasks to Calendar',
                 dataManagement: 'Data management',
-                resetDemo: 'Reset demo data',
+                resetDemo: 'Reset local schedule data',
                 saveSettings: 'Save settings',
                 editRecord: 'Edit record',
                 title: 'Title',
@@ -2876,7 +2925,7 @@
             '自动导入忙碌日程为占位': 'Import busy events as placeholders',
             '本地任务完成/创建自动写入日历': 'Export local task changes to Calendar',
             '系统数据管理': 'Data management',
-            '重置并恢复初始演示数据': 'Reset demo data',
+            '重置本地日程数据': 'Reset local schedule data',
             '保存并生效设置': 'Save settings',
             '在此插针': 'Add here',
             '谷歌日历': 'Google Calendar',
@@ -3053,6 +3102,15 @@
             setNodeText('#loomi-status', langText('clickRecord'));
             setPlaceholder('#loomi-text-input', langText('textPlaceholder'));
             setNodeHTML('#btn-loomi-text-submit', `<i class="fa-solid fa-paper-plane"></i> ${langText('send')}`);
+            setNodeText('#today-command-kicker', langText('todayCommandKicker'));
+            setNodeText('#today-command-title', langText('todayCommandTitle'));
+            setNodeText('#today-command-subtitle', langText('todayCommandSubtitle'));
+            setNodeHTML('#btn-today-voice-todo', `<i class="fa-solid fa-microphone"></i> ${langText('sayScheduleTodo')}`);
+            setNodeHTML('#btn-today-text-todo', `<i class="fa-solid fa-keyboard"></i> ${langText('typeScheduleTodo')}`);
+            setNodeText('#today-email-action-label', langText('todayEmailAction'));
+            setNodeText('#today-todo-kicker', langText('todoKicker'));
+            setNodeText('#today-todo-title', langText('todoTitle'));
+            setNodeText('#today-todo-empty', langText('todoEmpty'));
 
             const modeLabels = {
                 journal: langText('journal'),
@@ -3105,6 +3163,7 @@
             setPlaceholder('#record-edit-text', langText('recordText'));
             setNodeHTML('#btn-save-record-edit', `<i class="fa-solid fa-check"></i> ${langText('saveChanges')}`);
 
+            renderTodayTodos();
             setActiveAppMode(currentTab);
             localizeDynamicDom(document.body);
             syncLanguageObserver();
@@ -3115,67 +3174,9 @@
 
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
-        let currentTab = 'voice';
-        let activeTimerInterval = null;
-        let activeTimerTaskId = null;
-        let voiceMode = 'journal';
+        let currentTab = 'timeline';
+        let voiceMode = 'schedule';
         let voiceFolders = [];
-
-        // ==================== 初始示例数据 ====================
-        function checkAndInitSampleData() {
-            const routines = loadRoutines();
-            if (routines.length === 0) {
-                const sampleRoutines = [
-                    {
-                        id: "rtn_" + Date.now() + "1",
-                        name: "晨间复盘与计划",
-                        category: "work",
-                        color: "#5ba8b5",
-                        estMins: 20,
-                        preferredTime: "08:30",
-                        recurRule: "weekdays",
-                        efficiencyMultiplier: 1.25,
-                        efficiencyLogCount: 5,
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        id: "rtn_" + Date.now() + "2",
-                        name: "有氧运动健身",
-                        category: "health",
-                        color: "#6daa45",
-                        estMins: 45,
-                        preferredTime: "18:00",
-                        recurRule: "daily",
-                        efficiencyMultiplier: 0.95,
-                        efficiencyLogCount: 3,
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        id: "rtn_" + Date.now() + "3",
-                        name: "睡前自主阅读",
-                        category: "personal",
-                        color: "#e8af34",
-                        estMins: 45,
-                        preferredTime: "21:30",
-                        recurRule: "daily",
-                        efficiencyMultiplier: 1.0,
-                        efficiencyLogCount: 0,
-                        createdAt: new Date().toISOString()
-                    }
-                ];
-                saveRoutines(sampleRoutines);
-
-                // 示例历史效率日志
-                const sampleLogs = [
-                    { routineId: sampleRoutines[0].id, taskId: "tsk_s1", date: "2026-05-23", estMins: 20, actualMins: 25, ratio: 1.25 },
-                    { routineId: sampleRoutines[0].id, taskId: "tsk_s2", date: "2026-05-22", estMins: 20, actualMins: 24, ratio: 1.2 },
-                    { routineId: sampleRoutines[0].id, taskId: "tsk_s3", date: "2026-05-21", estMins: 20, actualMins: 26, ratio: 1.3 },
-                    { routineId: sampleRoutines[1].id, taskId: "tsk_s4", date: "2026-05-23", estMins: 45, actualMins: 43, ratio: 0.95 },
-                    { routineId: sampleRoutines[1].id, taskId: "tsk_s5", date: "2026-05-22", estMins: 45, actualMins: 42, ratio: 0.93 }
-                ];
-                saveEfficiencyLogs(sampleLogs);
-            }
-        }
 
         // ==================== 时间日期工具函数 ====================
         function getTodayString() {
@@ -3416,6 +3417,7 @@
 
         // ==================== 智能解析调度总机 ====================
         let lastParsedResult = null; // 临时保存解析出来的任务
+        let pendingInputSource = 'text';
 
         async function parseSemanticInput(text) {
             console.log(`[Parser] Starting extraction for: "${text}"`);
@@ -3444,101 +3446,6 @@
                 showLoading(false);
                 return parseLocalFallback(text);
             }
-        }
-
-        // ==================== 9. 一键载入常规日程算法 ====================
-        function loadRoutinesForDate(date) {
-            const routines = loadRoutines();
-            const existing = loadTasks(date);
-            
-            // 星期转换
-            const parts = date.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const dayOfWeek = d.getDay(); // 0=Sun, 1-5=Mon-Fri, 6=Sat
-            const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-
-            const gcalSettings = getGCalSettings();
-            let gcalEvents = [];
-            if (gcalSettings.enabled) {
-                gcalEvents = loadGCalEvents(date);
-            }
-
-            const applicable = routines.filter(r => {
-                if (r.recurRule === 'daily') return true;
-                if (r.recurRule === 'weekdays') return isWeekday;
-                if (r.recurRule === 'weekly') {
-                    const createdDay = new Date(r.createdAt).getDay();
-                    return dayOfWeek === createdDay;
-                }
-                return false;
-            });
-
-            const newTasks = [];
-            let addedCount = 0;
-
-            for (const routine of applicable) {
-                // 跳过当天已载入过相同常常规模板的事项
-                if (existing.some(t => t.routineId === routine.id)) continue;
-
-                const adjustedMins = getAdjustedMins(routine);
-
-                let placement = null;
-                if (routine.preferredTime) {
-                    const prefStart = timeToMins(routine.preferredTime);
-                    const prefEnd = prefStart + adjustedMins;
-                    
-                    // 碰撞检测 (包含本地与 GCal 占用)
-                    const allTasksSoFar = [...existing, ...newTasks, ...gcalEvents];
-                    const hasConflict = allTasksSoFar.some(t => {
-                        const ts = timeToMins(t.scheduledStart);
-                        const te = timeToMins(t.scheduledEnd);
-                        return prefStart < te && prefEnd > ts;
-                    });
-
-                    if (!hasConflict) {
-                        placement = {
-                            start: routine.preferredTime,
-                            end: minsToTime(prefEnd)
-                        };
-                    } else {
-                        // 有冲突，以此偏好时间开始往后搜索 Gap
-                        placement = findBestGap(date, adjustedMins, routine.preferredTime, [...existing, ...newTasks]);
-                    }
-                } else {
-                    // 无偏好时间，全天候搜索最早 Gap
-                    placement = findBestGap(date, adjustedMins, null, [...existing, ...newTasks]);
-                }
-
-                if (!placement) continue; // 塞不下就舍弃
-
-                newTasks.push({
-                    id: `task_${date.replace(/-/g, '')}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                    routineId: routine.id,
-                    name: routine.name,
-                    category: routine.category,
-                    color: routine.color,
-                    date: date,
-                    scheduledStart: placement.start,
-                    scheduledEnd: placement.end,
-                    adjustedEstMins: adjustedMins,
-                    status: 'todo',
-                    actualStart: null,
-                    actualEnd: null,
-                    actualMins: null,
-                    isRoutineInstance: true,
-                    isManuallyPlaced: false,
-                    notes: ''
-                });
-                addedCount++;
-            }
-
-            if (newTasks.length > 0) {
-                const merged = [...existing, ...newTasks];
-                saveTasks(date, merged);
-                newTasks.forEach(t => exportTaskToGoogleCalendar(t));
-            }
-
-            return addedCount;
         }
 
         // ==================== UI 控制器及主渲染逻辑 ====================
@@ -3603,10 +3510,11 @@
             document.getElementById('preview-result-card')?.classList.remove('active');
         }
 
-        function openVoiceCapture(mode = 'journal') {
+        function openVoiceCapture(mode = 'schedule') {
             document.getElementById('textarea-input').value = '';
             document.getElementById('preview-result-card')?.classList.remove('active');
             document.getElementById('voice-save-result')?.classList.remove('active');
+            pendingInputSource = 'text';
             setVoiceMode(mode);
             openSheet('sheet-input');
         }
@@ -3651,6 +3559,11 @@
             if (badge) {
                 badge.hidden = openCount === 0;
                 badge.textContent = openCount > 99 ? '99+' : String(openCount);
+            }
+            const todayAttention = document.getElementById('today-attention');
+            if (todayAttention) {
+                todayAttention.hidden = openCount === 0;
+                setNodeText('#today-email-count', String(openCount));
             }
             document.querySelectorAll('[data-inbox-filter]').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-inbox-filter') === inboxFilter);
@@ -3825,6 +3738,7 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
+            formData.append('source', pendingInputSource);
 
             showLoading(true, 'Sending to Loomi...');
             try {
@@ -4133,7 +4047,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-routine-edit', 'sheet-delete-confirm', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -4251,13 +4165,14 @@
                 const dotsDiv = document.createElement('div');
                 dotsDiv.className = 'day-dots';
                 const dayTasks = loadTasks(itemDateStr).filter(t => t.status !== 'skipped');
+                const dayTodos = loadTodos().filter(todo => todo.status !== 'done' && todo.dueDate === itemDateStr);
                 
                 // 最多显示 3 个小点
-                const showDots = Math.min(dayTasks.length, 3);
+                const showDots = Math.min(dayTasks.length + dayTodos.length, 3);
                 for (let d = 0; d < showDots; d++) {
                     const dot = document.createElement('span');
                     dot.className = 'day-dot';
-                    dot.style.backgroundColor = dayTasks[d].color || 'var(--primary)';
+                    dot.style.backgroundColor = dayTasks[d]?.color || 'var(--warning)';
                     dotsDiv.appendChild(dot);
                 }
 
@@ -4277,7 +4192,8 @@
         function getDayItemCount(dateStr) {
             const localCount = loadTasks(dateStr).filter(t => t.status !== 'skipped').length;
             const gcalCount = loadGCalEvents(dateStr).length;
-            return localCount + gcalCount;
+            const todoCount = loadTodos().filter(todo => todo.status !== 'done' && todo.dueDate === dateStr).length;
+            return localCount + gcalCount + todoCount;
         }
 
         let monthPickerDate = null;
@@ -4349,9 +4265,83 @@
             renderMonthPicker();
         }
 
+        function renderTodayTodos() {
+            const list = document.getElementById('today-todo-list');
+            const empty = document.getElementById('today-todo-empty');
+            const count = document.getElementById('today-todo-count');
+            if (!list || !empty || !count) return;
+
+            const todos = loadTodos()
+                .filter(todo => todo.status !== 'done')
+                .filter(todo => !todo.dueDate || todo.dueDate === selectedDate)
+                .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
+            count.textContent = String(todos.length);
+            empty.hidden = todos.length > 0;
+            list.innerHTML = todos.map(todo => `
+                <article class="today-todo-card">
+                    <button class="today-todo-check" type="button" data-todo-action="complete" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoComplete'))}" title="${escapeHtml(langText('todoComplete'))}">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                    <div class="today-todo-copy">
+                        <div class="today-todo-name">${escapeHtml(todo.title || '')}</div>
+                        <div class="today-todo-meta">${escapeHtml(taskCategoryLabel(todo.category))} · ${escapeHtml(langText('todoMeta'))}</div>
+                    </div>
+                    <div class="today-todo-actions">
+                        <button class="today-todo-action" type="button" data-todo-action="arrange" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoArrange'))}" title="${escapeHtml(langText('todoArrange'))}">
+                            <i class="fa-solid fa-calendar-plus"></i>
+                        </button>
+                        <button class="today-todo-action" type="button" data-todo-action="delete" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoDelete'))}" title="${escapeHtml(langText('todoDelete'))}">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function taskCategoryLabel(category) {
+            const labels = appLanguage === 'en'
+                ? { work: 'Work', health: 'Health', personal: 'Personal' }
+                : { work: '工作', health: '健康', personal: '个人' };
+            return labels[category] || (appLanguage === 'en' ? 'Personal' : '个人');
+        }
+
+        function updateTodoStatus(todoId, status) {
+            const todos = loadTodos();
+            const todo = todos.find(item => item.id === todoId);
+            if (!todo) return;
+            todo.status = status;
+            todo.updatedAt = new Date().toISOString();
+            saveTodos(todos);
+            renderTodayTodos();
+            showToast(status === 'done' ? `✅ ${langText('todoComplete')}` : langText('todoSaved'), 'success');
+        }
+
+        function arrangeTodo(todoId) {
+            const todo = loadTodos().find(item => item.id === todoId);
+            if (!todo) return;
+            openVoiceCapture('schedule');
+            setTimeout(() => {
+                const textarea = document.getElementById('textarea-input');
+                if (textarea) {
+                    textarea.value = todo.title || '';
+                    textarea.focus();
+                }
+            }, 30);
+        }
+
+        function deleteTodo(todoId) {
+            const todo = loadTodos().find(item => item.id === todoId);
+            if (!todo) return;
+            if (!window.confirm(`${langText('todoDelete')}?`)) return;
+            saveTodos(loadTodos().filter(item => item.id !== todoId));
+            renderTodayTodos();
+        }
+
         function renderTimeline() {
             const listContainer = document.getElementById('timeline-list');
             listContainer.innerHTML = '';
+            renderTodayTodos();
 
             let tasks = loadTasks(selectedDate);
             const gcalSettings = getGCalSettings();
@@ -4361,74 +4351,26 @@
             }
             tasks.sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
             
-            // 更新概览统计数据 (仅统计本地任务)
-            const localTasks = tasks.filter(t => !t.isGCalEvent);
-            const total = localTasks.length;
-            const doneTasks = localTasks.filter(t => t.status === 'done');
-            const totalEst = doneTasks.reduce((s, t) => s + (t.actualMins || 0), 0);
-            document.getElementById('timeline-stat-text').innerHTML = `已完成 <span>${doneTasks.length}/${total}</span> (专注 ${totalEst}m)`;
-
             if (tasks.length === 0) {
                 listContainer.innerHTML = `
                     <div style="text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 13px;">
                         <i class="fa-solid fa-calendar-day" style="font-size: 32px; color: var(--border); margin-bottom:12px; display:block;"></i>
-                        当天日程空空如也，您可以点击上方“一键载入常规”，或者点击右下角麦克风智能添加日程
+                        当天还没有日程，使用上方入口添加日程或待办
                     </div>
                 `;
                 return;
             }
 
-            let lastTimeMins = 8 * 60; // 默认工作期 08:00 开始
-
             tasks.forEach((task, index) => {
-                const taskStartMins = timeToMins(task.scheduledStart);
-                const taskEndMins = timeToMins(task.scheduledEnd);
-
-                // Gap 检查：如果与上一个空出的点有至少 30 分钟闲置
-                if (taskStartMins - lastTimeMins >= 30) {
-                    const gapMins = taskStartMins - lastTimeMins;
-                    const gapStartStr = minsToTime(lastTimeMins);
-                    const gapEndStr = minsToTime(taskStartMins);
-                    
-                    const gapWrapper = document.createElement('div');
-                    gapWrapper.className = 'gap-card-wrapper';
-                    gapWrapper.innerHTML = `
-                        <div class="gap-node"></div>
-                        <div class="gap-card">
-                            <span><i class="fa-solid fa-couch" style="margin-right:4px;"></i> ${gapStartStr} - ${gapEndStr} 空闲 ${gapMins}分钟</span>
-                            <button class="gap-action-btn" data-start="${gapStartStr}" data-mins="${gapMins}">
-                                <i class="fa-solid fa-plus-circle"></i> 在此插针
-                            </button>
-                        </div>
-                    `;
-                    
-                    gapWrapper.querySelector('.gap-action-btn').addEventListener('click', (e) => {
-                        const start = e.currentTarget.getAttribute('data-start');
-                        document.getElementById('textarea-input').value = `在 ${start} 进行`;
-                        setVoiceMode('schedule');
-                        openSheet('sheet-input');
-                    });
-
-                    listContainer.appendChild(gapWrapper);
-                }
-
                 // 渲染 TaskCard
                 const wrapper = document.createElement('div');
-                wrapper.className = `task-card-wrapper ${task.isGCalEvent ? 'gcal-event' : task.status}`;
+                const displayStatus = task.status === 'in_progress' ? 'todo' : task.status;
+                wrapper.className = `task-card-wrapper ${task.isGCalEvent ? 'gcal-event' : displayStatus}`;
                 wrapper.style.setProperty('--task-color', task.isGCalEvent ? '#4285f4' : (task.color || 'var(--primary)'));
-
-                // 计时器组件
-                let timerHtml = '';
-                if (task.status === 'in_progress' && activeTimerTaskId === task.id) {
-                    timerHtml = `<span class="timer-display" id="timer-${task.id}">00:00</span>`;
-                }
 
                 // 卡片底行按钮逻辑
                 let footerButtons = '';
-                let categoryBadge = '';
-
                 if (task.isGCalEvent) {
-                    categoryBadge = `<span class="task-category-badge" style="background: rgba(66, 133, 244, 0.12); color: #4285f4; border: 1px solid rgba(66, 133, 244, 0.2);"><i class="fa-brands fa-google" style="margin-right:2px;"></i> 谷歌日历</span>`;
                     footerButtons = `
                         <div class="gcal-link-row">
                             <span class="gcal-lock-badge"><i class="fa-solid fa-lock"></i> 日历锁定</span>
@@ -4436,11 +4378,10 @@
                         </div>
                     `;
                 } else {
-                    categoryBadge = `<span class="task-category-badge cat-${task.category}">${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}</span>`;
                     if (task.status === 'todo') {
                         footerButtons = `
+                            <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
                             <button class="task-btn btn-skip" onclick="changeTaskStatus('${task.id}', 'skipped')"><i class="fa-solid fa-times"></i> 跳过</button>
-                            <button class="task-btn btn-start" onclick="changeTaskStatus('${task.id}', 'in_progress')"><i class="fa-solid fa-play"></i> 开始</button>
                         `;
                     } else if (task.status === 'in_progress') {
                         footerButtons = `
@@ -4448,7 +4389,7 @@
                         `;
                     } else if (task.status === 'done') {
                         footerButtons = `
-                            <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已投入 ${task.actualMins}m</span>
+                            <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已完成</span>
                         `;
                     } else if (task.status === 'skipped') {
                         footerButtons = `
@@ -4464,19 +4405,8 @@
                             <i class="fa-solid fa-trash-can"></i>
                         </div>
                         <div class="task-card">
-                            <div class="task-header">
-                                <div class="task-time-box">
-                                    <span class="task-time-range">${task.scheduledStart} - ${task.scheduledEnd}</span>
-                                    <span class="task-duration-badge">预计 ${task.adjustedEstMins}分钟</span>
-                                </div>
-                                <div style="display:flex; align-items:center; gap:6px;">
-                                    ${timerHtml}
-                                    ${categoryBadge}
-                                </div>
-                            </div>
                             <div class="task-body">
                                 <div class="task-name">${task.name}</div>
-                                ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
                             </div>
                             <div class="task-footer">
                                 ${footerButtons}
@@ -4595,38 +4525,8 @@
                     }, 200);
                 });
 
-                lastTimeMins = taskEndMins;
             });
 
-            // 最后一个任务结束后是否还有空档到 22:00
-            if (lastTimeMins < 22 * 60 && tasks.length > 0) {
-                const finalGap = (22 * 60) - lastTimeMins;
-                if (finalGap >= 30) {
-                    const gapWrapper = document.createElement('div');
-                    gapWrapper.className = 'gap-card-wrapper';
-                    gapWrapper.innerHTML = `
-                        <div class="gap-node"></div>
-                        <div class="gap-card">
-                            <span><i class="fa-solid fa-couch" style="margin-right:4px;"></i> ${minsToTime(lastTimeMins)} - 22:00 空闲 ${finalGap}分钟</span>
-                            <button class="gap-action-btn" data-start="${minsToTime(lastTimeMins)}" data-mins="${finalGap}">
-                                <i class="fa-solid fa-plus-circle"></i> 在此插针
-                            </button>
-                        </div>
-                    `;
-                    gapWrapper.querySelector('.gap-action-btn').addEventListener('click', (e) => {
-                        const start = e.currentTarget.getAttribute('data-start');
-                        document.getElementById('textarea-input').value = `在 ${start} 进行`;
-                        setVoiceMode('schedule');
-                        openSheet('sheet-input');
-                    });
-                    listContainer.appendChild(gapWrapper);
-                }
-            }
-
-            // 若存在正在进行的任务，激活前端滴答计时
-            if (activeTimerTaskId) {
-                startTimerTicker();
-            }
         }
 
         // ==================== 任务删除控制器 (v3.1.0 New!) ====================
@@ -4662,12 +4562,6 @@
                 const task = tasks[taskIndex];
                 tasks.splice(taskIndex, 1);
                 saveTasks(selectedDate, tasks);
-                
-                // 如果是正在进行的计时任务，停止计时
-                if (activeTimerTaskId === taskId) {
-                    stopTimerTicker();
-                    activeTimerTaskId = null;
-                }
                 
                 showToast(`🗑️ 任务“${task.name}”已删除`, 'success');
                 renderTimeline();
@@ -4708,74 +4602,14 @@
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            const originalStatus = task.status;
+            if (!['todo', 'done', 'skipped'].includes(targetStatus)) return;
             task.status = targetStatus;
 
-            if (targetStatus === 'in_progress') {
-                // 仅允许单线程进行，将其他进行中的挂起/转回 todo 状态
-                tasks.forEach(t => {
-                    if (t.id !== taskId && t.status === 'in_progress') {
-                        t.status = 'todo';
-                    }
-                });
-
-                task.actualStart = new Date().toISOString();
-                activeTimerTaskId = taskId;
-                showToast(`⏱️ 专注事项：“${task.name}” 已拉开序幕`);
-
-            } else if (targetStatus === 'done') {
-                if (activeTimerTaskId === taskId) {
-                    stopTimerTicker();
-                    activeTimerTaskId = null;
-                }
-
-                // 结算分钟数
-                const startObj = new Date(task.actualStart || new Date().toISOString());
-                const endObj = new Date();
-                task.actualEnd = endObj.toISOString();
-                
-                // 差值分钟
-                const elapsedMins = Math.max(1, Math.round((endObj - startObj) / 60000));
-                task.actualMins = elapsedMins;
-
-                // 若该事项绑定了常规模板，反哺学习自适应效率特征数据
-                if (task.routineId) {
-                    const routines = loadRoutines();
-                    const routine = routines.find(r => r.id === task.routineId);
-                    if (routine) {
-                        const allLogs = loadEfficiencyLogs();
-                        
-                        // ratio = 实际分钟 / 基准分钟
-                        const ratio = parseFloat((elapsedMins / routine.estMins).toFixed(2));
-                        
-                        const newLog = {
-                            routineId: routine.id,
-                            taskId: task.id,
-                            date: selectedDate,
-                            estMins: routine.estMins,
-                            actualMins: elapsedMins,
-                            ratio: ratio
-                        };
-                        
-                        allLogs.push(newLog);
-                        saveEfficiencyLogs(allLogs);
-
-                        // 重塑自适应乘数特征数据
-                        routine.efficiencyLogCount = (routine.efficiencyLogCount || 0) + 1;
-                        routine.efficiencyMultiplier = recalculateMultiplier(routine.id);
-                        saveRoutines(routines);
-                        
-                        showToast(`✅ 完成！用时 ${elapsedMins}min，原预估 ${task.adjustedEstMins}min (AI已学习)`, 'success');
-                    }
-                } else {
-                    showToast(`✅ 恭喜完成：“${task.name}” 用时 ${elapsedMins}分钟！`, 'success');
-                }
-
+            if (targetStatus === 'done') {
+                task.actualEnd = new Date().toISOString();
+                task.actualMins = null;
+                showToast(`✅ 已完成：“${task.name}”`, 'success');
             } else if (targetStatus === 'skipped') {
-                if (activeTimerTaskId === taskId) {
-                    stopTimerTicker();
-                    activeTimerTaskId = null;
-                }
                 showToast(`⏭️ 已跳过该事项安排`);
             } else if (targetStatus === 'todo') {
                 task.actualStart = null;
@@ -4786,179 +4620,6 @@
             saveTasks(selectedDate, tasks);
             renderTimeline();
             renderWeekStrip(); // 更新小圆点
-        }
-
-        // 定时器滴答心跳
-        function startTimerTicker() {
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
-            
-            const tasks = loadTasks(selectedDate);
-            const task = tasks.find(t => t.id === activeTimerTaskId);
-            if (!task || !task.actualStart) return;
-
-            const startTime = new Date(task.actualStart).getTime();
-
-            activeTimerInterval = setInterval(() => {
-                const now = Date.now();
-                const deltaSecs = Math.floor((now - startTime) / 1000);
-                
-                const h = Math.floor(deltaSecs / 3600);
-                const m = Math.floor((deltaSecs % 3600) / 60);
-                const s = deltaSecs % 60;
-                
-                const timeString = `${h > 0 ? String(h).padStart(2, '0') + ':' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                
-                const el = document.getElementById(`timer-${activeTimerTaskId}`);
-                if (el) {
-                    el.innerText = timeString;
-                }
-            }, 1000);
-        }
-
-        function stopTimerTicker() {
-            if (activeTimerInterval) {
-                clearInterval(activeTimerInterval);
-                activeTimerInterval = null;
-            }
-        }
-
-        // ==================== Tab 2: 数据分析控制渲染 ====================
-        function renderRoutines() {
-            const list = document.getElementById('routines-list');
-            list.innerHTML = '';
-
-            const routines = loadRoutines();
-
-            if (routines.length === 0) {
-                list.innerHTML = `
-                    <div style="text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 13px;">
-                        <i class="fa-solid fa-list-check" style="font-size: 32px; color: var(--border); margin-bottom:12px; display:block;"></i>
-                        暂无常规事项模板。点击右上角“新日常模板”轻松配置
-                    </div>
-                `;
-                return;
-            }
-
-            routines.forEach(rtn => {
-                const mult = rtn.efficiencyMultiplier || 1.0;
-                const adj = getAdjustedMins(rtn);
-                const timeStr = rtn.preferredTime ? `偏好: ${rtn.preferredTime}` : '随遇而安(无特定时间)';
-                
-                let ruleStr = '每日重复';
-                if (rtn.recurRule === 'weekdays') ruleStr = '工作日重复';
-                else if (rtn.recurRule === 'weekly') ruleStr = '每周相同时间';
-                else if (rtn.recurRule === 'none') ruleStr = '不重复';
-
-                const card = document.createElement('div');
-                card.className = 'routine-card';
-                card.style.setProperty('--routine-color', rtn.color);
-                card.innerHTML = `
-                    <div class="routine-header">
-                        <div class="routine-title-box">
-                            <span class="routine-name">${rtn.name}</span>
-                            <span class="routine-sub">
-                                ${timeStr} · 预计基准 ${rtn.estMins}m
-                                <span class="recur-badge">${ruleStr}</span>
-                            </span>
-                        </div>
-                        <div class="routine-multiplier-text">
-                            乘数: <span>${mult.toFixed(2)}x</span>
-                        </div>
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-muted);">
-                        特征估计时长: <span style="color:#ffffff; font-weight:700;">${adj}分钟</span> (AI根据历史行为自动校准)
-                    </div>
-                    <div class="routine-footer">
-                        <button class="task-btn btn-skip" style="border:none; padding:4px 8px;" onclick="confirmDeleteRoutine('${rtn.id}', '${rtn.name}')">
-                            <i class="fa-solid fa-trash"></i> 删除
-                        </button>
-                        <button class="task-btn" style="border:none; padding:4px 8px; background:var(--surface-3); color:var(--text);" onclick="openEditRoutineForm('${rtn.id}')">
-                            <i class="fa-solid fa-edit"></i> 编辑
-                        </button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        // ==================== 表单常规增改逻辑 ====================
-        let selectedColor = CONFIG.COLORS[0];
-
-        function initColorPalette() {
-            const box = document.getElementById('form-rtn-colors');
-            box.innerHTML = '';
-            CONFIG.COLORS.forEach(c => {
-                const dot = document.createElement('span');
-                dot.className = 'color-dot';
-                dot.style.backgroundColor = c;
-                if (c === selectedColor) dot.classList.add('active');
-                
-                dot.addEventListener('click', () => {
-                    document.querySelectorAll('.color-dot').forEach(el => el.classList.remove('active'));
-                    dot.classList.add('active');
-                    selectedColor = c;
-                });
-                box.appendChild(dot);
-            });
-        }
-
-        function openEditRoutineForm(id = null) {
-            const routines = loadRoutines();
-            initColorPalette();
-
-            if (id) {
-                // 编辑模式
-                document.getElementById('routine-sheet-title').innerText = '编辑常规模板';
-                const r = routines.find(item => item.id === id);
-                if (!r) return;
-
-                document.getElementById('form-rtn-id').value = r.id;
-                document.getElementById('form-rtn-name').value = r.name;
-                document.getElementById('form-rtn-duration').value = r.estMins;
-                document.getElementById('form-rtn-time').value = r.preferredTime || '';
-                document.getElementById('form-rtn-recur').value = r.recurRule;
-                
-                selectedColor = r.color;
-                
-                // 类别激活
-                document.querySelectorAll('#form-rtn-category .capsule-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.getAttribute('data-val') === r.category);
-                });
-
-                // 调色板颜色激活
-                document.querySelectorAll('.color-dot').forEach(dot => {
-                    dot.classList.toggle('active', dot.style.backgroundColor === r.color);
-                });
-
-            } else {
-                // 新建模式
-                document.getElementById('routine-sheet-title').innerText = '新建常规模板';
-                document.getElementById('form-rtn-id').value = '';
-                document.getElementById('form-rtn-name').value = '';
-                document.getElementById('form-rtn-duration').value = '30';
-                document.getElementById('form-rtn-time').value = '';
-                document.getElementById('form-rtn-recur').value = 'daily';
-                
-                selectedColor = CONFIG.COLORS[0];
-                
-                document.querySelectorAll('#form-rtn-category .capsule-btn').forEach((btn, idx) => {
-                    btn.classList.toggle('active', idx === 0);
-                });
-                
-                document.querySelectorAll('.color-dot').forEach((dot, idx) => {
-                    dot.classList.toggle('active', idx === 0);
-                });
-            }
-
-            openSheet('sheet-routine-edit');
-        }
-
-        // ==================== 删除确认框 ====================
-        function confirmDeleteRoutine(id, name) {
-            document.getElementById('delete-target-type').value = 'routine';
-            document.getElementById('delete-target-id').value = id;
-            document.getElementById('delete-confirm-text').innerText = `确定要删除模板“${name}”吗？累计的历史效率系数（该模板的机器学习数据）都将一并删除。此操作不可恢复！`;
-            openSheet('sheet-delete-confirm');
         }
 
         // ==================== PWA / iOS 兼容交互逻辑 ====================
@@ -5290,6 +4951,7 @@
                 showToast('请输入一些文字！', 'error');
                 return;
             }
+            pendingInputSource = 'text';
             
             const statusEl = document.getElementById('loomi-status');
             const resultCard = document.getElementById('loomi-result-card');
@@ -5298,6 +4960,7 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
+            formData.append('source', 'text');
 
             statusEl.innerText = 'Loomi 正在处理...';
             statusEl.className = 'loomi-status-text processing';
@@ -5358,6 +5021,7 @@
             const statusEl = document.getElementById('loomi-status');
             const orbBtn = document.getElementById('record-home-mic');
             const resultCard = document.getElementById('loomi-result-card');
+            pendingInputSource = 'voice';
             
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
@@ -5397,6 +5061,7 @@
 
         async function uploadAndParseAudio(blob) {
             showLoading(true, '🤖 Loomi 正在转录听写音频...');
+            pendingInputSource = 'voice';
             
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
@@ -5423,6 +5088,10 @@
                 // Populate transcribed text inside textarea for manual editing
                 if (data.transcript) {
                     document.getElementById('textarea-input').value = data.transcript;
+                }
+
+                if (data.mode === 'schedule' && data.parsed_task) {
+                    renderRecommendationPreview({ ...data.parsed_task, source: 'voice' });
                 }
                 
                 // Pre-select the predicted mode/category
@@ -5452,23 +5121,39 @@
         // ==================== 智能解析卡片展现渲染 ====================
         function renderRecommendationPreview(parsed) {
             const card = document.getElementById('preview-result-card');
+            const hasExplicitTime = Boolean(parsed.anchorTime);
             
-            // 估算乘数修正 (基于所选 Routine 分类的历史平均乘数，无常规模板则为 1.0)
-            const routines = loadRoutines();
-            const sameCatRoutines = routines.filter(r => r.category === parsed.category);
-            
-            let avgMult = 1.0;
-            if (sameCatRoutines.length > 0) {
-                avgMult = sameCatRoutines.reduce((s, r) => s + (r.efficiencyMultiplier || 1.0), 0) / sameCatRoutines.length;
-            }
-
             const rawEst = parsed.estMins || 30;
-            const finalMins = Math.round(rawEst * avgMult);
+            const finalMins = rawEst;
             
             parsed.adjustedEstMins = finalMins;
-            parsed.efficiencyMultiplier = avgMult;
 
-            // 调用空档定位 Gap Finder
+            // 没有明确时间时，保存为未安排 Todo，不替用户选择时间。
+            if (!hasExplicitTime) {
+                lastParsedResult = {
+                    name: parsed.name,
+                    category: parsed.category,
+                    color: parsed.category === 'work' ? '#5ba8b5' : parsed.category === 'health' ? '#6daa45' : '#e8af34',
+                    scheduledStart: null,
+                    scheduledEnd: null,
+                    adjustedEstMins: finalMins,
+                    notes: parsed.memory_note || '',
+                    source: parsed.source || pendingInputSource || 'text',
+                    isTodo: true
+                };
+
+                document.getElementById('prev-name').innerText = lastParsedResult.name;
+                document.getElementById('prev-cat').innerText = taskCategoryLabel(lastParsedResult.category);
+                document.getElementById('prev-dur').innerHTML = `${rawEst}分钟`;
+                document.getElementById('prev-time').innerText = langText('todoType');
+                document.getElementById('prev-reason').innerText = parsed.memory_note || langText('todayCommandSubtitle');
+                document.getElementById('prev-type').innerText = langText('todoType');
+                document.getElementById('btn-confirm-place').innerHTML = `<i class="fa-solid fa-list-check"></i> ${langText('todoSave')}`;
+                card.classList.add('active');
+                return;
+            }
+
+            // 有明确时间时，调用空档定位 Gap Finder。
             let placement = null;
             if (parsed.anchorTime) {
                 const sMin = timeToMins(parsed.anchorTime);
@@ -5510,15 +5195,19 @@
                 scheduledStart: placement.start,
                 scheduledEnd: placement.end,
                 adjustedEstMins: finalMins,
-                notes: parsed.memory_note ? `${placement.reason}\n${parsed.memory_note}` : placement.reason
+                notes: parsed.memory_note ? `${placement.reason}\n${parsed.memory_note}` : placement.reason,
+                source: parsed.source || pendingInputSource || 'text',
+                isTodo: false
             };
 
             // 绘制预览面板
             document.getElementById('prev-name').innerText = lastParsedResult.name;
-            document.getElementById('prev-cat').innerText = lastParsedResult.category === 'work' ? '工作' : lastParsedResult.category === 'health' ? '健康' : '个人';
-            document.getElementById('prev-dur').innerHTML = `${rawEst}m → <span>修正为 ${finalMins}m</span> (x${avgMult.toFixed(2)})`;
+            document.getElementById('prev-cat').innerText = taskCategoryLabel(lastParsedResult.category);
+            document.getElementById('prev-dur').innerHTML = `${finalMins}m`;
             document.getElementById('prev-time').innerText = `${placement.start} - ${placement.end}`;
             document.getElementById('prev-reason').innerText = placement.reason;
+            document.getElementById('prev-type').innerText = langText('scheduleType');
+            document.getElementById('btn-confirm-place').innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${langText('scheduleConfirm')}`;
 
             card.classList.add('active');
         }
@@ -6021,7 +5710,6 @@
         // ==================== 初始化与事件绑定器 ====================
         function initApp() {
             initStarrySky();
-            checkAndInitSampleData();
             loadVoiceFolders().then(renderVoiceInbox);
             loadInbox();
             setActiveAppMode(currentTab);
@@ -6037,7 +5725,6 @@
             renderWeekStrip();
             renderMonthPicker();
             renderTimeline();
-            renderRoutines();
 
             // Tab 导航按钮绑定
             document.querySelectorAll('.nav-item').forEach(btn => {
@@ -6053,31 +5740,9 @@
                     currentTab = targetTab;
                     setActiveAppMode(targetTab);
                     if (targetTab === 'timeline') renderTimeline();
-                    else if (targetTab === 'routines') renderRoutines();
                     else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
                 });
-            });
-
-            // 跃迁到常规模板管理
-            document.getElementById('btn-goto-routines')?.addEventListener('click', () => {
-                document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
-                document.getElementById('tab-routines').classList.add('active');
-                currentTab = 'routines';
-                setActiveAppMode('routines');
-                renderRoutines();
-            });
-
-            // 从模板管理返回日程轴
-            document.getElementById('btn-back-to-timeline')?.addEventListener('click', () => {
-                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                document.querySelector('.bottom-nav [data-tab="timeline"]')?.classList.add('active');
-                
-                document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
-                document.getElementById('tab-timeline').classList.add('active');
-                currentTab = 'timeline';
-                setActiveAppMode('timeline');
-                renderTimeline();
             });
 
             // Date picker
@@ -6102,9 +5767,36 @@
                 picker.classList.remove('active');
             });
 
+            // Today 快速录入：这个入口固定处理日程和 Todo。
+            document.getElementById('btn-today-voice-todo')?.addEventListener('click', () => {
+                openVoiceCapture('schedule');
+            });
+            document.getElementById('btn-today-text-todo')?.addEventListener('click', () => {
+                openVoiceCapture('schedule');
+                setTimeout(() => document.getElementById('textarea-input')?.focus(), 30);
+            });
+            document.getElementById('today-attention')?.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                document.querySelector('.bottom-nav [data-tab="inbox"]')?.classList.add('active');
+                document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+                document.getElementById('tab-inbox')?.classList.add('active');
+                currentTab = 'inbox';
+                setActiveAppMode('inbox');
+                loadInbox();
+            });
+            document.getElementById('today-todo-list')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-todo-action]');
+                if (!button) return;
+                const todoId = button.getAttribute('data-todo-id');
+                const action = button.getAttribute('data-todo-action');
+                if (action === 'complete') updateTodoStatus(todoId, 'done');
+                if (action === 'arrange') arrangeTodo(todoId);
+                if (action === 'delete') deleteTodo(todoId);
+            });
+
             // FAB 触发解析 Sheet
             document.getElementById('voice-fab-trigger').addEventListener('click', () => {
-                openVoiceCapture('journal');
+                openVoiceCapture('schedule');
             });
 
             // Loomi Tab 沉浸式录音 — 直接在页面上录音，不弹出 sheet
@@ -6154,6 +5846,7 @@
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
+            setVoiceMode('schedule');
             document.getElementById('btn-search-records')?.addEventListener('click', renderVoiceInbox);
             document.getElementById('records-search-input')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') renderVoiceInbox();
@@ -6178,18 +5871,6 @@
             document.getElementById('btn-refresh-voice-inbox').addEventListener('click', renderVoiceInbox);
             document.getElementById('voice-inbox-folder').addEventListener('change', renderVoiceInbox);
             document.getElementById('voice-inbox-mode')?.addEventListener('change', renderVoiceInbox);
-
-            // 一键载入日程
-            document.getElementById('btn-load-routines').addEventListener('click', () => {
-                const count = loadRoutinesForDate(selectedDate);
-                if (count > 0) {
-                    renderTimeline();
-                    renderWeekStrip();
-                    showToast(`✨ 成功一键智能同步 ${count} 个常规事项！`, 'success');
-                } else {
-                    showToast('💡 任务已同步，或今天已无适合的模板空档');
-                }
-            });
 
             // 智能解析按钮
             document.getElementById('btn-parse-text').addEventListener('click', async () => {
@@ -6218,6 +5899,30 @@
             // 确认编入日程
             document.getElementById('btn-confirm-place').addEventListener('click', () => {
                 if (!lastParsedResult) return;
+
+                if (lastParsedResult.isTodo) {
+                    const todos = loadTodos();
+                    todos.push({
+                        id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                        title: lastParsedResult.name,
+                        category: lastParsedResult.category,
+                        categoryLabel: taskCategoryLabel(lastParsedResult.category),
+                        estimatedMins: lastParsedResult.adjustedEstMins,
+                        dueDate: selectedDate,
+                        notes: lastParsedResult.notes || '',
+                        status: 'open',
+                        source: 'voice_or_text',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    saveTodos(todos);
+                    lastParsedResult = null;
+                    renderTodayTodos();
+                    document.getElementById('preview-result-card')?.classList.remove('active');
+                    closeAllSheets();
+                    showToast(`✅ ${langText('todoSaved')}`, 'success');
+                    return;
+                }
                 
                 const tasks = loadTasks(selectedDate);
                 const newTask = {
@@ -6236,7 +5941,8 @@
                     actualMins: null,
                     isRoutineInstance: false,
                     isManuallyPlaced: true,
-                    notes: lastParsedResult.notes
+                    notes: lastParsedResult.notes,
+                    source: lastParsedResult.source || pendingInputSource || 'text'
                 };
 
                 tasks.push(newTask);
@@ -6248,6 +5954,7 @@
                 closeAllSheets();
                 
                 showToast('✅ 安排入座！事项已智能插入最佳空档位置。', 'success');
+                lastParsedResult = null;
             });
 
             // 系统设置面板激活
@@ -6276,10 +5983,7 @@
             });
 
             document.getElementById('btn-reset-demo').addEventListener('click', () => {
-                if (confirm('⚠️ 确定要重置今日日程、效率日志以及所有常常规模板吗？\n此操作将清除所有自定义数据并恢复系统默认演示模板，且不可撤销！')) {
-                    localStorage.removeItem('chrono_routines');
-                    localStorage.removeItem('chrono_efficiency_log');
-                    
+                if (confirm('⚠️ 确定要重置今日日程吗？\n此操作将清除今日日程数据，且不可撤销！')) {
                     // 清除所有 chrono_tasks_ 开头的项
                     Object.keys(localStorage).forEach(k => {
                         if (k.startsWith('chrono_tasks_')) {
@@ -6287,8 +5991,7 @@
                         }
                     });
 
-                    checkAndInitSampleData();
-                    showToast('🔄 系统已恢复初始演示模板与数据！', 'success');
+                    showToast('🔄 今日日程已重置', 'success');
                     closeAllSheets();
                     
                     // 刷新视图
@@ -6296,7 +5999,6 @@
                     document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
                     renderWeekStrip();
                     if (currentTab === 'timeline') renderTimeline();
-                    else if (currentTab === 'routines') renderRoutines();
                 }
             });
 
@@ -6365,95 +6067,6 @@
                 settings.autoExport = e.target.checked;
                 saveGCalSettings(settings);
                 showToast(`📤 本地任务自动写入已${settings.autoExport ? '开启' : '关闭'}`);
-            });
-
-            // Routine CRUD 弹框
-            document.getElementById('btn-add-routine').addEventListener('click', () => {
-                openEditRoutineForm();
-            });
-
-            // Form 选项激活
-            document.querySelectorAll('#form-rtn-category .capsule-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('#form-rtn-category .capsule-btn').forEach(el => el.classList.remove('active'));
-                    e.currentTarget.classList.add('active');
-                });
-            });
-
-            // 保存常规模板表单
-            document.getElementById('btn-save-routine').addEventListener('click', () => {
-                const id = document.getElementById('form-rtn-id').value;
-                const name = document.getElementById('form-rtn-name').value.trim();
-                const estMins = parseInt(document.getElementById('form-rtn-duration').value);
-                const preferredTime = document.getElementById('form-rtn-time').value || null;
-                const recurRule = document.getElementById('form-rtn-recur').value;
-                const category = document.querySelector('#form-rtn-category .capsule-btn.active').getAttribute('data-val');
-
-                if (!name) {
-                    showToast('⚠️ 事项模板名称不能为空', 'error');
-                    return;
-                }
-                if (!estMins || estMins <= 0) {
-                    showToast('⚠️ 基准分钟必须为正整数', 'error');
-                    return;
-                }
-
-                const routines = loadRoutines();
-
-                if (id) {
-                    // 编辑保存
-                    const r = routines.find(item => item.id === id);
-                    if (r) {
-                        r.name = name;
-                        r.estMins = estMins;
-                        r.preferredTime = preferredTime;
-                        r.recurRule = recurRule;
-                        r.category = category;
-                        r.color = selectedColor;
-                    }
-                    showToast('💾 模板保存成功', 'success');
-                } else {
-                    // 新建保存
-                    const newR = {
-                        id: `rtn_${Date.now()}`,
-                        name,
-                        category,
-                        color: selectedColor,
-                        estMins,
-                        preferredTime,
-                        recurRule,
-                        efficiencyMultiplier: 1.0,
-                        efficiencyLogCount: 0,
-                        createdAt: new Date().toISOString()
-                    };
-                    routines.push(newR);
-                    showToast('💾 新建模板保存成功', 'success');
-                }
-
-                saveRoutines(routines);
-                renderRoutines();
-                closeAllSheets();
-            });
-
-            // 执行删除常规
-            document.getElementById('btn-confirm-delete').addEventListener('click', () => {
-                const type = document.getElementById('delete-target-type').value;
-                const id = document.getElementById('delete-target-id').value;
-
-                if (type === 'routine') {
-                    let routines = loadRoutines();
-                    routines = routines.filter(r => r.id !== id);
-                    saveRoutines(routines);
-                    
-                    // 同时打扫清理该模板的历史日志
-                    let logs = loadEfficiencyLogs();
-                    logs = logs.filter(l => l.routineId !== id);
-                    saveEfficiencyLogs(logs);
-
-                    renderRoutines();
-                    closeAllSheets();
-                    showToast('🗑️ 常规模板已成功删除', 'success');
-                }
             });
 
             // 导出原始 JSON 数据 (数据导出 4.5)

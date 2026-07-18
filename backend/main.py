@@ -765,7 +765,13 @@ def simple_tags_from_text(text: str, limit: int = 6) -> list[str]:
     return tags
 
 
-async def create_record_draft(transcript: str, mode: str, source: str, route: dict | None = None) -> dict:
+async def create_record_draft(
+    transcript: str,
+    mode: str,
+    source: str,
+    route: dict | None = None,
+    structured_task: dict | None = None,
+) -> dict:
     fallback_category = mode_to_record_category(mode, transcript, route)
     fallback = {
         "category": fallback_category,
@@ -782,6 +788,18 @@ async def create_record_draft(transcript: str, mode: str, source: str, route: di
         "action_required": mode == "schedule",
         "calendar_candidate": mode == "schedule",
     }
+    if mode == "schedule" and structured_task:
+        # The schedule parser already ran the DeepSeek intent pass. Reuse it
+        # for the record index instead of making a second, conflicting call.
+        fallback.update({
+            "title": structured_task.get("name") or fallback["title"],
+            "summary": structured_task.get("name") or fallback["summary"],
+            "cleaned_text": transcript.strip(),
+            "time_expression": structured_task.get("anchorTime"),
+            "confidence": 0.9 if structured_task.get("confidence") == "high" else 0.7,
+            "tags": simple_tags_from_text(structured_task.get("name") or transcript),
+        })
+        return fallback
     if not DEEPSEEK_API_KEY:
         return fallback
 
@@ -1859,19 +1877,115 @@ async def call_gpt_parser(text: str) -> dict:
             )
         raise HTTPException(status_code=500, detail=f"AI 解析请求失败: {err_str}")
 
+
+SCHEDULE_DEEPSEEK_SYSTEM_PROMPT = """
+You are Loomi's schedule intent parser. Convert the user's natural-language request into one concise, directly actionable calendar task.
+
+Return ONLY a valid JSON object with these fields:
+{
+  "name": "the direct action to do, concise, without time or duration words",
+  "category": "work | health | personal",
+  "estMins": 30,
+  "anchorTime": "HH:MM or null",
+  "confidence": "high | medium | low"
+}
+
+Rules:
+- Keep name focused on what the user should do, not a sentence or explanation.
+- Remove dates, clock times, durations, and filler words from name.
+- Preserve the user's meaning and language.
+- Use anchorTime only when the user explicitly gives a starting time. Never invent a time.
+- Convert durations such as two hours, 1.5 hours, 半小时, and 两小时 into minutes.
+- Use 30 minutes only when no duration is given.
+- category must be exactly work, health, or personal.
+"""
+
+
+async def call_deepseek_schedule_parser(text: str) -> dict:
+    """Run the second stage of schedule input: intent understanding and task cleanup."""
+    if not DEEPSEEK_API_KEY:
+        raise HTTPException(status_code=503, detail="DEEPSEEK_API_KEY is not configured for schedule parsing.")
+
+    current_time = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    try:
+        async with httpx.AsyncClient(timeout=30) as deepseek_client:
+            response = await deepseek_client.post(
+                f"{DEEPSEEK_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": DEEPSEEK_MODEL,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": f"{SCHEDULE_DEEPSEEK_SYSTEM_PROMPT}\nCurrent local time: {current_time}",
+                        },
+                        {"role": "user", "content": text},
+                    ],
+                    "temperature": 0,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+        if response.status_code >= 400:
+            logger.error(f"[Schedule] DeepSeek parser failed: {response.text[:500]}")
+            raise HTTPException(status_code=response.status_code, detail=f"DeepSeek schedule parser failed: {response.text[:500]}")
+
+        content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", content, re.DOTALL)
+            if not match:
+                raise HTTPException(status_code=502, detail="DeepSeek returned invalid schedule JSON.")
+            result = json.loads(match.group(0))
+
+        name = str(result.get("name") or text.strip()[:60] or "New task").strip()
+        category = result.get("category") if result.get("category") in {"work", "health", "personal"} else "personal"
+        try:
+            est_mins = max(5, min(480, int(result.get("estMins", 30))))
+        except (TypeError, ValueError):
+            est_mins = 30
+
+        anchor_time = result.get("anchorTime")
+        if isinstance(anchor_time, str):
+            anchor_time = anchor_time.strip()
+            if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", anchor_time):
+                anchor_time = None
+        else:
+            anchor_time = None
+
+        # Preserve explicit time semantics even if the model formats the rest differently.
+        explicit_anchor_time = normalize_explicit_anchor_time(text)
+        if explicit_anchor_time:
+            anchor_time = explicit_anchor_time
+
+        parsed = {
+            "name": name[:80],
+            "category": category,
+            "estMins": est_mins,
+            "anchorTime": anchor_time,
+            "confidence": result.get("confidence") if result.get("confidence") in {"high", "medium", "low"} else "medium",
+        }
+        logger.info(f"[Schedule] DeepSeek parsed task: {parsed}")
+        return parsed
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Schedule] DeepSeek parser exception: {e}")
+        raise HTTPException(status_code=502, detail=f"DeepSeek schedule parser request failed: {e}")
+
 @app.post("/api/parse")
 async def parse_text(req: ParseRequest):
     logger.info(f"Received parse request: {req.text}")
     if not req.text.strip():
         logger.warning("Empty text request received")
         raise HTTPException(status_code=400, detail="输入文本不能为空")
-    return await call_gpt_parser(req.text)
+    return await call_deepseek_schedule_parser(req.text)
 
 @app.post("/api/text-parse")
 async def parse_text_legacy(req: ParseRequest):
     # Keep legacy endpoint for compatibility, redirecting to /api/parse
     logger.info(f"Legacy text-parse endpoint called. Redirecting to /api/parse")
-    return await call_gpt_parser(req.text)
+    return await call_deepseek_schedule_parser(req.text)
 
 @app.post("/api/voice-parse")
 async def parse_voice(file: UploadFile = File(...)):
@@ -1903,11 +2017,12 @@ async def parse_voice(file: UploadFile = File(...)):
             logger.warning("[Voice-Parse] Whisper returned empty transcription text")
             raise HTTPException(status_code=422, detail="未能从音频中识别出任何清晰文字")
         
-        # 3. Call parser on transcribed text
-        parsed_result = await call_gpt_parser(text)
-        
+        # 3. Run the second stage on the OpenAI transcript with DeepSeek
+        parsed_result = await call_deepseek_schedule_parser(text)
+
         # Include transcription inside the result for frontend echo
         parsed_result["raw_text"] = text
+        parsed_result["source"] = "voice"
         return parsed_result
 
     except Exception as e:
@@ -2090,6 +2205,7 @@ async def process_voice_submission(
     folder_id: str,
     mode: str,
     prompt_id: str | None,
+    source_kind: str | None = None,
 ) -> dict:
     requested_mode = (mode or "auto").strip().lower()
     if requested_mode not in {"auto", "journal", "schedule", "wiki", "ask"}:
@@ -2098,7 +2214,7 @@ async def process_voice_submission(
     folder_id = validate_folder_id(folder_id or "LifeVoice")
     entry_id = f"voice_{uuid.uuid4().hex}"
     now = utc_now_iso()
-    source = "voice" if file is not None else "text"
+    source = "voice" if file is not None or source_kind == "voice" else "text"
     transcript, audio_uri, source_filename, mime_type = await extract_submission_text(file, text, entry_id, folder_id)
 
     route = classify_voice_intent(transcript) if requested_mode == "auto" else {
@@ -2114,7 +2230,9 @@ async def process_voice_submission(
 
     if resolved_mode == "schedule":
         memory_note, sources = await build_memory_note(transcript)
-        parsed_task = await call_gpt_parser(transcript)
+        parsed_task = await call_deepseek_schedule_parser(transcript)
+        parsed_task["source"] = source
+        parsed_task["source_label"] = "Voice" if source == "voice" else "Text"
         if memory_note:
             parsed_task["memory_note"] = memory_note
             parsed_task["memory_sources"] = sources
@@ -2130,7 +2248,7 @@ async def process_voice_submission(
         sources = await search_memory(transcript, ["wiki", "journal"], 8)
         answer = await answer_with_deepseek(transcript, sources)
 
-    record_draft = await create_record_draft(transcript, resolved_mode, source, route)
+    record_draft = await create_record_draft(transcript, resolved_mode, source, route, parsed_task)
     record = build_record_from_draft(record_draft, transcript, source, now, resolved_mode)
     if resolved_mode != "ask":
         primary_result = append_record_to_google_doc(record, folder_id)
@@ -2228,8 +2346,9 @@ async def submit_voice_entry(
     folder_id: str = Form(default="LifeVoice"),
     mode: str = Form(default="auto"),
     prompt_id: str | None = Form(default=None),
+    source: str | None = Form(default=None),
 ):
-    return await process_voice_submission(file, text, folder_id, mode, prompt_id)
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source)
 
 
 @app.post("/api/voice/transcribe")
@@ -2239,8 +2358,9 @@ async def transcribe_voice_entry(
     folder_id: str = Form(default="LifeVoice"),
     mode: str = Form(default="journal"),
     prompt_id: str | None = Form(default=None),
+    source: str | None = Form(default=None),
 ):
-    return await process_voice_submission(file, text, folder_id, mode, prompt_id)
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source)
 
 
 @app.post("/api/voice/draft")
@@ -2262,10 +2382,16 @@ async def voice_draft_endpoint(
         "reason": "manual mode",
     }
     resolved_mode = route["intent"]
-    
+    parsed_task = None
+    if resolved_mode == "schedule":
+        parsed_task = await call_deepseek_schedule_parser(transcript)
+        parsed_task["source"] = "voice" if file is not None else "text"
+        parsed_task["source_label"] = "Voice" if file is not None else "Text"
+
     return {
         "transcript": transcript,
         "mode": resolved_mode,
+        "parsed_task": parsed_task,
         "ok": True
     }
 
