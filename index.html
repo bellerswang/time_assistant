@@ -471,7 +471,7 @@
             color: var(--text-muted);
             font-size: 11px;
         }
-        .today-todo-section {
+        .today-agenda-section {
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -498,78 +498,71 @@
             font-size: 11px;
             font-weight: 800;
         }
-        .today-todo-list {
+        .today-agenda-list {
             display: grid;
-            gap: 8px;
-        }
-        .today-todo-card {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 12px;
+            gap: 1px;
+            overflow: hidden;
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.035);
+            background: var(--border);
         }
-        .today-todo-check {
-            width: 30px;
-            height: 30px;
-            flex: 0 0 30px;
-            border: 1px solid rgba(0, 245, 255, 0.4);
-            border-radius: var(--radius-full);
-            background: rgba(0, 245, 255, 0.08);
-            color: var(--primary);
+        .today-agenda-item {
+            width: 100%;
+            min-height: 58px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 0;
+            background: var(--surface-2);
+            color: var(--text);
+            text-align: left;
             cursor: pointer;
+            transition: background 0.18s ease;
         }
-        .today-todo-copy {
+        .today-agenda-item:hover,
+        .today-agenda-item:focus-visible {
+            background: var(--surface-3);
+            outline: none;
+        }
+        .today-agenda-item.is-done {
+            opacity: 0.58;
+        }
+        .today-agenda-item.is-done .today-agenda-title {
+            text-decoration: line-through;
+        }
+        .today-agenda-copy {
             min-width: 0;
-            flex: 1;
         }
-        .today-todo-name {
+        .today-agenda-source {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--primary);
+            font-size: 9px;
+            font-weight: 500;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        .today-agenda-item[data-item-kind="email"] .today-agenda-source {
+            color: var(--warning);
+        }
+        .today-agenda-item[data-item-source="calendar"] .today-agenda-source {
+            color: #78a9ff;
+        }
+        .today-agenda-title {
+            display: block;
             color: var(--text);
             font-size: 13px;
-            font-weight: 750;
+            font-weight: 650;
             line-height: 1.35;
             word-break: break-word;
         }
-        .today-todo-detail-trigger,
-        .timeline-detail-trigger {
-            width: 100%;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            color: inherit;
-            font: inherit;
-            text-align: left;
-            cursor: pointer;
-        }
-        .today-todo-detail-trigger:hover,
-        .timeline-detail-trigger:hover {
-            color: var(--primary);
-        }
-        .today-todo-meta {
-            margin-top: 3px;
+        .today-agenda-item > i {
             color: var(--text-muted);
             font-size: 10px;
         }
-        .today-todo-actions {
-            display: flex;
-            gap: 5px;
-        }
-        .today-todo-action {
-            width: 30px;
-            height: 30px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-full);
-            background: transparent;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-        .today-todo-action:hover {
-            color: var(--primary);
-            border-color: var(--primary);
-        }
-        .today-todo-empty {
+        .today-agenda-empty {
             padding: 14px;
             border: 1px dashed var(--border);
             border-radius: var(--radius-md);
@@ -577,55 +570,11 @@
             font-size: 12px;
             text-align: center;
         }
-        .today-email-section {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .today-email-section[hidden] {
-            display: none;
-        }
-        .today-section-count.email {
-            background: rgba(232, 175, 52, 0.12);
-            color: var(--warning);
-        }
-        .today-email-list {
-            display: grid;
-            gap: 8px;
-        }
-        .today-email-item {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.035);
-            color: var(--text);
-            text-decoration: none;
-        }
-        .today-email-item[href]:hover {
-            border-color: rgba(232, 175, 52, 0.55);
-            background: rgba(232, 175, 52, 0.08);
-        }
-        .today-email-copy {
-            min-width: 0;
-        }
-        .today-email-item-title {
-            font-size: 13px;
-            font-weight: 750;
-            line-height: 1.35;
-            word-break: break-word;
-        }
-        .today-email-item-meta {
-            margin-top: 4px;
-            color: var(--text-muted);
-            font-size: 10px;
-        }
-        .today-email-item > i {
-            color: var(--warning);
-            font-size: 11px;
+        .todo-detail-source {
+            color: var(--primary);
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
         }
         .todo-detail-title {
             color: var(--text);
@@ -651,6 +600,37 @@
             line-height: 1.65;
             white-space: pre-wrap;
             word-break: break-word;
+        }
+        .todo-detail-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #sheet-todo-detail {
+            max-height: min(68%, 560px);
+        }
+        .todo-detail-action {
+            min-height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 7px 11px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 650;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .todo-detail-action.primary {
+            border-color: rgba(0, 245, 255, 0.38);
+            color: var(--primary);
+        }
+        .todo-detail-action.danger {
+            color: var(--error);
         }
         @media (max-width: 560px) {
             .today-command-card {
@@ -2209,37 +2189,19 @@
         <!-- 3. MainContent -->
         <div class="main-content">
             
-            <!-- VIEW 1: 今日时间轴 -->
+            <!-- VIEW 1: 今日事项 -->
             <div id="tab-timeline" class="tab-panel active">
-                <section class="today-todo-section">
+                <section class="today-agenda-section">
                     <div class="today-section-head">
                         <div>
-                            <span class="today-section-kicker" id="today-todo-kicker">TODO</span>
-                            <h3 id="today-todo-title">未安排的行动</h3>
+                            <span class="today-section-kicker" id="today-agenda-kicker">TODAY</span>
+                            <h3 id="today-agenda-title">事项</h3>
                         </div>
-                        <span class="today-section-count" id="today-todo-count">0</span>
+                        <span class="today-section-count" id="today-agenda-count">0</span>
                     </div>
-                    <div class="today-todo-list" id="today-todo-list"></div>
-                    <div class="today-todo-empty" id="today-todo-empty">还没有未安排的待办。</div>
+                    <div class="today-agenda-list" id="today-agenda-list"></div>
+                    <div class="today-agenda-empty" id="today-agenda-empty">今天没有事项。</div>
                 </section>
-
-                <section class="today-email-section" id="today-email-section" hidden>
-                    <div class="today-section-head">
-                        <div>
-                            <span class="today-section-kicker">EMAIL</span>
-                            <h3 id="today-email-title">邮件待处理</h3>
-                        </div>
-                        <span class="today-section-count email" id="today-email-count">0</span>
-                    </div>
-                    <div class="today-email-list" id="today-email-list"></div>
-                </section>
-
-                <div class="timeline-container">
-                    <div class="timeline-line"></div>
-                    <div id="timeline-list">
-                        <!-- Tasks and gaps rendered here dynamically -->
-                    </div>
-                </div>
             </div>
 
             <!-- VIEW 3: Voice (沉浸式智能输入 Loomi) -->
@@ -2545,12 +2507,14 @@
         <div class="bottom-sheet" id="sheet-todo-detail">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <span class="sheet-title" id="todo-detail-heading"><i class="fa-solid fa-list-check"></i> Todo 详情</span>
+                <span class="sheet-title" id="todo-detail-heading"><i class="fa-solid fa-list-check"></i> 事项详情</span>
                 <button class="sheet-close-btn" aria-label="Close">&times;</button>
             </div>
+            <div class="todo-detail-source" id="todo-detail-source"></div>
             <div class="todo-detail-title" id="todo-detail-title"></div>
-            <div class="todo-detail-label" id="todo-detail-original-label">原始输入</div>
+            <div class="todo-detail-label" id="todo-detail-original-label">详细内容</div>
             <div class="todo-detail-original" id="todo-detail-original"></div>
+            <div class="todo-detail-actions" id="todo-detail-actions"></div>
         </div>
 
         <!-- SHEET 2: 系统设置 -->
@@ -2770,8 +2734,15 @@
                 todoArrange: '安排时间',
                 todoDelete: '删除待办',
                 todoMeta: '语音 / 文字录入',
-                todoDetail: 'Todo 详情',
-                originalInput: '原始输入',
+                agendaKicker: 'TODAY',
+                agendaTitle: '事项',
+                agendaEmpty: '今天没有事项。',
+                todoDetail: '事项详情',
+                originalInput: '详细内容',
+                sourceTodo: 'TODO',
+                sourceEmail: '邮件',
+                sourceLoomi: 'LOOMI',
+                sourceCalendar: 'GOOGLE CALENDAR',
                 clickRecord: '点击开始录音',
                 textPlaceholder: '输入你想记录的内容，或向 AI 提问...',
                 send: '发送',
@@ -2847,8 +2818,15 @@
                 todoArrange: 'Schedule it',
                 todoDelete: 'Delete to-do',
                 todoMeta: 'Voice / text capture',
-                todoDetail: 'To-do details',
-                originalInput: 'Original input',
+                agendaKicker: 'TODAY',
+                agendaTitle: 'Items',
+                agendaEmpty: 'Nothing scheduled for today.',
+                todoDetail: 'Item details',
+                originalInput: 'Details',
+                sourceTodo: 'TO-DO',
+                sourceEmail: 'EMAIL',
+                sourceLoomi: 'LOOMI',
+                sourceCalendar: 'GOOGLE CALENDAR',
                 clickRecord: 'Tap to record',
                 textPlaceholder: 'Type a note, wiki item, question, or schedule request...',
                 send: 'Send',
@@ -3192,11 +3170,9 @@
             setNodeText('#today-command-subtitle', langText('todayCommandSubtitle'));
             setNodeHTML('#btn-today-voice-todo', `<i class="fa-solid fa-microphone"></i> ${langText('sayScheduleTodo')}`);
             setNodeHTML('#btn-today-text-todo', `<i class="fa-solid fa-keyboard"></i> ${langText('typeScheduleTodo')}`);
-            setNodeText('#today-email-action-label', langText('todayEmailAction'));
-            setNodeText('#today-email-title', langText('todayEmailAction'));
-            setNodeText('#today-todo-kicker', langText('todoKicker'));
-            setNodeText('#today-todo-title', langText('todoTitle'));
-            setNodeText('#today-todo-empty', langText('todoEmpty'));
+            setNodeText('#today-agenda-kicker', langText('agendaKicker'));
+            setNodeText('#today-agenda-title', langText('agendaTitle'));
+            setNodeText('#today-agenda-empty', langText('agendaEmpty'));
             setNodeHTML('#todo-detail-heading', `<i class="fa-solid fa-list-check"></i> ${langText('todoDetail')}`);
             setNodeText('#todo-detail-original-label', langText('originalInput'));
 
@@ -3627,36 +3603,12 @@
         }
 
         let inboxFilter = 'open';
+        let latestInboxItems = [];
+        let activeScheduleDetail = null;
 
         function inboxStatusLabel(status) {
             const labels = { open: 'inboxOpen', waiting: 'inboxWaiting', done: 'inboxDone', dismissed: 'inboxDismissed' };
             return langText(labels[status] || 'inboxAll');
-        }
-
-        function renderTodayEmailItems(items) {
-            const section = document.getElementById('today-email-section');
-            const list = document.getElementById('today-email-list');
-            const count = document.getElementById('today-email-count');
-            if (!section || !list || !count) return;
-
-            const openItems = (items || []).filter(item => item.status === 'open');
-            section.hidden = openItems.length === 0;
-            count.textContent = String(openItems.length);
-            list.innerHTML = openItems.map(item => {
-                const rawUrl = String(item.source_url || '').trim();
-                const sourceUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : '';
-                const summary = item.action_required || item.event_summary || item.mailbox || '';
-                const content = `
-                    <span class="today-email-copy">
-                        <span class="today-email-item-title">${escapeHtml(item.title || '')}</span>
-                        <span class="today-email-item-meta">${escapeHtml(summary)}</span>
-                    </span>
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                `;
-                return sourceUrl
-                    ? `<a class="today-email-item" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">${content}</a>`
-                    : `<div class="today-email-item" aria-disabled="true">${content}</div>`;
-            }).join('');
         }
 
         function renderInbox(run) {
@@ -3668,7 +3620,8 @@
             const empty = document.getElementById('inbox-empty');
             const badge = document.getElementById('inbox-nav-badge');
 
-            renderTodayEmailItems(items);
+            latestInboxItems = items;
+            if (currentTab === 'timeline') renderTimeline();
 
             setNodeText('#inbox-open-count', String(openCount));
             setNodeText('#inbox-waiting-count', String(waitingCount));
@@ -4377,57 +4330,81 @@
         }
 
         function renderTodayTodos() {
-            const list = document.getElementById('today-todo-list');
-            const empty = document.getElementById('today-todo-empty');
-            const count = document.getElementById('today-todo-count');
-            if (!list || !empty || !count) return;
-
-            const todos = loadTodos()
-                .filter(todo => todo.status !== 'done')
-                .filter(todo => !todo.dueDate || todo.dueDate === selectedDate)
-                .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-
-            count.textContent = String(todos.length);
-            empty.hidden = todos.length > 0;
-            list.innerHTML = todos.map(todo => `
-                <article class="today-todo-card">
-                    <button class="today-todo-check" type="button" data-todo-action="complete" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoComplete'))}" title="${escapeHtml(langText('todoComplete'))}">
-                        <i class="fa-solid fa-check"></i>
-                    </button>
-                    <div class="today-todo-copy">
-                        <button class="today-todo-name today-todo-detail-trigger" type="button" data-todo-action="detail" data-todo-id="${escapeHtml(todo.id)}">
-                            ${escapeHtml(todo.title || '')}
-                        </button>
-                    </div>
-                    <div class="today-todo-actions">
-                        <button class="today-todo-action" type="button" data-todo-action="arrange" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoArrange'))}" title="${escapeHtml(langText('todoArrange'))}">
-                            <i class="fa-solid fa-calendar-plus"></i>
-                        </button>
-                        <button class="today-todo-action" type="button" data-todo-action="delete" data-todo-id="${escapeHtml(todo.id)}" aria-label="${escapeHtml(langText('todoDelete'))}" title="${escapeHtml(langText('todoDelete'))}">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </article>
-            `).join('');
+            renderTimeline();
         }
 
-        function openTodoDetailSheet(title, originalText) {
+        function openTodoDetailSheet(source, title, content, actions = '') {
+            document.getElementById('todo-detail-source').textContent = source || '';
             document.getElementById('todo-detail-title').textContent = title || '';
-            document.getElementById('todo-detail-original').textContent = originalText || title || '';
+            document.getElementById('todo-detail-original').textContent = content || title || '';
+            document.getElementById('todo-detail-actions').innerHTML = actions;
             openSheet('sheet-todo-detail');
         }
 
         function openTodoDetail(todoId) {
             const todo = loadTodos().find(item => item.id === todoId);
             if (!todo) return;
-            openTodoDetailSheet(todo.title, todo.originalText || todo.rawText || todo.notes || todo.title);
+            activeScheduleDetail = { kind: 'todo', id: todo.id };
+            const actions = `
+                <button class="todo-detail-action primary" type="button" data-detail-action="todo-complete"><i class="fa-solid fa-check"></i> ${escapeHtml(langText('todoComplete'))}</button>
+                <button class="todo-detail-action" type="button" data-detail-action="todo-arrange"><i class="fa-solid fa-calendar-plus"></i> ${escapeHtml(langText('todoArrange'))}</button>
+                <button class="todo-detail-action danger" type="button" data-detail-action="todo-delete"><i class="fa-solid fa-trash-can"></i> ${escapeHtml(langText('todoDelete'))}</button>
+            `;
+            openTodoDetailSheet(
+                langText('sourceTodo'),
+                todo.title,
+                todo.originalText || todo.rawText || todo.notes || todo.title,
+                actions
+            );
         }
 
         function openTimelineTaskDetail(taskId) {
             const task = loadTasks(selectedDate).find(item => item.id === taskId)
                 || loadGCalEvents(selectedDate).find(item => item.id === taskId);
             if (!task) return;
-            openTodoDetailSheet(task.name, task.originalText || task.rawText || task.notes || task.name);
+            activeScheduleDetail = { kind: 'task', id: task.id };
+            const time = [task.scheduledStart, task.scheduledEnd].filter(Boolean).join('–');
+            const source = `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${time ? ` · ${time}` : ''}`;
+            const content = [...new Set([
+                task.originalText || task.rawText || '',
+                task.notes || ''
+            ].filter(Boolean))].join('\n\n') || task.name;
+            let actions = '';
+            if (task.isGCalEvent) {
+                const eventUrl = task.gcalEventId
+                    ? `https://calendar.google.com/calendar/r/eventedit/${encodeURIComponent(task.gcalEventId)}`
+                    : '';
+                actions = eventUrl
+                    ? `<a class="todo-detail-action primary" href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(langText('sourceCalendar'))}</a>`
+                    : '';
+            } else if (task.status === 'done' || task.status === 'skipped') {
+                actions = `<button class="todo-detail-action" type="button" data-detail-action="task-undo"><i class="fa-solid fa-rotate-left"></i> ${appLanguage === 'en' ? 'Undo' : '撤销'}</button>`;
+            } else {
+                actions = `
+                    <button class="todo-detail-action primary" type="button" data-detail-action="task-complete"><i class="fa-solid fa-check"></i> ${appLanguage === 'en' ? 'Done' : '完成'}</button>
+                    <button class="todo-detail-action" type="button" data-detail-action="task-skip"><i class="fa-solid fa-forward"></i> ${appLanguage === 'en' ? 'Skip' : '跳过'}</button>
+                `;
+            }
+            actions += `<button class="todo-detail-action danger" type="button" data-detail-action="task-delete"><i class="fa-solid fa-trash-can"></i> ${appLanguage === 'en' ? 'Delete' : '删除'}</button>`;
+            openTodoDetailSheet(source, task.name, content, actions);
+        }
+
+        function openEmailDetail(itemId) {
+            const item = latestInboxItems.find(email => email.id === itemId);
+            if (!item) return;
+            activeScheduleDetail = { kind: 'email', id: item.id };
+            const rawUrl = String(item.source_url || '').trim();
+            const sourceUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : '';
+            const details = [...new Set([
+                item.event_summary || '',
+                item.action_required || '',
+                item.search_clues || ''
+            ].filter(Boolean))].join('\n\n') || item.title;
+            const actions = sourceUrl
+                ? `<a class="todo-detail-action primary" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(langText('inboxOpenEmail'))}</a>`
+                : '';
+            const source = `${langText('sourceEmail')}${item.mailbox ? ` · ${item.mailbox}` : ''}`;
+            openTodoDetailSheet(source, item.title, details, actions);
         }
 
         function taskCategoryLabel(category) {
@@ -4470,6 +4447,69 @@
         }
 
         function renderTimeline() {
+            const list = document.getElementById('today-agenda-list');
+            const empty = document.getElementById('today-agenda-empty');
+            const count = document.getElementById('today-agenda-count');
+            if (!list || !empty || !count) return;
+
+            const todos = loadTodos()
+                .filter(todo => todo.status !== 'done')
+                .filter(todo => !todo.dueDate || todo.dueDate === selectedDate)
+                .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
+            let tasks = loadTasks(selectedDate);
+            if (getGCalSettings().enabled) {
+                tasks = [...tasks, ...loadGCalEvents(selectedDate)];
+            }
+            tasks.sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
+
+            const agendaItems = [
+                ...tasks.map(task => {
+                    const time = [task.scheduledStart, task.scheduledEnd].filter(Boolean).join('–');
+                    return {
+                        id: task.id,
+                        kind: 'task',
+                        sourceType: task.isGCalEvent ? 'calendar' : 'loomi',
+                        source: `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${time ? ` · ${time}` : ''}`,
+                        title: task.name || '',
+                        done: task.status === 'done' || task.status === 'skipped'
+                    };
+                }),
+                ...todos.map(todo => ({
+                    id: todo.id,
+                    kind: 'todo',
+                    sourceType: 'todo',
+                    source: langText('sourceTodo'),
+                    title: todo.title || '',
+                    done: false
+                })),
+                ...latestInboxItems
+                    .filter(item => item.status === 'open')
+                    .map(item => ({
+                        id: item.id,
+                        kind: 'email',
+                        sourceType: 'email',
+                        source: `${langText('sourceEmail')}${item.mailbox ? ` · ${item.mailbox}` : ''}`,
+                        title: item.title || '',
+                        done: false
+                    }))
+            ];
+
+            count.textContent = String(agendaItems.length);
+            empty.hidden = agendaItems.length > 0;
+            list.hidden = agendaItems.length === 0;
+            list.innerHTML = agendaItems.map(item => `
+                <button class="today-agenda-item${item.done ? ' is-done' : ''}" type="button" data-item-kind="${escapeHtml(item.kind)}" data-item-id="${escapeHtml(item.id)}" data-item-source="${escapeHtml(item.sourceType)}">
+                    <span class="today-agenda-copy">
+                        <span class="today-agenda-source">${escapeHtml(item.source)}</span>
+                        <span class="today-agenda-title">${escapeHtml(item.title)}</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            `).join('');
+        }
+
+        function renderLegacyTimeline() {
             const listContainer = document.getElementById('timeline-list');
             listContainer.innerHTML = '';
             renderTodayTodos();
@@ -5908,15 +5948,29 @@
                 picker.classList.remove('active');
             });
 
-            document.getElementById('today-todo-list')?.addEventListener('click', event => {
-                const button = event.target.closest('[data-todo-action]');
-                if (!button) return;
-                const todoId = button.getAttribute('data-todo-id');
-                const action = button.getAttribute('data-todo-action');
-                if (action === 'detail') openTodoDetail(todoId);
-                if (action === 'complete') updateTodoStatus(todoId, 'done');
-                if (action === 'arrange') arrangeTodo(todoId);
-                if (action === 'delete') deleteTodo(todoId);
+            document.getElementById('today-agenda-list')?.addEventListener('click', event => {
+                const item = event.target.closest('[data-item-kind][data-item-id]');
+                if (!item) return;
+                const kind = item.getAttribute('data-item-kind');
+                const itemId = item.getAttribute('data-item-id');
+                if (kind === 'todo') openTodoDetail(itemId);
+                if (kind === 'task') openTimelineTaskDetail(itemId);
+                if (kind === 'email') openEmailDetail(itemId);
+            });
+
+            document.getElementById('todo-detail-actions')?.addEventListener('click', event => {
+                const actionButton = event.target.closest('[data-detail-action]');
+                if (!actionButton || !activeScheduleDetail) return;
+                const action = actionButton.getAttribute('data-detail-action');
+                const { id } = activeScheduleDetail;
+                closeAllSheets();
+                if (action === 'todo-complete') updateTodoStatus(id, 'done');
+                if (action === 'todo-arrange') arrangeTodo(id);
+                if (action === 'todo-delete') deleteTodo(id);
+                if (action === 'task-complete') changeTaskStatus(id, 'done');
+                if (action === 'task-skip') changeTaskStatus(id, 'skipped');
+                if (action === 'task-undo') changeTaskStatus(id, 'todo');
+                if (action === 'task-delete') deleteTask(id);
             });
 
             // Loomi Tab 沉浸式录音 — 直接在页面上录音，不弹出 sheet
