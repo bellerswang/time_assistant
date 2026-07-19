@@ -4305,6 +4305,8 @@
 
         function setSelectedDate(dateStr) {
             selectedDate = dateStr;
+            const [year, month, day] = selectedDate.split('-').map(Number);
+            monthPickerDate = new Date(year, month - 1, day);
             document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
             renderWeekStrip();
             renderMonthPicker();
@@ -4391,13 +4393,16 @@
             const todo = loadTodos().find(item => item.id === todoId);
             if (!todo) return;
             activeScheduleDetail = { kind: 'todo', id: todo.id };
+            const dateRange = todo.rangeEndDate && todo.rangeEndDate !== todo.dueDate
+                ? `${todo.dueDate}–${todo.rangeEndDate}`
+                : '';
             const actions = `
                 <button class="todo-detail-action primary" type="button" data-detail-action="todo-complete"><i class="fa-solid fa-check"></i> ${escapeHtml(langText('todoComplete'))}</button>
                 <button class="todo-detail-action" type="button" data-detail-action="todo-arrange"><i class="fa-solid fa-calendar-plus"></i> ${escapeHtml(langText('todoArrange'))}</button>
                 <button class="todo-detail-action danger" type="button" data-detail-action="todo-delete"><i class="fa-solid fa-trash-can"></i> ${escapeHtml(langText('todoDelete'))}</button>
             `;
             openTodoDetailSheet(
-                langText('sourceTodo'),
+                `${langText('sourceTodo')}${dateRange ? ` · ${dateRange}` : ''}`,
                 todo.title,
                 todo.originalText || todo.rawText || todo.notes || todo.title,
                 actions
@@ -4410,7 +4415,10 @@
             if (!task) return;
             activeScheduleDetail = { kind: 'task', id: task.id };
             const time = [task.scheduledStart, task.scheduledEnd].filter(Boolean).join('–');
-            const source = `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${time ? ` · ${time}` : ''}`;
+            const dateRange = task.rangeEndDate && task.rangeEndDate !== task.date
+                ? `${task.date}–${task.rangeEndDate}`
+                : '';
+            const source = `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`;
             const content = [...new Set([
                 task.originalText || task.rawText || '',
                 task.notes || ''
@@ -4512,11 +4520,14 @@
             const agendaItems = [
                 ...tasks.map(task => {
                     const time = [task.scheduledStart, task.scheduledEnd].filter(Boolean).join('–');
+                    const dateRange = task.rangeEndDate && task.rangeEndDate !== task.date
+                        ? `${task.date}–${task.rangeEndDate}`
+                        : '';
                     return {
                         id: task.id,
                         kind: 'task',
                         sourceType: task.isGCalEvent ? 'calendar' : 'loomi',
-                        source: `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${time ? ` · ${time}` : ''}`,
+                        source: `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`,
                         title: task.name || '',
                         done: task.status === 'done' || task.status === 'skipped'
                     };
@@ -4525,7 +4536,7 @@
                     id: todo.id,
                     kind: 'todo',
                     sourceType: 'todo',
-                    source: langText('sourceTodo'),
+                    source: `${langText('sourceTodo')}${todo.rangeEndDate && todo.rangeEndDate !== todo.dueDate ? ` · ${todo.dueDate}–${todo.rangeEndDate}` : ''}`,
                     title: todo.title || '',
                     done: false
                 })),
@@ -5354,15 +5365,27 @@
         // ==================== 智能解析卡片展现渲染 ====================
         function renderRecommendationPreview(parsed) {
             const card = document.getElementById('preview-result-card');
-            const hasExplicitTime = Boolean(parsed.anchorTime);
+            const explicitStartTime = parsed.startTime || parsed.anchorTime || null;
+            const explicitEndTime = parsed.endTime || null;
+            const hasExplicitTime = Boolean(explicitStartTime);
+            const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? String(value) : null;
+            const scheduledDate = validDate(parsed.startDate) || selectedDate;
+            const rangeEndDate = validDate(parsed.endDate) || scheduledDate;
+            const dateLabel = rangeEndDate !== scheduledDate
+                ? `${scheduledDate} – ${rangeEndDate}`
+                : scheduledDate;
             const originalText = parsed.original_text
                 || parsed.raw_text
                 || document.getElementById('textarea-input')?.value.trim()
                 || parsed.name
                 || '';
             
-            const rawEst = parsed.estMins || 30;
-            const finalMins = rawEst;
+            let finalMins = Number(parsed.estMins) || 30;
+            if (explicitStartTime && explicitEndTime) {
+                const rangeMins = timeToMins(explicitEndTime) - timeToMins(explicitStartTime);
+                if (rangeMins > 0) finalMins = rangeMins;
+            }
+            const rawEst = finalMins;
             
             parsed.adjustedEstMins = finalMins;
 
@@ -5374,6 +5397,8 @@
                     color: parsed.category === 'work' ? '#5ba8b5' : parsed.category === 'health' ? '#6daa45' : '#e8af34',
                     scheduledStart: null,
                     scheduledEnd: null,
+                    scheduledDate,
+                    rangeEndDate,
                     adjustedEstMins: finalMins,
                     notes: parsed.memory_note || '',
                     source: parsed.source || pendingInputSource || 'text',
@@ -5384,7 +5409,7 @@
                 document.getElementById('prev-name').innerText = lastParsedResult.name;
                 document.getElementById('prev-cat').innerText = taskCategoryLabel(lastParsedResult.category);
                 document.getElementById('prev-dur').innerHTML = `${rawEst}分钟`;
-                document.getElementById('prev-time').innerText = langText('todoType');
+                document.getElementById('prev-time').innerText = `${dateLabel} · ${langText('todoType')}`;
                 document.getElementById('prev-reason').innerText = parsed.memory_note || langText('todayCommandSubtitle');
                 document.getElementById('prev-type').innerText = langText('todoType');
                 document.getElementById('btn-confirm-place').innerHTML = `<i class="fa-solid fa-list-check"></i> ${langText('todoSave')}`;
@@ -5392,39 +5417,26 @@
                 return;
             }
 
-            // 有明确时间时，调用空档定位 Gap Finder。
-            let placement = null;
-            if (parsed.anchorTime) {
-                const sMin = timeToMins(parsed.anchorTime);
-                const eMin = sMin + finalMins;
-                const existing = loadTasks(selectedDate);
-                
-                const hasConflict = existing.some(t => {
-                    if (t.status === 'skipped') return false;
-                    const ts = timeToMins(t.scheduledStart);
-                    const te = timeToMins(t.scheduledEnd);
-                    return sMin < te && eMin > ts;
-                });
-
-                if (!hasConflict) {
-                    placement = {
-                        start: parsed.anchorTime,
-                        end: minsToTime(eMin),
-                        reason: `已准时锚定在用户指定的 ${parsed.anchorTime}`
-                    };
-                } else {
-                    // 有冲突，顺延
-                    placement = findBestGap(selectedDate, finalMins, parsed.anchorTime);
-                }
-            } else {
-                // 无时间锚点
-                placement = findBestGap(selectedDate, finalMins);
-            }
-
-            if (!placement) {
-                showToast('⚠️ 全天时段爆满，无法安排，请清空部分日程后再试！', 'error');
-                return;
-            }
+            // Explicit times are commitments: preserve them even when another item overlaps.
+            const startMins = timeToMins(explicitStartTime);
+            const endMins = explicitEndTime ? timeToMins(explicitEndTime) : startMins + finalMins;
+            const existing = loadTasks(scheduledDate);
+            const hasConflict = existing.some(task => {
+                if (task.status === 'skipped') return false;
+                const taskStart = timeToMins(task.scheduledStart);
+                const taskEnd = timeToMins(task.scheduledEnd);
+                return startMins < taskEnd && endMins > taskStart;
+            });
+            const placement = {
+                start: explicitStartTime,
+                end: explicitEndTime || minsToTime(endMins),
+                reason: hasConflict
+                    ? `保留用户指定时间 ${explicitStartTime}，但该时段与已有事项重叠`
+                    : `已按用户指定时间安排在 ${explicitStartTime}`
+            };
+            const rangeNote = rangeEndDate !== scheduledDate
+                ? `活动日期范围：${scheduledDate} 至 ${rangeEndDate}`
+                : '';
 
             // 保存这次待写入的任务
             lastParsedResult = {
@@ -5433,8 +5445,10 @@
                 color: parsed.category === 'work' ? '#5ba8b5' : parsed.category === 'health' ? '#6daa45' : '#e8af34',
                 scheduledStart: placement.start,
                 scheduledEnd: placement.end,
+                scheduledDate,
+                rangeEndDate,
                 adjustedEstMins: finalMins,
-                notes: parsed.memory_note ? `${placement.reason}\n${parsed.memory_note}` : placement.reason,
+                notes: [placement.reason, rangeNote, parsed.memory_note || ''].filter(Boolean).join('\n'),
                 source: parsed.source || pendingInputSource || 'text',
                 originalText,
                 isTodo: false
@@ -5444,7 +5458,7 @@
             document.getElementById('prev-name').innerText = lastParsedResult.name;
             document.getElementById('prev-cat').innerText = taskCategoryLabel(lastParsedResult.category);
             document.getElementById('prev-dur').innerHTML = `${finalMins}m`;
-            document.getElementById('prev-time').innerText = `${placement.start} - ${placement.end}`;
+            document.getElementById('prev-time').innerText = `${dateLabel} · ${placement.start} - ${placement.end}`;
             document.getElementById('prev-reason').innerText = placement.reason;
             document.getElementById('prev-type').innerText = langText('scheduleType');
             document.getElementById('btn-confirm-place').innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${langText('scheduleConfirm')}`;
@@ -5777,13 +5791,16 @@
             if (!token || Date.now() >= expiresAt) return;
 
             const calId = encodeURIComponent(settings.exportCalendarId || 'primary');
+            const dateRange = task.rangeEndDate && task.rangeEndDate !== task.date
+                ? `${task.date} 至 ${task.rangeEndDate}`
+                : task.date;
 
             const startIso = new Date(`${task.date}T${task.scheduledStart}:00`).toISOString();
             const endIso = new Date(`${task.date}T${task.scheduledEnd}:00`).toISOString();
 
             const eventBody = {
                 'summary': `[Loomi] ${task.name}`,
-                'description': `由 Loomi 自动排程。\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
+                'description': `由 Loomi 自动排程。\n活动日期: ${dateRange}\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
                 'start': { 'dateTime': startIso },
                 'end': { 'dateTime': endIso },
                 'colorId': task.category === 'work' ? '5' : (task.category === 'health' ? '10' : '7')
@@ -6132,6 +6149,8 @@
             // 确认编入日程
             document.getElementById('btn-confirm-place').addEventListener('click', () => {
                 if (!lastParsedResult) return;
+                const targetDate = lastParsedResult.scheduledDate || selectedDate;
+                const rangeEndDate = lastParsedResult.rangeEndDate || targetDate;
 
                 if (lastParsedResult.isTodo) {
                     const todos = loadTodos();
@@ -6141,7 +6160,8 @@
                         category: lastParsedResult.category,
                         categoryLabel: taskCategoryLabel(lastParsedResult.category),
                         estimatedMins: lastParsedResult.adjustedEstMins,
-                        dueDate: selectedDate,
+                        dueDate: targetDate,
+                        rangeEndDate,
                         notes: lastParsedResult.notes || '',
                         originalText: lastParsedResult.originalText || lastParsedResult.name,
                         status: 'open',
@@ -6151,21 +6171,22 @@
                     });
                     saveTodos(todos);
                     lastParsedResult = null;
-                    refreshScheduleHome();
+                    setSelectedDate(targetDate);
                     document.getElementById('preview-result-card')?.classList.remove('active');
                     closeAllSheets();
                     showToast(`✅ ${langText('todoSaved')}`, 'success');
                     return;
                 }
                 
-                const tasks = loadTasks(selectedDate);
+                const tasks = loadTasks(targetDate);
                 const newTask = {
-                    id: `task_${selectedDate.replace(/-/g, '')}_${Date.now()}`,
+                    id: `task_${targetDate.replace(/-/g, '')}_${Date.now()}`,
                     routineId: null, // AI 临时解析默认为无模板关联
                     name: lastParsedResult.name,
                     category: lastParsedResult.category,
                     color: lastParsedResult.color,
-                    date: selectedDate,
+                    date: targetDate,
+                    rangeEndDate,
                     scheduledStart: lastParsedResult.scheduledStart,
                     scheduledEnd: lastParsedResult.scheduledEnd,
                     adjustedEstMins: lastParsedResult.adjustedEstMins,
@@ -6181,10 +6202,10 @@
                 };
 
                 tasks.push(newTask);
-                saveTasks(selectedDate, tasks);
+                saveTasks(targetDate, tasks);
                 exportTaskToGoogleCalendar(newTask);
                 
-                refreshScheduleHome();
+                setSelectedDate(targetDate);
                 closeAllSheets();
                 
                 showToast('✅ 安排入座！事项已智能插入最佳空档位置。', 'success');

@@ -41,6 +41,12 @@ load_dotenv(dotenv_path=os.path.join(backend_dir, ".env"))
 # Use uvicorn's error logger so logs appear nicely in --reload subprocess consoles
 logger = logging.getLogger("uvicorn.error")
 
+try:
+    LONDON_TIMEZONE = ZoneInfo("Europe/London")
+except Exception:
+    # Windows Python installs do not always include the IANA tz database.
+    LONDON_TIMEZONE = datetime.now().astimezone().tzinfo or timezone.utc
+
 app = FastAPI(title="ChronoAI Backend Server v2.0")
 
 # CORS config: allow local browser files and LAN mobile devices
@@ -1798,6 +1804,102 @@ def normalize_explicit_anchor_time(text: str) -> str | None:
     return f"{hour:02d}:{minute:02d}"
 
 
+def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> dict:
+    """Extract explicit Chinese date and clock ranges before model normalization."""
+    result = {
+        "startDate": None,
+        "endDate": None,
+        "startTime": None,
+        "endTime": None,
+    }
+    if not text or not text.strip():
+        return result
+
+    local_now = now or datetime.now(LONDON_TIMEZONE)
+    date_match = re.search(
+        r"(?:(?P<year>20\d{2})\s*年\s*)?"
+        r"(?P<month>1[0-2]|0?[1-9])\s*月\s*"
+        r"(?P<start_day>3[01]|[12]?\d)\s*日?"
+        r"(?:\s*[-–—~～至到]\s*"
+        r"(?:(?P<end_month>1[0-2]|0?[1-9])\s*月\s*)?"
+        r"(?P<end_day>3[01]|[12]?\d)\s*日?)?",
+        text,
+    )
+    if date_match:
+        year_was_explicit = bool(date_match.group("year"))
+        year = int(date_match.group("year") or local_now.year)
+        month = int(date_match.group("month"))
+        start_day = int(date_match.group("start_day"))
+        end_month = int(date_match.group("end_month") or month)
+        end_day = int(date_match.group("end_day") or start_day)
+        try:
+            start_date = datetime(year, month, start_day).date()
+            if not year_was_explicit and start_date < local_now.date():
+                year += 1
+                start_date = datetime(year, month, start_day).date()
+            end_year = year + (1 if end_month < month else 0)
+            end_date = datetime(end_year, end_month, end_day).date()
+            if end_date >= start_date:
+                result["startDate"] = start_date.isoformat()
+                result["endDate"] = end_date.isoformat()
+        except ValueError:
+            pass
+
+    period_pattern = r"凌晨|早上|上午|中午|下午|傍晚|晚上|今晚|夜里"
+    time_range_match = re.search(
+        r"(?P<start_hour>2[0-3]|[01]?\d)[:：](?P<start_minute>[0-5]\d)\s*"
+        r"[-–—~～至到]\s*"
+        r"(?P<end_hour>2[0-3]|[01]?\d)[:：](?P<end_minute>[0-5]\d)",
+        text,
+    )
+    if not time_range_match:
+        time_range_match = re.search(
+            rf"(?P<start_period>{period_pattern})?\s*"
+            r"(?P<start_hour>2[0-3]|[01]?\d)"
+            r"(?:[:：](?P<start_minute>[0-5]\d))?\s*(?:点|點|时|時)?\s*"
+            r"[-–—~～至到]\s*"
+            rf"(?P<end_period>{period_pattern})?\s*"
+            r"(?P<end_hour>2[0-3]|[01]?\d)"
+            r"(?:[:：](?P<end_minute>[0-5]\d))?\s*(?:点|點|时|時)",
+            text,
+        )
+
+    def normalize_hour(hour: int, period: str) -> int:
+        if period in {"下午", "傍晚", "晚上", "今晚", "夜里"} and hour < 12:
+            return hour + 12
+        if period == "中午" and hour < 11:
+            return hour + 12
+        if period == "凌晨" and hour == 12:
+            return 0
+        return hour
+
+    if time_range_match:
+        groups = time_range_match.groupdict()
+        start_period = groups.get("start_period") or ""
+        end_period = groups.get("end_period") or ""
+        start_hour = normalize_hour(int(time_range_match.group("start_hour")), start_period)
+        end_hour = normalize_hour(int(time_range_match.group("end_hour")), end_period)
+        start_minute = int(time_range_match.group("start_minute") or 0)
+        end_minute = int(time_range_match.group("end_minute") or 0)
+        start_total = start_hour * 60 + start_minute
+        end_total = end_hour * 60 + end_minute
+
+        # Common shorthand such as "10-3时" means 10:00-15:00.
+        if not end_period and end_total <= start_total and 1 <= end_hour <= 6 and start_hour <= 12:
+            end_hour += 12
+            end_total = end_hour * 60 + end_minute
+
+        if 0 <= start_total < end_total <= 24 * 60:
+            result["startTime"] = f"{start_hour:02d}:{start_minute:02d}"
+            result["endTime"] = f"{end_hour:02d}:{end_minute:02d}"
+    else:
+        anchor_time = normalize_explicit_anchor_time(text)
+        if anchor_time:
+            result["startTime"] = anchor_time
+
+    return result
+
+
 SYSTEM_PROMPT = """
 You are the advanced parsing engine for ChronoAI v2.0.
 The user will provide a natural language text input describing a task. You must extract structured information and return a strict JSON object with the following fields:
@@ -1886,6 +1988,10 @@ Return ONLY a valid JSON object with these fields:
   "name": "the direct action to do, concise, without time or duration words",
   "category": "work | health | personal",
   "estMins": 30,
+  "startDate": "YYYY-MM-DD or null",
+  "endDate": "YYYY-MM-DD or null",
+  "startTime": "HH:MM or null",
+  "endTime": "HH:MM or null",
   "anchorTime": "HH:MM or null",
   "confidence": "high | medium | low"
 }
@@ -1894,8 +2000,13 @@ Rules:
 - Keep name focused on what the user should do, not a sentence or explanation.
 - Remove dates, clock times, durations, and filler words from name.
 - Preserve the user's meaning and language.
+- Resolve explicit and relative dates using the supplied current local time.
+- Preserve date ranges. For example, 2026年8月17-27日 means startDate 2026-08-17 and endDate 2026-08-27.
+- Preserve clock ranges. For example, 10-3时 in a daytime event means startTime 10:00 and endTime 15:00.
 - Use anchorTime only when the user explicitly gives a starting time. Never invent a time.
+- When startTime is present, anchorTime must equal startTime.
 - Convert durations such as two hours, 1.5 hours, 半小时, and 两小时 into minutes.
+- When startTime and endTime are both present, estMins must equal their difference.
 - Use 30 minutes only when no duration is given.
 - category must be exactly work, health, or personal.
 """
@@ -1906,7 +2017,8 @@ async def call_deepseek_schedule_parser(text: str) -> dict:
     if not DEEPSEEK_API_KEY:
         raise HTTPException(status_code=503, detail="DEEPSEEK_API_KEY is not configured for schedule parsing.")
 
-    current_time = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    local_now = datetime.now(LONDON_TIMEZONE)
+    current_time = local_now.strftime("%Y-%m-%d %H:%M:%S %Z")
     try:
         async with httpx.AsyncClient(timeout=30) as deepseek_client:
             response = await deepseek_client.post(
@@ -1945,24 +2057,53 @@ async def call_deepseek_schedule_parser(text: str) -> dict:
         except (TypeError, ValueError):
             est_mins = 30
 
-        anchor_time = result.get("anchorTime")
-        if isinstance(anchor_time, str):
-            anchor_time = anchor_time.strip()
-            if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", anchor_time):
-                anchor_time = None
-        else:
-            anchor_time = None
+        def valid_iso_date(value) -> str | None:
+            if not isinstance(value, str):
+                return None
+            value = value.strip()
+            try:
+                return datetime.strptime(value, "%Y-%m-%d").date().isoformat()
+            except ValueError:
+                return None
 
-        # Preserve explicit time semantics even if the model formats the rest differently.
-        explicit_anchor_time = normalize_explicit_anchor_time(text)
-        if explicit_anchor_time:
-            anchor_time = explicit_anchor_time
+        def valid_clock_time(value) -> str | None:
+            if not isinstance(value, str):
+                return None
+            value = value.strip()
+            return value if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value) else None
+
+        start_date = valid_iso_date(result.get("startDate"))
+        end_date = valid_iso_date(result.get("endDate")) or start_date
+        start_time = valid_clock_time(result.get("startTime") or result.get("anchorTime"))
+        end_time = valid_clock_time(result.get("endTime"))
+
+        # Deterministic extraction wins for explicit ranges that models often normalize ambiguously.
+        explicit_window = extract_explicit_schedule_window(text, local_now)
+        start_date = explicit_window["startDate"] or start_date
+        end_date = explicit_window["endDate"] or end_date
+        start_time = explicit_window["startTime"] or start_time
+        end_time = explicit_window["endTime"] or end_time
+
+        if start_date and end_date and end_date < start_date:
+            end_date = start_date
+        if start_time and end_time:
+            start_hour, start_minute = map(int, start_time.split(":"))
+            end_hour, end_minute = map(int, end_time.split(":"))
+            range_minutes = (end_hour * 60 + end_minute) - (start_hour * 60 + start_minute)
+            if range_minutes > 0:
+                est_mins = range_minutes
+            else:
+                end_time = None
 
         parsed = {
             "name": name[:80],
             "category": category,
             "estMins": est_mins,
-            "anchorTime": anchor_time,
+            "startDate": start_date,
+            "endDate": end_date,
+            "startTime": start_time,
+            "endTime": end_time,
+            "anchorTime": start_time,
             "confidence": result.get("confidence") if result.get("confidence") in {"high", "medium", "low"} else "medium",
             "original_text": text,
         }
@@ -2460,12 +2601,12 @@ async def workflow_item_status_endpoint(item_id: str, req: WorkflowItemStatusReq
 @app.get("/api/workflows/email-action-check/catch-up-needed")
 async def workflow_catch_up_needed_endpoint():
     """Expose the once-per-day missed-07:30 check for the app and scheduler."""
-    local_now = datetime.now(ZoneInfo("Europe/London"))
+    local_now = datetime.now(LONDON_TIMEZONE)
     latest = await get_workflow_store().latest_run()
     latest_day = None
     if latest and latest.get("started_at"):
         try:
-            latest_day = datetime.fromisoformat(latest["started_at"].replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/London")).date().isoformat()
+            latest_day = datetime.fromisoformat(latest["started_at"].replace("Z", "+00:00")).astimezone(LONDON_TIMEZONE).date().isoformat()
         except ValueError:
             latest_day = None
     needed = latest_day != local_now.date().isoformat() and (local_now.hour > 7 or (local_now.hour == 7 and local_now.minute >= 30))
