@@ -1208,6 +1208,18 @@
         .voice-save-result.active {
             display: block;
         }
+        .record-primary-action:disabled,
+        .btn-sheet-primary:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+        .record-primary-action.is-sending i,
+        .btn-sheet-primary.is-sending i {
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
         .record-home {
             gap: 18px;
@@ -2743,6 +2755,8 @@
                 sourceEmail: '邮件',
                 sourceLoomi: 'LOOMI',
                 sourceCalendar: 'GOOGLE CALENDAR',
+                sending: '正在发送...',
+                refreshApp: '刷新页面',
                 clickRecord: '点击开始录音',
                 textPlaceholder: '输入你想记录的内容，或向 AI 提问...',
                 send: '发送',
@@ -2827,6 +2841,8 @@
                 sourceEmail: 'EMAIL',
                 sourceLoomi: 'LOOMI',
                 sourceCalendar: 'GOOGLE CALENDAR',
+                sending: 'Sending...',
+                refreshApp: 'Refresh page',
                 clickRecord: 'Tap to record',
                 textPlaceholder: 'Type a note, wiki item, question, or schedule request...',
                 send: 'Send',
@@ -3173,6 +3189,8 @@
             setNodeText('#today-agenda-kicker', langText('agendaKicker'));
             setNodeText('#today-agenda-title', langText('agendaTitle'));
             setNodeText('#today-agenda-empty', langText('agendaEmpty'));
+            const refreshPageButton = document.getElementById('btn-refresh-page');
+            if (refreshPageButton) refreshPageButton.title = langText('refreshApp');
             setNodeHTML('#todo-detail-heading', `<i class="fa-solid fa-list-check"></i> ${langText('todoDetail')}`);
             setNodeText('#todo-detail-original-label', langText('originalInput'));
 
@@ -3546,6 +3564,26 @@
             status.style.display = show ? 'flex' : 'none';
         }
 
+        function setSendingButton(buttonId, sending, label = langText('sending')) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            if (sending) {
+                if (!button.dataset.idleHtml) button.dataset.idleHtml = button.innerHTML;
+                button.disabled = true;
+                button.classList.add('is-sending');
+                button.setAttribute('aria-busy', 'true');
+                button.innerHTML = `<i class="fa-solid fa-spinner"></i> ${escapeHtml(label)}`;
+                return;
+            }
+            button.disabled = false;
+            button.classList.remove('is-sending');
+            button.removeAttribute('aria-busy');
+            if (button.dataset.idleHtml) {
+                button.innerHTML = button.dataset.idleHtml;
+                delete button.dataset.idleHtml;
+            }
+        }
+
         function setVoiceMode(mode) {
             voiceMode = ['schedule', 'journal', 'wiki', 'ask'].includes(mode) ? mode : 'journal';
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {
@@ -3804,6 +3842,7 @@
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
             formData.append('source', pendingInputSource);
 
+            setSendingButton('btn-parse-text', true);
             showLoading(true, 'Sending to Loomi...');
             try {
                 const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
@@ -3827,6 +3866,8 @@
                 showLoading(false);
                 console.error('[Voice] Submit text failed:', e);
                 showToast('Voice submit failed. Check backend settings.', 'error');
+            } finally {
+                setSendingButton('btn-parse-text', false);
             }
         }
 
@@ -4331,6 +4372,11 @@
 
         function renderTodayTodos() {
             renderTimeline();
+        }
+
+        function refreshScheduleHome() {
+            renderTimeline();
+            renderWeekStrip();
         }
 
         function openTodoDetailSheet(source, title, content, actions = '') {
@@ -5039,17 +5085,26 @@
                         stream.getTracks().forEach(t => t.stop());
                         stopLoomiVisualizer();
 
-                        // Restore Loomi tab UI state
+                        // Keep Loomi visibly busy while the recording is uploaded and transcribed.
                         orbBtn.classList.remove('active-recording');
-                        orbIcon.className = 'fa-solid fa-microphone';
-                        statusEl.innerText = '点击开始录音';
-                        statusEl.className = 'loomi-status-text';
-                        modeRow.style.opacity = '1';
-                        modeRow.style.pointerEvents = 'auto';
+                        orbBtn.disabled = true;
+                        orbIcon.className = 'fa-solid fa-spinner fa-spin';
+                        statusEl.innerText = langText('sending');
+                        statusEl.className = 'loomi-status-text processing';
+                        modeRow.style.opacity = '0.3';
+                        modeRow.style.pointerEvents = 'none';
 
                         // Slide up the bottom editing sheet and load draft transcription!
                         openVoiceCapture(selectedMode);
-                        await uploadAndParseAudio(audioBlob);
+                        const uploadSucceeded = await uploadAndParseAudio(audioBlob);
+                        orbBtn.disabled = false;
+                        orbIcon.className = 'fa-solid fa-microphone';
+                        statusEl.innerText = uploadSucceeded
+                            ? (appLanguage === 'en' ? 'Done! Tap to record again' : '完成！点击重新录音')
+                            : (appLanguage === 'en' ? 'Failed. Tap to try again' : '处理失败，请重试');
+                        statusEl.className = 'loomi-status-text';
+                        modeRow.style.opacity = '1';
+                        modeRow.style.pointerEvents = 'auto';
                     };
 
                     mediaRecorder.start();
@@ -5129,6 +5184,7 @@
             
             const statusEl = document.getElementById('loomi-status');
             const resultCard = document.getElementById('loomi-result-card');
+            setSendingButton('btn-loomi-text-submit', true);
             
             const formData = new FormData();
             formData.append('text', text);
@@ -5136,7 +5192,7 @@
             formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
             formData.append('source', 'text');
 
-            statusEl.innerText = 'Loomi 正在处理...';
+            statusEl.innerText = langText('sending');
             statusEl.className = 'loomi-status-text processing';
             resultCard?.classList.remove('active');
             showLoading(true, '🤖 Loomi 正在理解您的文字...');
@@ -5166,6 +5222,7 @@
                 showToast(`处理失败: ${e.message}`, 'error');
             } finally {
                 showLoading(false);
+                setSendingButton('btn-loomi-text-submit', false);
             }
         }
 
@@ -5274,6 +5331,7 @@
                 }
 
                 showToast('🎙️ 录音识别成功！请微调文字或分类后点击【确认提交】', 'success');
+                return true;
 
             } catch (e) {
                 console.error('[Voice] Parse failed:', e);
@@ -5289,6 +5347,7 @@
                     } catch (_) {}
                     showToast(`Voice request failed: ${detail}`, 'error');
                 }
+                return false;
             }
         }
 
@@ -6092,7 +6151,7 @@
                     });
                     saveTodos(todos);
                     lastParsedResult = null;
-                    renderTodayTodos();
+                    refreshScheduleHome();
                     document.getElementById('preview-result-card')?.classList.remove('active');
                     closeAllSheets();
                     showToast(`✅ ${langText('todoSaved')}`, 'success');
@@ -6125,8 +6184,7 @@
                 saveTasks(selectedDate, tasks);
                 exportTaskToGoogleCalendar(newTask);
                 
-                renderTimeline();
-                renderWeekStrip();
+                refreshScheduleHome();
                 closeAllSheets();
                 
                 showToast('✅ 安排入座！事项已智能插入最佳空档位置。', 'success');
@@ -6147,11 +6205,25 @@
 
             // 演示数据重置
             document.getElementById('btn-refresh-page')?.addEventListener('click', async () => {
-                if ('serviceWorker' in navigator) {
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(registrations.map(reg => reg.update()));
+                const refreshButton = document.getElementById('btn-refresh-page');
+                if (refreshButton) {
+                    refreshButton.disabled = true;
+                    refreshButton.setAttribute('aria-busy', 'true');
+                    refreshButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                 }
-                window.location.reload();
+                try {
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(registrations.map(reg => reg.update()));
+                    }
+                } catch (error) {
+                    console.warn('[Settings] Service worker refresh failed; continuing with page refresh.', error);
+                } finally {
+                    const refreshUrl = new URL(window.location.href);
+                    refreshUrl.searchParams.set('v', String(Date.now()));
+                    refreshUrl.hash = '';
+                    window.location.assign(refreshUrl.toString());
+                }
             });
 
             document.querySelectorAll('[data-lang]').forEach(btn => {
