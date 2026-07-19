@@ -3642,6 +3642,7 @@
 
         let inboxFilter = 'open';
         let latestInboxItems = [];
+        let latestRecordEntries = [];
         let activeScheduleDetail = null;
 
         function inboxStatusLabel(status) {
@@ -3856,7 +3857,19 @@
                 const data = await response.json();
                 showLoading(false);
                 if (data.mode === 'schedule') {
-                    renderRecommendationPreview(data.parsed_task || data);
+                    renderRecommendationPreview({
+                        ...(data.parsed_task || data),
+                        original_text: data.transcript || data.parsed_task?.original_text || text
+                    });
+                    const result = persistLastParsedSchedule({
+                        sourceRecordId: data.record?.id || null,
+                        closeSheets: true,
+                        showFeedback: false
+                    });
+                    await renderVoiceInbox();
+                    showToast(result.saved
+                        ? (appLanguage === 'en' ? `Added to ${result.targetDate}` : `已自动加入 ${result.targetDate} 的日程`)
+                        : (appLanguage === 'en' ? 'Already on the schedule.' : '已经在日程中。'), 'success');
                     return;
                 }
                 showVoiceSaveResult(data);
@@ -4089,6 +4102,40 @@
             }
         }
 
+        async function scheduleRecordFromHistory(recordId) {
+            const record = latestRecordEntries.find(entry => entry.id === recordId);
+            if (!record) {
+                showToast(appLanguage === 'en' ? 'Record is no longer in this list.' : '当前列表中找不到这条记录。', 'error');
+                return;
+            }
+            const text = record.raw_transcript || record.cleaned_text || record.summary || record.title || '';
+            if (!text.trim()) return;
+            showLoading(true, appLanguage === 'en' ? 'Creating schedule item...' : '正在生成日程事项...');
+            try {
+                const response = await fetch(`${CONFIG.BACKEND_URL}/api/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                const parsed = await response.json();
+                renderRecommendationPreview({ ...parsed, original_text: text, source: 'record' });
+                const result = persistLastParsedSchedule({
+                    sourceRecordId: record.id,
+                    closeSheets: false,
+                    showFeedback: false
+                });
+                showToast(result.saved
+                    ? (appLanguage === 'en' ? `Added to ${result.targetDate}` : `已加入 ${result.targetDate} 的日程`)
+                    : (appLanguage === 'en' ? 'This record is already on the schedule.' : '这条记录已经在日程中。'), 'success');
+            } catch (e) {
+                console.error('[Records] Add to schedule failed:', e);
+                showToast(appLanguage === 'en' ? 'Could not add this record to the schedule.' : '无法把这条记录加入日程。', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
         async function renderVoiceInbox() {
             const list = document.getElementById('voice-entry-list');
             if (!list) return;
@@ -4104,6 +4151,7 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 const entries = data.records || data.entries || [];
+                latestRecordEntries = entries;
                 if (!entries.length) {
                     list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">No voice notes yet.</div></div>';
                     return;
@@ -4125,6 +4173,9 @@
                     const changeButton = entry.category
                         ? `<button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px;" onclick="changeRecordCategory('${escapeHtml(entry.id)}')">Change</button>`
                         : '';
+                    const addToScheduleButton = entry.category === 'family_plan' || entry.metadata?.calendar_candidate
+                        ? `<button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px; color:var(--primary);" onclick="scheduleRecordFromHistory('${escapeHtml(entry.id)}')">${appLanguage === 'en' ? 'Add to schedule' : '加入日程'}</button>`
+                        : '';
                     const editPayload = recordEditPayload(entry);
                     return `
                         <div class="voice-entry-card">
@@ -4134,7 +4185,8 @@
                             </div>
                             <div class="voice-entry-meta">
                                 <span>${docStatus}</span>
-                                <span style="display:flex; gap:6px;">
+                                <span style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                                    ${addToScheduleButton}
                                     ${changeButton}
                                     <button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px;" onclick="openRecordEdit('${editPayload}')">Edit</button>
                                     <button class="btn-sheet-secondary" style="padding:4px 8px; font-size:10px; color:var(--error);" onclick="deleteRecord('${escapeHtml(entry.id)}')">Delete</button>
@@ -5164,7 +5216,20 @@
                 bodyEl.innerText = `${data.parsed_task.estMins || '?'}分钟 · ${data.parsed_task.category || 'work'}`;
                 metaEl.innerText = data.transcript || '';
                 if (data.transcript) document.getElementById('textarea-input').value = data.transcript;
-                renderRecommendationPreview(data.parsed_task);
+                renderRecommendationPreview({
+                    ...data.parsed_task,
+                    original_text: data.transcript || data.parsed_task.original_text || ''
+                });
+                data.local_schedule_result = persistLastParsedSchedule({
+                    sourceRecordId: data.record?.id || null,
+                    closeSheets: false,
+                    showFeedback: false
+                });
+                const result = data.local_schedule_result;
+                bodyEl.innerText = result.saved
+                    ? (appLanguage === 'en' ? `Added to ${result.targetDate}` : `已加入 ${result.targetDate} 的日程`)
+                    : (appLanguage === 'en' ? 'Already on the schedule' : '已经在日程中');
+                await renderVoiceInbox();
             } else if (data.mode === 'ask') {
                 titleEl.innerText = '💡 Memory Answer';
                 bodyEl.innerText = data.answer || 'No answer returned.';
@@ -5225,7 +5290,9 @@
                 statusEl.innerText = '理解完成！';
                 statusEl.className = 'loomi-status-text';
                 if (textarea) textarea.value = '';
-                showToast(data.mode === 'schedule' ? '✨ 智能日程已解析' : `✅ ${data.mode || 'journal'} saved`, 'success');
+                showToast(data.mode === 'schedule'
+                    ? (appLanguage === 'en' ? `Added to ${data.local_schedule_result?.targetDate || 'schedule'}` : `已自动加入 ${data.local_schedule_result?.targetDate || ''} 的日程`)
+                    : `✅ ${data.mode || 'journal'} saved`, 'success');
             } catch (e) {
                 console.error('[Loomi Text] Submit failed:', e);
                 statusEl.innerText = '理解失败，请重试';
@@ -5290,7 +5357,9 @@
                 statusEl.innerText = '完成！点击重新录音';
                 statusEl.className = 'loomi-status-text';
                 orbBtn.style.animation = 'planetary-pulse 3s infinite ease-in-out';
-                showToast(data.mode === 'schedule' ? '✨ 语音日程已解析' : `✅ ${data.mode || 'journal'} saved`, 'success');
+                showToast(data.mode === 'schedule'
+                    ? (appLanguage === 'en' ? `Added to ${data.local_schedule_result?.targetDate || 'schedule'}` : `已自动加入 ${data.local_schedule_result?.targetDate || ''} 的日程`)
+                    : `✅ ${data.mode || 'journal'} saved`, 'success');
 
             } catch (e) {
                 console.error('[Loomi] Upload failed:', e);
@@ -5464,6 +5533,89 @@
             document.getElementById('btn-confirm-place').innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${langText('scheduleConfirm')}`;
 
             card.classList.add('active');
+        }
+
+        function persistLastParsedSchedule(options = {}) {
+            const {
+                sourceRecordId = null,
+                closeSheets = true,
+                showFeedback = true
+            } = options;
+            if (!lastParsedResult) return { saved: false, targetDate: selectedDate, kind: null };
+
+            const candidate = lastParsedResult;
+            const targetDate = candidate.scheduledDate || selectedDate;
+            const rangeEndDate = candidate.rangeEndDate || targetDate;
+            let saved = false;
+            let kind = candidate.isTodo ? 'todo' : 'task';
+
+            if (candidate.isTodo) {
+                const todos = loadTodos();
+                const duplicate = sourceRecordId && todos.some(todo => todo.sourceRecordId === sourceRecordId);
+                if (!duplicate) {
+                    todos.push({
+                        id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                        title: candidate.name,
+                        category: candidate.category,
+                        categoryLabel: taskCategoryLabel(candidate.category),
+                        estimatedMins: candidate.adjustedEstMins,
+                        dueDate: targetDate,
+                        rangeEndDate,
+                        notes: candidate.notes || '',
+                        originalText: candidate.originalText || candidate.name,
+                        status: 'open',
+                        source: candidate.source || pendingInputSource || 'text',
+                        sourceRecordId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    saveTodos(todos);
+                    saved = true;
+                }
+            } else {
+                const tasks = loadTasks(targetDate);
+                const duplicate = sourceRecordId && tasks.some(task => task.sourceRecordId === sourceRecordId);
+                if (!duplicate) {
+                    const newTask = {
+                        id: `task_${targetDate.replace(/-/g, '')}_${Date.now()}`,
+                        routineId: null,
+                        name: candidate.name,
+                        category: candidate.category,
+                        color: candidate.color,
+                        date: targetDate,
+                        rangeEndDate,
+                        scheduledStart: candidate.scheduledStart,
+                        scheduledEnd: candidate.scheduledEnd,
+                        adjustedEstMins: candidate.adjustedEstMins,
+                        status: 'todo',
+                        actualStart: null,
+                        actualEnd: null,
+                        actualMins: null,
+                        isRoutineInstance: false,
+                        isManuallyPlaced: true,
+                        notes: candidate.notes,
+                        source: candidate.source || pendingInputSource || 'text',
+                        sourceRecordId,
+                        originalText: candidate.originalText || candidate.name
+                    };
+                    tasks.push(newTask);
+                    saveTasks(targetDate, tasks);
+                    exportTaskToGoogleCalendar(newTask);
+                    saved = true;
+                }
+            }
+
+            lastParsedResult = null;
+            setSelectedDate(targetDate);
+            document.getElementById('preview-result-card')?.classList.remove('active');
+            if (closeSheets) closeAllSheets();
+            if (showFeedback) {
+                const message = saved
+                    ? (kind === 'todo' ? `✅ ${langText('todoSaved')}` : '✅ 日程已加入。')
+                    : (appLanguage === 'en' ? 'Already on the schedule.' : '已经在日程中。');
+                showToast(message, 'success');
+            }
+            return { saved, targetDate, kind };
         }
 
         // ==================== Google Calendar 核心通信与授权模块 (v3.0.0 New!) ====================
@@ -6148,68 +6300,7 @@
 
             // 确认编入日程
             document.getElementById('btn-confirm-place').addEventListener('click', () => {
-                if (!lastParsedResult) return;
-                const targetDate = lastParsedResult.scheduledDate || selectedDate;
-                const rangeEndDate = lastParsedResult.rangeEndDate || targetDate;
-
-                if (lastParsedResult.isTodo) {
-                    const todos = loadTodos();
-                    todos.push({
-                        id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                        title: lastParsedResult.name,
-                        category: lastParsedResult.category,
-                        categoryLabel: taskCategoryLabel(lastParsedResult.category),
-                        estimatedMins: lastParsedResult.adjustedEstMins,
-                        dueDate: targetDate,
-                        rangeEndDate,
-                        notes: lastParsedResult.notes || '',
-                        originalText: lastParsedResult.originalText || lastParsedResult.name,
-                        status: 'open',
-                        source: 'voice_or_text',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    });
-                    saveTodos(todos);
-                    lastParsedResult = null;
-                    setSelectedDate(targetDate);
-                    document.getElementById('preview-result-card')?.classList.remove('active');
-                    closeAllSheets();
-                    showToast(`✅ ${langText('todoSaved')}`, 'success');
-                    return;
-                }
-                
-                const tasks = loadTasks(targetDate);
-                const newTask = {
-                    id: `task_${targetDate.replace(/-/g, '')}_${Date.now()}`,
-                    routineId: null, // AI 临时解析默认为无模板关联
-                    name: lastParsedResult.name,
-                    category: lastParsedResult.category,
-                    color: lastParsedResult.color,
-                    date: targetDate,
-                    rangeEndDate,
-                    scheduledStart: lastParsedResult.scheduledStart,
-                    scheduledEnd: lastParsedResult.scheduledEnd,
-                    adjustedEstMins: lastParsedResult.adjustedEstMins,
-                    status: 'todo',
-                    actualStart: null,
-                    actualEnd: null,
-                    actualMins: null,
-                    isRoutineInstance: false,
-                    isManuallyPlaced: true,
-                    notes: lastParsedResult.notes,
-                    source: lastParsedResult.source || pendingInputSource || 'text',
-                    originalText: lastParsedResult.originalText || lastParsedResult.name
-                };
-
-                tasks.push(newTask);
-                saveTasks(targetDate, tasks);
-                exportTaskToGoogleCalendar(newTask);
-                
-                setSelectedDate(targetDate);
-                closeAllSheets();
-                
-                showToast('✅ 安排入座！事项已智能插入最佳空档位置。', 'success');
-                lastParsedResult = null;
+                persistLastParsedSchedule();
             });
 
             // 系统设置面板激活

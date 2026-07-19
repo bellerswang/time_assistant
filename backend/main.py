@@ -1811,11 +1811,21 @@ def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> 
         "endDate": None,
         "startTime": None,
         "endTime": None,
+        "reminderDirective": False,
     }
     if not text or not text.strip():
         return result
 
     local_now = now or datetime.now(LONDON_TIMEZONE)
+    first_line = next((line.strip() for line in text.splitlines() if line.strip()), text.strip())
+    if re.search(r"(?:提醒我|请提醒|remind\s+me)", first_line, re.IGNORECASE):
+        # The first line is the requested action. Later dates may only describe
+        # the referenced event and must not replace the reminder date/time.
+        extraction_text = first_line
+        result["reminderDirective"] = True
+    else:
+        extraction_text = text
+
     date_match = re.search(
         r"(?:(?P<year>20\d{2})\s*年\s*)?"
         r"(?P<month>1[0-2]|0?[1-9])\s*月\s*"
@@ -1823,7 +1833,7 @@ def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> 
         r"(?:\s*[-–—~～至到]\s*"
         r"(?:(?P<end_month>1[0-2]|0?[1-9])\s*月\s*)?"
         r"(?P<end_day>3[01]|[12]?\d)\s*日?)?",
-        text,
+        extraction_text,
     )
     if date_match:
         year_was_explicit = bool(date_match.group("year"))
@@ -1845,12 +1855,29 @@ def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> 
         except ValueError:
             pass
 
+    if not result["startDate"]:
+        iso_date_match = re.search(
+            r"(?P<year>20\d{2})[-/.](?P<month>1[0-2]|0?[1-9])[-/.](?P<day>3[01]|[12]?\d)",
+            extraction_text,
+        )
+        if iso_date_match:
+            try:
+                iso_date = datetime(
+                    int(iso_date_match.group("year")),
+                    int(iso_date_match.group("month")),
+                    int(iso_date_match.group("day")),
+                ).date().isoformat()
+                result["startDate"] = iso_date
+                result["endDate"] = iso_date
+            except ValueError:
+                pass
+
     period_pattern = r"凌晨|早上|上午|中午|下午|傍晚|晚上|今晚|夜里"
     time_range_match = re.search(
         r"(?P<start_hour>2[0-3]|[01]?\d)[:：](?P<start_minute>[0-5]\d)\s*"
         r"[-–—~～至到]\s*"
         r"(?P<end_hour>2[0-3]|[01]?\d)[:：](?P<end_minute>[0-5]\d)",
-        text,
+        extraction_text,
     )
     if not time_range_match:
         time_range_match = re.search(
@@ -1861,7 +1888,7 @@ def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> 
             rf"(?P<end_period>{period_pattern})?\s*"
             r"(?P<end_hour>2[0-3]|[01]?\d)"
             r"(?:[:：](?P<end_minute>[0-5]\d))?\s*(?:点|點|时|時)",
-            text,
+            extraction_text,
         )
 
     def normalize_hour(hour: int, period: str) -> int:
@@ -1893,7 +1920,7 @@ def extract_explicit_schedule_window(text: str, now: datetime | None = None) -> 
             result["startTime"] = f"{start_hour:02d}:{start_minute:02d}"
             result["endTime"] = f"{end_hour:02d}:{end_minute:02d}"
     else:
-        anchor_time = normalize_explicit_anchor_time(text)
+        anchor_time = normalize_explicit_anchor_time(extraction_text)
         if anchor_time:
             result["startTime"] = anchor_time
 
@@ -2003,6 +2030,8 @@ Rules:
 - Resolve explicit and relative dates using the supplied current local time.
 - Preserve date ranges. For example, 2026年8月17-27日 means startDate 2026-08-17 and endDate 2026-08-27.
 - Preserve clock ranges. For example, 10-3时 in a daytime event means startTime 10:00 and endTime 15:00.
+- A reminder/decision date takes priority over dates inside referenced event details. For example, "提醒我2026-07-20确认是否报名" followed by an August event means a July 20 todo; return null startTime/endTime unless the reminder sentence itself includes a clock time.
+- For reminder or decision requests, name the decision action (for example, "确认是否报名中华文化大乐园") rather than the later event itself.
 - Use anchorTime only when the user explicitly gives a starting time. Never invent a time.
 - When startTime is present, anchorTime must equal startTime.
 - Convert durations such as two hours, 1.5 hours, 半小时, and 两小时 into minutes.
@@ -2081,8 +2110,13 @@ async def call_deepseek_schedule_parser(text: str) -> dict:
         explicit_window = extract_explicit_schedule_window(text, local_now)
         start_date = explicit_window["startDate"] or start_date
         end_date = explicit_window["endDate"] or end_date
-        start_time = explicit_window["startTime"] or start_time
-        end_time = explicit_window["endTime"] or end_time
+        if explicit_window["reminderDirective"]:
+            # Do not borrow an event's time range for a separate reminder todo.
+            start_time = explicit_window["startTime"]
+            end_time = explicit_window["endTime"]
+        else:
+            start_time = explicit_window["startTime"] or start_time
+            end_time = explicit_window["endTime"] or end_time
 
         if start_date and end_date and end_date < start_date:
             end_date = start_date
