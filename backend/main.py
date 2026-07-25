@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, File, Form, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ import sqlite3
 import uuid
 import re
 import base64
+import hmac
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import httpx
@@ -33,6 +35,13 @@ except ImportError:
     service_account = None
     build = None
 
+try:
+    import firebase_admin
+    from firebase_admin import auth as firebase_auth
+except ImportError:
+    firebase_admin = None
+    firebase_auth = None
+
 # Load .env file from backend directory explicitly using absolute path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(backend_dir)
@@ -47,16 +56,76 @@ except Exception:
     # Windows Python installs do not always include the IANA tz database.
     LONDON_TIMEZONE = datetime.now().astimezone().tzinfo or timezone.utc
 
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", os.getenv("FIRESTORE_PROJECT_ID") or "mercurial-weft-455321-v6")
+ALLOWED_FIREBASE_UID = os.getenv("ALLOWED_FIREBASE_UID", "").strip()
+WORKFLOW_API_KEY = os.getenv("WORKFLOW_API_KEY", "").strip()
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "https://bellerswang.github.io"
+).split(",") if origin.strip()]
+
 app = FastAPI(title="ChronoAI Backend Server v2.0")
 
-# CORS config: allow local browser files and LAN mobile devices
+# CORS is an additional browser boundary, not the authentication mechanism.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+firebase_auth_ready = False
+if firebase_admin is not None:
+    try:
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(options={"projectId": FIREBASE_PROJECT_ID})
+        firebase_auth_ready = True
+    except Exception as exc:
+        logger.error(f"[Auth] Firebase Admin initialization failed: {exc}")
+
+
+def auth_json(status_code: int, detail: str) -> JSONResponse:
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+
+def verify_firebase_bearer_token(token: str) -> tuple[bool, str | None, str | None]:
+    if not ALLOWED_FIREBASE_UID:
+        return False, None, "ALLOWED_FIREBASE_UID is not configured."
+    if not firebase_auth_ready or firebase_auth is None:
+        return False, None, "Firebase Admin authentication is not configured."
+    try:
+        decoded = firebase_auth.verify_id_token(token)
+    except Exception:
+        return False, None, "Invalid or expired Firebase ID token."
+    uid = decoded.get("uid")
+    if uid != ALLOWED_FIREBASE_UID:
+        return False, uid, "This Firebase account is not authorized for Loomi."
+    return True, uid, None
+
+
+@app.middleware("http")
+async def require_api_auth(request, call_next):
+    path = request.url.path
+    if request.method == "OPTIONS" or path == "/health" or not path.startswith("/api/"):
+        return await call_next(request)
+
+    is_workflow_api = path.startswith("/api/workflows/email-action-check/")
+    workflow_header = request.headers.get("x-workflow-key", "")
+    if is_workflow_api and WORKFLOW_API_KEY and hmac.compare_digest(workflow_header, WORKFLOW_API_KEY):
+        request.state.auth_type = "workflow_key"
+        return await call_next(request)
+
+    authorization = request.headers.get("authorization", "")
+    if not authorization.lower().startswith("bearer "):
+        return auth_json(401, "Firebase authentication is required.")
+    valid, uid, error = verify_firebase_bearer_token(authorization[7:].strip())
+    if not valid:
+        status_code = 403 if uid else 503 if "not configured" in (error or "") else 401
+        return auth_json(status_code, error or "Authentication failed.")
+    request.state.auth_type = "firebase"
+    request.state.user_uid = uid
+    return await call_next(request)
 
 openai_key = os.getenv("OPENAI_API_KEY")
 if not openai_key:
@@ -2221,11 +2290,18 @@ async def parse_voice(file: UploadFile = File(...)):
 
 @app.get("/health")
 async def health_check():
-    _, google_docs_auth_mode, google_docs_auth_email = resolve_google_docs_credentials()
     return {
         "status": "ok", 
         "service": "ChronoAI API Server", 
         "version": "2.0.0",
+    }
+
+
+@app.get("/api/system/status")
+async def system_status():
+    _, google_docs_auth_mode, google_docs_auth_email = resolve_google_docs_credentials()
+    return {
+        "status": "ok",
         "openai_configured": openai_key is not None and openai_key.startswith("sk-"),
         "voice_db_path": VOICE_DB_PATH,
         "gcs_configured": bool(GCS_BUCKET_NAME),
@@ -2241,6 +2317,9 @@ async def health_check():
         "firestore_project_id": FIRESTORE_PROJECT_ID or getattr(firestore_repo, "project_id", None),
         "firestore_collection": FIRESTORE_COLLECTION,
         "firestore_ready": bool(FIRESTORE_ENABLED and firestore_repo),
+        "firebase_project_id": FIREBASE_PROJECT_ID,
+        "firebase_auth_ready": firebase_auth_ready,
+        "auth_required": True,
     }
 
 

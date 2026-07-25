@@ -147,6 +147,32 @@ WORKFLOW_RUNS_COLLECTION=email_workflow_runs
 WORKFLOW_ITEMS_COLLECTION=email_action_items
 ```
 
+## Authentication
+
+The GitHub Pages frontend is public, but private Loomi API data requires Firebase Google sign-in.
+Copy the public Firebase Web App config into `firebase-config.js` and add `bellerswang.github.io` to Firebase Authentication Authorized domains. The backend only accepts the Firebase UID configured by `ALLOWED_FIREBASE_UID`.
+
+Setup order:
+
+1. In Firebase Console, enable the Google sign-in provider and create a Web App.
+2. Copy that Web App's `apiKey`, `messagingSenderId`, and `appId` into `firebase-config.js`. These values are public browser configuration, not service-account secrets.
+3. Sign in once, then copy your account UID from Firebase Authentication > Users into `ALLOWED_FIREBASE_UID`.
+4. Set the backend variables below in Cloud Run. Keep `WORKFLOW_API_KEY` in Secret Manager when possible.
+5. Put the same workflow key in the local ignored `backend/.env` for the 07:30 job, then redeploy the backend and publish the frontend files.
+
+Backend authentication settings:
+
+```bash
+FIREBASE_PROJECT_ID=mercurial-weft-455321-v6
+ALLOWED_FIREBASE_UID=your-firebase-uid
+WORKFLOW_API_KEY=long-random-secret
+CORS_ALLOWED_ORIGINS=https://bellerswang.github.io,http://localhost:8000,http://127.0.0.1:8000
+```
+
+Keep these values in Cloud Run environment variables or Secret Manager. The 07:30 email workflow uses `backend/tools/workflow_client.py` and reads `WORKFLOW_API_KEY` from the local ignored `backend/.env`; it must never be committed or printed. `/health` is public and intentionally returns only basic service status. Detailed configuration is available only through the authenticated `/api/system/status` endpoint.
+
+Without the Web App config, the frontend intentionally stays on the login gate. Without `ALLOWED_FIREBASE_UID`, the backend rejects authenticated users with `503`; this prevents accidentally exposing the existing Firestore data during rollout.
+
 Record categories:
 
 - `work_idea` - work ideas, product thoughts, code/project notes.

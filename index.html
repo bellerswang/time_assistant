@@ -14,6 +14,11 @@
     
     <!-- Google Identity Services (GIS) for OAuth 2.0 (v3.0.0) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Firebase Authentication (public web SDK configuration only) -->
+    <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
+    <script src="./firebase-config.js" defer></script>
     
     <!-- Icon Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -72,6 +77,95 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+        }
+
+        .app-container.auth-locked {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .auth-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(3, 2, 8, 0.92);
+            backdrop-filter: blur(18px);
+        }
+
+        .auth-gate.hidden {
+            display: none;
+        }
+
+        .auth-gate-card {
+            width: min(360px, 100%);
+            padding: 28px 24px;
+            text-align: center;
+            border: 1px solid rgba(0, 245, 255, 0.24);
+            border-radius: var(--radius-lg);
+            background: rgba(16, 12, 33, 0.9);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .auth-gate-logo {
+            color: var(--primary);
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .auth-gate-subtitle {
+            margin: 8px 0 22px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .auth-google-button {
+            width: 100%;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid rgba(66, 133, 244, 0.7);
+            border-radius: var(--radius-md);
+            background: #ffffff;
+            color: #1f1f1f;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-google-button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+        .auth-gate-status {
+            min-height: 18px;
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .auth-account-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .auth-account-email {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* 极简滚动条 */
@@ -2143,7 +2237,19 @@
 </head>
 <body>
 
-    <div class="app-container">
+    <div class="auth-gate" id="auth-gate">
+        <div class="auth-gate-card">
+            <div class="auth-gate-logo">Loomi</div>
+            <div class="auth-gate-subtitle" id="auth-gate-subtitle">请使用你的 Google 账号登录</div>
+            <button class="auth-google-button" id="btn-google-login" type="button">
+                <i class="fa-brands fa-google"></i>
+                <span id="auth-login-label">使用 Google 登录</span>
+            </button>
+            <div class="auth-gate-status" id="auth-gate-status"></div>
+        </div>
+    </div>
+
+    <div class="app-container auth-locked" id="loomi-app">
         <!-- Starry Sky & Interactive Cosmic Dust Background Layer -->
         <canvas id="starfield-canvas"></canvas>
 
@@ -2551,6 +2657,14 @@
                 </div>
             </div>
 
+            <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 4px;">
+                <span class="form-label" id="auth-account-label">Loomi 账号</span>
+                <div class="auth-account-row">
+                    <span class="auth-account-email" id="auth-account-email">未登录</span>
+                    <button class="btn-sheet-secondary" id="btn-google-logout" type="button" style="padding: 5px 10px; font-size: 11px;">退出登录</button>
+                </div>
+            </div>
+
             <div class="form-group">
                 <span class="form-label">后端 API 服务端端点 (Backend URL)</span>
                 <input type="text" class="form-input" id="setting-backend-url" placeholder="例如：http://192.168.1.100:11337">
@@ -2718,6 +2832,169 @@
                 '#888884'  // 灰色
             ]
         };
+
+        // Firebase web config is public application metadata, not a secret.
+        // Replace the apiKey/appId placeholders with the config from Firebase Console.
+        const FIREBASE_CONFIG = window.LOOMI_FIREBASE_CONFIG || {
+            apiKey: 'REPLACE_WITH_FIREBASE_WEB_API_KEY',
+            authDomain: 'mercurial-weft-455321-v6.firebaseapp.com',
+            projectId: 'mercurial-weft-455321-v6',
+            storageBucket: 'mercurial-weft-455321-v6.firebasestorage.app',
+            messagingSenderId: 'REPLACE_WITH_FIREBASE_MESSAGING_SENDER_ID',
+            appId: 'REPLACE_WITH_FIREBASE_WEB_APP_ID'
+        };
+
+        let firebaseAuth = null;
+        let firebaseUser = null;
+        let appStarted = false;
+
+        function firebaseConfigReady() {
+            return Boolean(
+                FIREBASE_CONFIG.apiKey &&
+                FIREBASE_CONFIG.appId &&
+                !String(FIREBASE_CONFIG.apiKey).startsWith('REPLACE_') &&
+                !String(FIREBASE_CONFIG.appId).startsWith('REPLACE_')
+            );
+        }
+
+        function setAuthGateStatus(message, isError = false) {
+            const status = document.getElementById('auth-gate-status');
+            if (!status) return;
+            status.textContent = message || '';
+            status.style.color = isError ? 'var(--error)' : 'var(--text-muted)';
+        }
+
+        function setAuthGateVisible(visible) {
+            document.getElementById('auth-gate')?.classList.toggle('hidden', !visible);
+            document.getElementById('loomi-app')?.classList.toggle('auth-locked', visible);
+        }
+
+        function updateAuthAccountUi(user = firebaseUser) {
+            const email = document.getElementById('auth-account-email');
+            if (email) email.textContent = user?.email || (appLanguage === 'en' ? 'Signed out' : '未登录');
+            const loginLabel = document.getElementById('auth-login-label');
+            if (loginLabel) loginLabel.textContent = appLanguage === 'en' ? 'Continue with Google' : '使用 Google 登录';
+            const accountLabel = document.getElementById('auth-account-label');
+            if (accountLabel) accountLabel.textContent = appLanguage === 'en' ? 'Loomi account' : 'Loomi 账号';
+            const logout = document.getElementById('btn-google-logout');
+            if (logout) logout.textContent = appLanguage === 'en' ? 'Sign out' : '退出登录';
+        }
+
+        async function waitForFirebaseSdk() {
+            for (let attempt = 0; attempt < 100; attempt += 1) {
+                if (window.firebase?.initializeApp && window.firebase?.auth) return true;
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            return false;
+        }
+
+        async function authFetch(resource, options = {}, retry = true) {
+            if (!firebaseUser) {
+                const error = new Error('Firebase authentication is required.');
+                error.status = 401;
+                throw error;
+            }
+            const headers = new Headers(options.headers || {});
+            headers.set('Authorization', `Bearer ${await firebaseUser.getIdToken(false)}`);
+            let response = await fetch(resource, { ...options, headers });
+            if (response.status === 401 && retry && firebaseUser) {
+                headers.set('Authorization', `Bearer ${await firebaseUser.getIdToken(true)}`);
+                response = await fetch(resource, { ...options, headers });
+            }
+            if (response.status === 401 && firebaseAuth) {
+                await firebaseAuth.signOut();
+            }
+            return response;
+        }
+
+        async function validateFirebaseSession(user) {
+            firebaseUser = user;
+            updateAuthAccountUi(user);
+            if (!user) {
+                setAuthGateVisible(true);
+                setAuthGateStatus('');
+                return;
+            }
+
+            setAuthGateStatus(appLanguage === 'en' ? 'Checking Loomi access...' : '正在验证 Loomi 权限...');
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/system/status`);
+                if (!response.ok) {
+                    const detail = await response.text();
+                    throw Object.assign(new Error(detail || `HTTP ${response.status}`), { status: response.status });
+                }
+                setAuthGateVisible(false);
+                setAuthGateStatus('');
+                if (!appStarted) {
+                    appStarted = true;
+                    initApp();
+                } else {
+                    loadVoiceFolders().then(renderVoiceInbox);
+                    loadInbox();
+                    renderTimeline();
+                }
+            } catch (error) {
+                firebaseUser = null;
+                setAuthGateVisible(true);
+                if (error.status === 403) {
+                    setAuthGateStatus(appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。', true);
+                } else if (error.status === 503) {
+                    setAuthGateStatus(appLanguage === 'en' ? 'Backend authentication is not configured yet.' : '后端认证配置尚未完成。', true);
+                } else {
+                    setAuthGateStatus(appLanguage === 'en' ? 'Could not verify the backend.' : '无法验证后端登录状态。', true);
+                }
+                await firebaseAuth?.signOut();
+            }
+        }
+
+        async function signInToLoomi() {
+            const button = document.getElementById('btn-google-login');
+            if (!firebaseAuth) return;
+            button && (button.disabled = true);
+            setAuthGateStatus(appLanguage === 'en' ? 'Opening Google sign-in...' : '正在打开 Google 登录...');
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await firebaseAuth.signInWithPopup(provider);
+            } catch (error) {
+                if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
+                    await firebaseAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+                    return;
+                }
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    setAuthGateStatus(error.message || 'Google sign-in failed.', true);
+                }
+            } finally {
+                if (button) button.disabled = false;
+            }
+        }
+
+        async function initFirebaseAuth() {
+            setAuthGateVisible(true);
+            if (!firebaseConfigReady()) {
+                setAuthGateStatus('请先把 Firebase Web 配置写入 index.html。', true);
+                return;
+            }
+            if (!await waitForFirebaseSdk()) {
+                setAuthGateStatus('Firebase 登录组件加载失败，请刷新页面。', true);
+                return;
+            }
+            try {
+                const firebaseApp = window.firebase.apps.length
+                    ? window.firebase.app()
+                    : window.firebase.initializeApp(FIREBASE_CONFIG);
+                firebaseAuth = firebaseApp.auth();
+                await firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+                firebaseAuth.onAuthStateChanged(validateFirebaseSession);
+                firebaseAuth.getRedirectResult().catch(error => {
+                    if (error?.code && error.code !== 'auth/no-auth-event') {
+                        setAuthGateStatus(error.message || 'Google sign-in failed.', true);
+                    }
+                });
+            } catch (error) {
+                console.error('[Auth] Firebase initialization failed:', error);
+                setAuthGateStatus('Firebase 登录配置无效，请检查 Web App 配置。', true);
+            }
+        }
 
         const I18N = {
             zh: {
@@ -3170,6 +3447,8 @@
             appLanguage = lang === 'en' ? 'en' : 'zh';
             DB.set('loomi_language', appLanguage);
             document.documentElement.lang = appLanguage === 'en' ? 'en' : 'zh-CN';
+            setNodeText('#auth-gate-subtitle', appLanguage === 'en' ? 'Sign in with your Google account' : '请使用你的 Google 账号登录');
+            updateAuthAccountUi();
 
             document.getElementById('lang-zh-btn')?.classList.toggle('active', appLanguage === 'zh');
             document.getElementById('lang-en-btn')?.classList.toggle('active', appLanguage === 'en');
@@ -3506,7 +3785,7 @@
             showLoading(true, '🤖 Loomi 正在向后端发起解析...');
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/parse`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/parse`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text })
@@ -3707,7 +3986,7 @@
 
         async function loadInbox() {
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/latest`);
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/latest`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 renderInbox(data.run || null);
@@ -3720,7 +3999,7 @@
 
         async function updateInboxStatus(itemId, status) {
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/items/${encodeURIComponent(itemId)}`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/workflows/email-action-check/items/${encodeURIComponent(itemId)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status })
@@ -3772,7 +4051,7 @@
 
         async function loadVoiceFolders() {
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/folders`);
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/folders`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 voiceFolders = data.folders || [];
@@ -3815,7 +4094,7 @@
 
             showLoading(true, 'Saving voice note...');
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/transcribe`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/transcribe`, {
                     method: 'POST',
                     body: formData
                 });
@@ -3846,7 +4125,7 @@
             setSendingButton('btn-parse-text', true);
             showLoading(true, 'Sending to Loomi...');
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
                     method: 'POST',
                     body: formData
                 });
@@ -3951,7 +4230,7 @@
 
         async function submitRecordCategory(recordId, category) {
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}/category`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}/category`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ category })
@@ -3986,7 +4265,7 @@
             const btn = document.getElementById('btn-ask-memory');
             if (btn) btn.disabled = true;
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
                     method: 'POST',
                     body: formData
                 });
@@ -4067,12 +4346,12 @@
             }
             try {
                 const response = recordId
-                    ? await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
+                    ? await authFetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title, cleaned_text, category })
                     })
-                    : await fetch(`${CONFIG.BACKEND_URL}/api/records`, {
+                    : await authFetch(`${CONFIG.BACKEND_URL}/api/records`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title, text: cleaned_text, category, source: 'text' })
@@ -4090,7 +4369,7 @@
         async function deleteRecord(recordId) {
             if (!recordId || !window.confirm('Delete this record?')) return;
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/records/${encodeURIComponent(recordId)}`, {
                     method: 'DELETE'
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -4112,7 +4391,7 @@
             if (!text.trim()) return;
             showLoading(true, appLanguage === 'en' ? 'Creating schedule item...' : '正在生成日程事项...');
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/parse`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/parse`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text })
@@ -4147,7 +4426,7 @@
                 const params = new URLSearchParams({ limit: '10' });
                 if (mode && mode !== 'all') params.set('category', mode);
                 if (searchQuery) params.set('q', searchQuery);
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/records?${params.toString()}`);
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/records?${params.toString()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 const entries = data.records || data.entries || [];
@@ -4247,7 +4526,13 @@
 
                 if (!response.ok) throw new Error(raw || `HTTP ${response.status}`);
 
-                const data = JSON.parse(raw);
+                const statusResponse = await authFetch(`${backendUrl}/api/system/status`);
+                const statusRaw = await statusResponse.text();
+                if (!statusResponse.ok) throw new Error(statusRaw || `HTTP ${statusResponse.status}`);
+                const data = JSON.parse(statusRaw);
+                if (debug) {
+                    debug.innerText += `\nGET ${backendUrl}/api/system/status\nHTTP ${statusResponse.status}\n${statusRaw}`;
+                }
                 if (data.openai_configured) {
                     indicator.style.backgroundColor = 'var(--success)';
                     text.innerText = '连接成功 (🟢 API 在线，OpenAI 已激活)';
@@ -5274,7 +5559,7 @@
             showLoading(true, '🤖 Loomi 正在理解您的文字...');
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
                     method: 'POST',
                     body: formData
                 });
@@ -5341,7 +5626,7 @@
             }
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
                     method: 'POST',
                     body: formData
                 });
@@ -5383,7 +5668,7 @@
             }
 
             try {
-                const response = await fetch(`${CONFIG.BACKEND_URL}/api/voice/draft`, {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/draft`, {
                     method: 'POST',
                     body: formData
                 });
@@ -6476,7 +6761,14 @@
             });
         }
 
-        window.onload = initApp;
+        window.onload = () => {
+            document.getElementById('btn-google-login')?.addEventListener('click', signInToLoomi);
+            document.getElementById('btn-google-logout')?.addEventListener('click', async () => {
+                await firebaseAuth?.signOut();
+            });
+            applyLanguage(appLanguage);
+            initFirebaseAuth();
+        };
     </script>
 </body>
 </html>
