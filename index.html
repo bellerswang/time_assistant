@@ -2834,7 +2834,7 @@
         };
 
         // Firebase web config is public application metadata, not a secret.
-        // Replace the apiKey/appId placeholders with the config from Firebase Console.
+        // Values are loaded from firebase-config.js; the inline object is only a fail-closed fallback.
         const FIREBASE_CONFIG = window.LOOMI_FIREBASE_CONFIG || {
             apiKey: 'REPLACE_WITH_FIREBASE_WEB_API_KEY',
             authDomain: 'mercurial-weft-455321-v6.firebaseapp.com',
@@ -2971,7 +2971,7 @@
         async function initFirebaseAuth() {
             setAuthGateVisible(true);
             if (!firebaseConfigReady()) {
-                setAuthGateStatus('请先把 Firebase Web 配置写入 index.html。', true);
+                setAuthGateStatus('请先把 Firebase Web 配置写入 firebase-config.js。', true);
                 return;
             }
             if (!await waitForFirebaseSdk()) {
