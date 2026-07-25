@@ -18,7 +18,7 @@
     <!-- Firebase Authentication (public web SDK configuration only) -->
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
-    <script src="./firebase-config.js" defer></script>
+    <script src="./firebase-config.js"></script>
     
     <!-- Icon Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -2846,6 +2846,7 @@
 
         let firebaseAuth = null;
         let firebaseUser = null;
+        let authGateStickyError = '';
         let appStarted = false;
 
         function firebaseConfigReady() {
@@ -2912,10 +2913,11 @@
             updateAuthAccountUi(user);
             if (!user) {
                 setAuthGateVisible(true);
-                setAuthGateStatus('');
+                setAuthGateStatus(authGateStickyError, Boolean(authGateStickyError));
                 return;
             }
 
+            authGateStickyError = '';
             setAuthGateStatus(appLanguage === 'en' ? 'Checking Loomi access...' : '正在验证 Loomi 权限...');
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/system/status`);
@@ -2937,13 +2939,14 @@
                 firebaseUser = null;
                 setAuthGateVisible(true);
                 if (error.status === 403) {
-                    setAuthGateStatus(appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。', true);
+                    authGateStickyError = appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。';
                 } else if (error.status === 503) {
-                    setAuthGateStatus(appLanguage === 'en' ? 'Backend authentication is not configured yet.' : '后端认证配置尚未完成。', true);
+                    authGateStickyError = appLanguage === 'en' ? 'Backend authentication is not configured yet.' : '后端认证配置尚未完成。';
                 } else {
-                    setAuthGateStatus(appLanguage === 'en' ? 'Could not verify the backend.' : '无法验证后端登录状态。', true);
+                    authGateStickyError = appLanguage === 'en' ? 'Could not verify the backend.' : '无法验证后端登录状态。';
                 }
                 await firebaseAuth?.signOut();
+                setAuthGateStatus(authGateStickyError, true);
             }
         }
 
@@ -2951,18 +2954,12 @@
             const button = document.getElementById('btn-google-login');
             if (!firebaseAuth) return;
             button && (button.disabled = true);
-            setAuthGateStatus(appLanguage === 'en' ? 'Opening Google sign-in...' : '正在打开 Google 登录...');
+            setAuthGateStatus(appLanguage === 'en' ? 'Redirecting to Google sign-in...' : '正在前往 Google 登录...');
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
-                await firebaseAuth.signInWithPopup(provider);
+                await firebaseAuth.signInWithRedirect(provider);
             } catch (error) {
-                if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
-                    await firebaseAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-                    return;
-                }
-                if (error.code !== 'auth/popup-closed-by-user') {
-                    setAuthGateStatus(error.message || 'Google sign-in failed.', true);
-                }
+                setAuthGateStatus(error.message || 'Google sign-in failed.', true);
             } finally {
                 if (button) button.disabled = false;
             }
