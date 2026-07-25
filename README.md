@@ -73,7 +73,7 @@ time_assistant/
 ## 📢 当前系统状况 (Current Status)
 
 *   **后端服务**：
-    *   已经在项目根目录下配置了独立的 `venv` 并修复了 `httpx` 版本冲突，支持以全网监听模式 (`--host 0.0.0.0`) 启动 FastAPI。
+    *   已经在项目根目录下配置了独立的 `venv`；后端依赖统一使用 `httpx==0.28.1`，兼容 Firebase Admin SDK，并支持以全网监听模式 (`--host 0.0.0.0`) 启动 FastAPI。
     *   提供 **`start_backend.bat`** 脚本一键傻瓜式启动。
 *   **前端资源与部署**：
     *   因为浏览器安全限制，PWA 离线秒开 (Service Worker) 与 `manifest.json` **必须运行在 HTTP 协议环境**（不可直接用 `file://` 双击打开）。
