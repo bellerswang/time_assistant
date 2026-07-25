@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronoai-v2.1.1';
+const CACHE_NAME = 'chronoai-v2.1.2';
 const ASSETS = [
   './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
@@ -37,6 +37,11 @@ self.addEventListener('fetch', (event) => {
         .then((response) => response)
         .catch(() => caches.match('./index.html'))
     );
+    return;
+  }
+
+  if (new URL(request.url).pathname.endsWith('/firebase-config.js')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
