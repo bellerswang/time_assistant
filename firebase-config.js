@@ -8,5 +8,6 @@ window.LOOMI_FIREBASE_CONFIG = {
     storageBucket: 'mercurial-weft-455321-v6.firebasestorage.app',
     messagingSenderId: '765248078203',
     appId: '1:765248078203:web:327ac1238a79268dfbbdde',
-    measurementId: 'G-GS1FNP2XE4'
+    measurementId: 'G-GS1FNP2XE4',
+    googleClientId: '1090997558704-7r1o8eu2bjvc517ddpu40bqqi3sdvoi6.apps.googleusercontent.com'
 };

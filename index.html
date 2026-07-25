@@ -18,7 +18,7 @@
     <!-- Firebase Authentication (public web SDK configuration only) -->
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
-    <script src="./firebase-config.js?v=20260725.1"></script>
+    <script src="./firebase-config.js?v=20260725.2"></script>
     
     <!-- Icon Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -2841,11 +2841,13 @@
             projectId: 'mercurial-weft-455321-v6',
             storageBucket: 'mercurial-weft-455321-v6.firebasestorage.app',
             messagingSenderId: 'REPLACE_WITH_FIREBASE_MESSAGING_SENDER_ID',
-            appId: 'REPLACE_WITH_FIREBASE_WEB_APP_ID'
+            appId: 'REPLACE_WITH_FIREBASE_WEB_APP_ID',
+            googleClientId: DEFAULT_GCAL_CLIENT_ID
         };
 
         let firebaseAuth = null;
         let firebaseUser = null;
+        let firebaseGoogleTokenClient = null;
         let authGateStickyError = '';
         let appStarted = false;
 
@@ -2853,6 +2855,7 @@
             return Boolean(
                 FIREBASE_CONFIG.apiKey &&
                 FIREBASE_CONFIG.appId &&
+                FIREBASE_CONFIG.googleClientId &&
                 !String(FIREBASE_CONFIG.apiKey).startsWith('REPLACE_') &&
                 !String(FIREBASE_CONFIG.appId).startsWith('REPLACE_')
             );
@@ -2887,6 +2890,51 @@
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
             return false;
+        }
+
+        async function waitForGoogleOAuthSdk() {
+            for (let attempt = 0; attempt < 100; attempt += 1) {
+                if (window.google?.accounts?.oauth2?.initTokenClient) return true;
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            return false;
+        }
+
+        function setGoogleLoginBusy(busy) {
+            const button = document.getElementById('btn-google-login');
+            if (button) button.disabled = busy;
+        }
+
+        function getFirebaseGoogleTokenClient() {
+            if (firebaseGoogleTokenClient) return firebaseGoogleTokenClient;
+            firebaseGoogleTokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: FIREBASE_CONFIG.googleClientId,
+                scope: 'openid email profile',
+                callback: async (response) => {
+                    if (response.error || !response.access_token) {
+                        setAuthGateStatus(response.error_description || response.error || 'Google sign-in failed.', true);
+                        setGoogleLoginBusy(false);
+                        return;
+                    }
+                    try {
+                        setAuthGateStatus(appLanguage === 'en' ? 'Verifying Loomi access...' : '正在验证 Loomi 权限...');
+                        const credential = firebase.auth.GoogleAuthProvider.credential(null, response.access_token);
+                        await firebaseAuth.signInWithCredential(credential);
+                    } catch (error) {
+                        setAuthGateStatus(error.message || 'Google sign-in failed.', true);
+                    } finally {
+                        setGoogleLoginBusy(false);
+                    }
+                },
+                error_callback: (error) => {
+                    const message = error?.type === 'popup_failed_to_open'
+                        ? (appLanguage === 'en' ? 'Google sign-in was blocked. Please allow pop-ups and try again.' : 'Google 登录窗口被拦截，请允许弹窗后重试。')
+                        : (appLanguage === 'en' ? 'Google sign-in was cancelled.' : 'Google 登录已取消。');
+                    setAuthGateStatus(message, true);
+                    setGoogleLoginBusy(false);
+                }
+            });
+            return firebaseGoogleTokenClient;
         }
 
         async function authFetch(resource, options = {}, retry = true) {
@@ -2951,17 +2999,19 @@
         }
 
         async function signInToLoomi() {
-            const button = document.getElementById('btn-google-login');
             if (!firebaseAuth) return;
-            button && (button.disabled = true);
-            setAuthGateStatus(appLanguage === 'en' ? 'Redirecting to Google sign-in...' : '正在前往 Google 登录...');
+            setGoogleLoginBusy(true);
+            setAuthGateStatus(appLanguage === 'en' ? 'Opening Google sign-in...' : '正在打开 Google 登录...');
             try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                await firebaseAuth.signInWithRedirect(provider);
+                if (!await waitForGoogleOAuthSdk()) {
+                    throw new Error(appLanguage === 'en'
+                        ? 'Google sign-in components did not load.'
+                        : 'Google 登录组件加载失败。');
+                }
+                getFirebaseGoogleTokenClient().requestAccessToken({ prompt: 'select_account' });
             } catch (error) {
                 setAuthGateStatus(error.message || 'Google sign-in failed.', true);
-            } finally {
-                if (button) button.disabled = false;
+                setGoogleLoginBusy(false);
             }
         }
 
@@ -2982,11 +3032,6 @@
                 firebaseAuth = firebaseApp.auth();
                 await firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
                 firebaseAuth.onAuthStateChanged(validateFirebaseSession);
-                firebaseAuth.getRedirectResult().catch(error => {
-                    if (error?.code && error.code !== 'auth/no-auth-event') {
-                        setAuthGateStatus(error.message || 'Google sign-in failed.', true);
-                    }
-                });
             } catch (error) {
                 console.error('[Auth] Firebase initialization failed:', error);
                 setAuthGateStatus('Firebase 登录配置无效，请检查 Web App 配置。', true);
