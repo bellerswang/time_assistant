@@ -2068,125 +2068,6 @@
             100% { box-shadow: 0 0 0 0 rgba(217, 107, 107, 0); }
         }
 
-        /* ==================== Google Calendar Integration CSS (v3.0.0) ==================== */
-        .gcal-status-bar {
-            height: 28px;
-            background: rgba(66, 133, 244, 0.06);
-            border-bottom: 1px solid rgba(66, 133, 244, 0.12);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            font-size: 11px;
-            color: var(--text-muted);
-            animation: fadeIn 0.3s ease;
-        }
-        .gcal-status-bar.warning {
-            background: rgba(232, 175, 52, 0.06);
-            border-bottom: 1px solid rgba(232, 175, 52, 0.12);
-        }
-        .gcal-status-bar .sync-btn {
-            background: none;
-            border: none;
-            color: var(--primary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .gcal-status-bar .sync-btn:hover {
-            color: #4285f4;
-        }
-
-        /* GCal TaskCard Styles */
-        .task-card-wrapper.gcal-event .timeline-node {
-            background-color: #4285f4 !important;
-            border-color: rgba(66, 133, 244, 0.3) !important;
-        }
-        .task-card-wrapper.gcal-event .task-card {
-            background: linear-gradient(135deg, rgba(66, 133, 244, 0.06) 0%, rgba(22, 22, 20, 0.8) 100%);
-            border: 1px solid rgba(66, 133, 244, 0.2);
-            box-shadow: 0 4px 20px rgba(66, 133, 244, 0.03);
-            backdrop-filter: blur(12px);
-            position: relative;
-            overflow: hidden;
-        }
-        .task-card-wrapper.gcal-event .task-card::before {
-            background: linear-gradient(180deg, #4285f4 0%, #34a853 100%);
-        }
-        .gcal-lock-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 9px;
-            color: #4285f4;
-            background: rgba(66, 133, 244, 0.12);
-            padding: 1px 5px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-        }
-        .gcal-link-row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-top: 8px;
-        }
-        .gcal-link-row a {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: color 0.2s ease;
-        }
-        .gcal-link-row a:hover {
-            color: #4285f4;
-        }
-
-        /* Switch toggle styles */
-        .switch-container {
-            position: relative;
-            display: inline-block;
-            width: 34px;
-            height: 18px;
-        }
-        .switch-container input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .switch-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--surface-3);
-            border: 1px solid var(--border);
-            transition: .3s;
-            border-radius: 9999px;
-        }
-        .switch-slider::before {
-            content: "";
-            position: absolute;
-            height: 12px;
-            width: 12px;
-            left: 2px;
-            bottom: 2px;
-            background-color: var(--text-muted);
-            transition: .3s;
-            border-radius: 50%;
-        }
-        .switch-container input:checked + .switch-slider {
-            background-color: var(--primary);
-            border-color: var(--primary);
-        }
-        .switch-container input:checked + .switch-slider::before {
-            transform: translateX(16px);
-            background-color: #ffffff;
-        }
-
         /* ==================== Swipe to Delete CSS (v3.1.0) ==================== */
         .swipe-container {
             position: relative;
@@ -2475,7 +2356,7 @@
                         <i class="fa-solid fa-sliders"></i>
                     </button>
                     <div class="voice-save-result active">
-                        Backend, Google Calendar, refresh, and connection checks are kept in the existing settings panel.
+                        Backend, refresh, and connection checks are kept in the existing settings panel.
                     </div>
                 </section>
             </div>
@@ -2685,65 +2566,6 @@
                 <pre id="setting-conn-debug" style="display:none; max-height:120px; overflow:auto; white-space:pre-wrap; word-break:break-word; margin-top:6px; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:10px;"></pre>
             </div>
 
-            <!-- Google Calendar 同步 (v3.0.0 New!) -->
-            <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 12px;">
-                <span class="form-label"><i class="fa-brands fa-google" style="color: #4285f4;"></i> Google Calendar 深度集成</span>
-                
-                <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(66, 133, 244, 0.04); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(66, 133, 244, 0.12); margin-top: 6px;">
-                    <div>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">OAuth 2.0 Client ID</span>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" class="form-input" id="setting-gcal-client-id" placeholder="your-client-id.apps.googleusercontent.com" style="margin: 0; flex-grow: 1; font-size: 11px; height: 32px; padding: 4px 8px;">
-                            <button class="btn-sheet-primary" id="btn-save-gcal-client" style="padding: 4px 12px; font-size: 11px; white-space: nowrap; height: 32px;">保存</button>
-                        </div>
-                        <a href="https://console.cloud.google.com/" target="_blank" style="font-size: 9px; color: #4285f4; text-decoration: none; display: inline-block; margin-top: 4px;"><i class="fa-solid fa-arrow-up-right-from-square"></i> 去 Google Cloud 申请 Web Client ID</a>
-                    </div>
-
-                    <div>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">同步日历 ID (Calendar ID)</span>
-                        <input type="text" class="form-input" id="setting-gcal-calendar-id" placeholder="primary" value="primary" style="margin: 0; font-size: 11px; height: 32px; padding: 4px 8px;">
-                    </div>
-
-                    <div>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">绑定授权状态</span>
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span id="setting-gcal-status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--error); display: inline-block;"></span>
-                                <span id="setting-gcal-status-text" style="font-weight: 600; color: var(--text-muted);">未配置 Client ID</span>
-                            </div>
-                            <div style="display: flex; gap: 6px;">
-                                <button class="btn-sheet-secondary" id="btn-disconnect-gcal" style="padding: 4px 10px; font-size: 11px; margin: 0; display: none; border-color: var(--error); color: var(--error); height: 28px;">
-                                    断开
-                                </button>
-                                <button class="btn-sheet-primary" id="btn-connect-gcal" style="padding: 4px 10px; font-size: 11px; margin: 0; display: none; background-color: #4285f4; border-color: #4285f4; color: #ffffff; height: 28px;">
-                                    <i class="fa-brands fa-google"></i> 授权绑定
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="setting-gcal-options" style="display: none; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;">
-                        <span style="font-size: 11px; color: var(--text-muted); display: block;">双向同步偏好</span>
-                        
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-size: 11px; color: var(--text);">自动导入忙碌日程为占位</span>
-                            <label class="switch-container">
-                                <input type="checkbox" id="setting-gcal-auto-import" checked>
-                                <span class="switch-slider"></span>
-                            </label>
-                        </div>
-
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-size: 11px; color: var(--text);">本地任务完成/创建自动写入日历</span>
-                            <label class="switch-container">
-                                <input type="checkbox" id="setting-gcal-auto-export">
-                                <span class="switch-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 4px;">
                 <span class="form-label">系统数据管理</span>
                 <button class="btn-sheet-secondary" id="btn-reset-demo" style="border-color: var(--error); color: var(--error); background: rgba(217, 107, 107, 0.05); align-self: flex-start;">
@@ -2798,24 +2620,7 @@
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
-        // Google Calendar Helper functions (v3.0.0)
         const DEFAULT_BACKEND_URL = 'https://voice-assistant-1090997558704.europe-west2.run.app';
-        const DEFAULT_GCAL_CLIENT_ID = '1090997558704-7r1o8eu2bjvc517ddpu40bqqi3sdvoi6.apps.googleusercontent.com';
-        const loadGCalEvents = (date) => DB.get(`chrono_gcal_events_${date}`, []);
-        const saveGCalEvents = (date, data) => DB.set(`chrono_gcal_events_${date}`, data);
-        const getGCalSettings = () => {
-            const saved = DB.get('chrono_gcal_settings', {});
-            return {
-                clientId: saved.clientId || DEFAULT_GCAL_CLIENT_ID,
-                calendarId: saved.calendarId || 'primary',
-                enabled: saved.enabled || false,
-                autoImport: saved.autoImport ?? true,
-                autoExport: saved.autoExport ?? false,
-                exportCalendarId: saved.exportCalendarId || 'primary',
-                lastSyncedAt: saved.lastSyncedAt || null
-            };
-        };
-        const saveGCalSettings = (settings) => DB.set('chrono_gcal_settings', settings);
 
         // ==================== CONFIGS & DIALECTS ====================
         const savedSettings = DB.get('chrono_settings', {});
@@ -3073,7 +2878,6 @@
                 sourceTodo: 'TODO',
                 sourceEmail: '邮件',
                 sourceLoomi: 'LOOMI',
-                sourceCalendar: 'GOOGLE CALENDAR',
                 sending: '正在发送...',
                 refreshApp: '刷新页面',
                 clickRecord: '点击开始录音',
@@ -3093,15 +2897,6 @@
                 backendHint: '在 GitHub Pages (HTTPS) 上必须使用云端 HTTPS API 服务端。本地测试可以使用局域网 IP。',
                 backendStatus: '后端连接状态',
                 pingBackend: '重新检测连接',
-                gcalTitle: 'Google Calendar 深度集成',
-                save: '保存',
-                calendarId: '同步日历 ID (Calendar ID)',
-                authStatus: '绑定授权状态',
-                disconnect: '断开',
-                connect: '授权绑定',
-                syncPrefs: '双向同步偏好',
-                autoImport: '自动导入忙碌日程为占位',
-                autoExport: '本地任务完成/创建自动写入日历',
                 dataManagement: '系统数据管理',
                 resetDemo: '重置本地日程数据',
                 saveSettings: '保存并生效设置',
@@ -3159,7 +2954,6 @@
                 sourceTodo: 'TO-DO',
                 sourceEmail: 'EMAIL',
                 sourceLoomi: 'LOOMI',
-                sourceCalendar: 'GOOGLE CALENDAR',
                 sending: 'Sending...',
                 refreshApp: 'Refresh page',
                 clickRecord: 'Tap to record',
@@ -3179,15 +2973,6 @@
                 backendHint: 'GitHub Pages uses HTTPS, so it must call a cloud HTTPS backend. Local testing can use a LAN IP.',
                 backendStatus: 'Backend connection',
                 pingBackend: 'Check connection again',
-                gcalTitle: 'Google Calendar integration',
-                save: 'Save',
-                calendarId: 'Calendar ID',
-                authStatus: 'Authorization status',
-                disconnect: 'Disconnect',
-                connect: 'Connect',
-                syncPrefs: 'Sync preferences',
-                autoImport: 'Import busy calendar events as placeholders',
-                autoExport: 'Export created/completed local tasks to Calendar',
                 dataManagement: 'Data management',
                 resetDemo: 'Reset local schedule data',
                 saveSettings: 'Save settings',
@@ -3308,27 +3093,10 @@
             '后端连接状态': 'Backend connection',
             '正在检测连接...': 'Checking connection...',
             '重新检测连接': 'Check again',
-            'Google Calendar 深度集成': 'Google Calendar integration',
-            '保存': 'Save',
-            '去 Google Cloud 申请 Web Client ID': 'Open Google Cloud for Web Client ID',
-            '同步日历 ID (Calendar ID)': 'Calendar ID',
-            '绑定授权状态': 'Authorization status',
-            '未配置 Client ID': 'Client ID not configured',
-            '已授权连接': 'Connected',
-            '授权已过期': 'Authorization expired',
-            '未绑定授权': 'Not connected',
-            '断开': 'Disconnect',
-            '授权绑定': 'Connect',
-            '双向同步偏好': 'Sync preferences',
-            '自动导入忙碌日程为占位': 'Import busy events as placeholders',
-            '本地任务完成/创建自动写入日历': 'Export local task changes to Calendar',
             '系统数据管理': 'Data management',
             '重置本地日程数据': 'Reset local schedule data',
             '保存并生效设置': 'Save settings',
             '在此插针': 'Add here',
-            '谷歌日历': 'Google Calendar',
-            '日历锁定': 'Calendar locked',
-            '谷歌日历中编辑': 'Edit in Google Calendar',
             '跳过': 'Skip',
             '开始': 'Start',
             '完成': 'Done',
@@ -3336,8 +3104,6 @@
             '撤销': 'Undo',
             '删除': 'Delete',
             '编辑': 'Edit',
-            '强制同步': 'Force sync',
-            '重新授权': 'Reconnect',
             '暂无任何学习中的特征参数': 'No learned routine features yet',
             '暂无常规事项模板。点击右上角“新日常模板”轻松配置': 'No routine templates yet. Use New routine to create one.',
             '每日重复': 'Daily',
@@ -3374,10 +3140,6 @@
         const EN_MESSAGE_PATTERNS = [
             [/^🔌 API 离线或配额不足，已无缝降级为本地规则解析$/, 'API is offline or quota-limited. Falling back to local parsing.'],
             [/^🗑️ 任务“(.+)”已删除$/, 'Task "$1" deleted.'],
-            [/^🗑️ 正在从 Google Calendar 云端删除事件\.\.\.$/, 'Deleting the event from Google Calendar...'],
-            [/^🗑️ 谷歌日历事件已从本地和云端同步删除$/, 'Google Calendar event deleted locally and remotely.'],
-            [/^⚠️ 谷歌日历云端删除失败（已从本地视图移出）$/, 'Could not delete the Google Calendar event remotely. It was removed locally.'],
-            [/^🗑️ 谷歌日历事件缓存已清除$/, 'Google Calendar event cache cleared.'],
             [/^⏱️ 专注事项：“(.+)” 已拉开序幕$/, 'Started focus task: "$1".'],
             [/^✅ 完成！用时 (.+)，原预估 (.+) \\(AI已学习\\)$/, 'Done. Actual time: $1, original estimate: $2. AI learned from it.'],
             [/^✅ 恭喜完成：“(.+)” 用时 (.+)分钟！$/, 'Completed "$1" in $2 minutes.'],
@@ -3392,12 +3154,6 @@
             [/^💳 OpenAI 额度不足，无法进行语音听写。请使用本地正则文本输入！$/, 'OpenAI quota is insufficient for transcription. Please type instead.'],
             [/^⚠️ 全天时段爆满，无法安排，请清空部分日程后再试！$/, 'The day is full. Clear some schedule items and try again.'],
             [/^⚠️ 授权失败: (.+)$/, 'Authorization failed: $1'],
-            [/^🟢 Google Calendar 授权成功，正在同步数据\.\.\.$/, 'Google Calendar connected. Syncing...'],
-            [/^⚠️ 请先配置并保存 Google Client ID$/, 'Please configure and save the Google Client ID first.'],
-            [/^⚠️ Google SDK 载入失败，请检查网络或稍后重试$/, 'Google SDK failed to load. Check the network and try again.'],
-            [/^🔌 已解除 Google 账号绑定并清除缓存$/, 'Google account disconnected and local cache cleared.'],
-            [/^🔑 谷歌授权已失效，请重新连接账号$/, 'Google authorization expired. Please reconnect.'],
-            [/^⚠️ 同步失败: (.+)$/, 'Sync failed: $1'],
             [/^✨ 成功一键智能同步 (.+) 个常规事项！$/, 'Loaded $1 routine items.'],
             [/^💡 任务已同步，或今天已无适合的模板空档$/, 'Tasks are synced, or no suitable routine slots remain today.'],
             [/^💡 请先打字说点什么，比如：“下午写代码两小时”$/, 'Type something first, for example: "write code at 3pm for two hours".'],
@@ -3406,11 +3162,6 @@
             [/^🔄 系统已恢复初始演示模板与数据！$/, 'Demo templates and data restored.'],
             [/^⚠️ 后端 API 地址不能为空$/, 'Backend URL cannot be empty.'],
             [/^💾 系统设置已成功保存并立即生效！$/, 'Settings saved.'],
-            [/^💾 Google 日历配置已成功保存！$/, 'Google Calendar settings saved.'],
-            [/^🔄 自动导入忙碌日程已开启$/, 'Busy-event auto import is on.'],
-            [/^🔄 自动导入忙碌日程已关闭$/, 'Busy-event auto import is off.'],
-            [/^📤 本地任务自动写入已开启$/, 'Local task auto export is on.'],
-            [/^📤 本地任务自动写入已关闭$/, 'Local task auto export is off.'],
             [/^⚠️ 事项模板名称不能为空$/, 'Routine name cannot be empty.'],
             [/^⚠️ 基准分钟必须为正整数$/, 'Base minutes must be a positive integer.'],
             [/^💾 模板保存成功$/, 'Template saved.'],
@@ -3548,16 +3299,11 @@
             const settingLabels = document.querySelectorAll('#sheet-settings .form-label');
             if (settingLabels[1]) settingLabels[1].textContent = langText('backendUrl');
             if (settingLabels[2]) settingLabels[2].textContent = langText('backendStatus');
-            if (settingLabels[3]) settingLabels[3].innerHTML = `<i class="fa-brands fa-google" style="color: #4285f4;"></i> ${langText('gcalTitle')}`;
-            if (settingLabels[4]) settingLabels[4].textContent = langText('dataManagement');
+            if (settingLabels[3]) settingLabels[3].textContent = langText('dataManagement');
             const backendHint = document.querySelector('#setting-backend-url')?.nextElementSibling;
             if (backendHint) backendHint.textContent = langText('backendHint');
             setPlaceholder('#setting-backend-url', appLanguage === 'en' ? 'Example: https://your-backend.run.app' : '例如：http://192.168.1.100:11337');
             setNodeHTML('#btn-ping-backend', `<i class="fa-solid fa-rotate"></i> ${langText('pingBackend')}`);
-            setNodeText('#btn-save-gcal-client', langText('save'));
-            setNodeText('#setting-gcal-calendar-id', document.getElementById('setting-gcal-calendar-id')?.value || 'primary');
-            setNodeText('#btn-disconnect-gcal', langText('disconnect'));
-            setNodeHTML('#btn-connect-gcal', `<i class="fa-brands fa-google"></i> ${langText('connect')}`);
             setNodeHTML('#btn-reset-demo', `<i class="fa-solid fa-trash-can"></i> ${langText('resetDemo')}`);
             setNodeText('#btn-save-settings', langText('saveSettings'));
 
@@ -3653,12 +3399,7 @@
 
         // ==================== 7. Gap Finder 最佳闲档探测算法 ====================
         function findBestGap(date, durationMins, preferAfter = null, externalTasks = null) {
-            let tasks = (externalTasks || loadTasks(date)).filter(t => t.status !== 'skipped');
-            const gcalSettings = getGCalSettings();
-            if (gcalSettings.enabled) {
-                const gcalEvents = loadGCalEvents(date);
-                tasks = [...tasks, ...gcalEvents];
-            }
+            const tasks = (externalTasks || loadTasks(date)).filter(t => t.status !== 'skipped');
             const workStart = 8 * 60;  // 08:00
             const workEnd = 22 * 60;   // 22:00
 
@@ -4675,9 +4416,8 @@
         // ==================== Tab 1: 今日时间轴渲染 ====================
         function getDayItemCount(dateStr) {
             const localCount = loadTasks(dateStr).filter(t => t.status !== 'skipped').length;
-            const gcalCount = loadGCalEvents(dateStr).length;
             const todoCount = loadTodos().filter(todo => todo.status !== 'done' && todo.dueDate === dateStr).length;
-            return localCount + gcalCount + todoCount;
+            return localCount + todoCount;
         }
 
         let monthPickerDate = null;
@@ -4689,7 +4429,6 @@
             document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
             renderWeekStrip();
             renderMonthPicker();
-            syncGCalEvents(selectedDate);
             renderTimeline();
         }
 
@@ -4789,28 +4528,20 @@
         }
 
         function openTimelineTaskDetail(taskId) {
-            const task = loadTasks(selectedDate).find(item => item.id === taskId)
-                || loadGCalEvents(selectedDate).find(item => item.id === taskId);
+            const task = loadTasks(selectedDate).find(item => item.id === taskId);
             if (!task) return;
             activeScheduleDetail = { kind: 'task', id: task.id };
             const time = [task.scheduledStart, task.scheduledEnd].filter(Boolean).join('–');
             const dateRange = task.rangeEndDate && task.rangeEndDate !== task.date
                 ? `${task.date}–${task.rangeEndDate}`
                 : '';
-            const source = `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`;
+            const source = `${langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`;
             const content = [...new Set([
                 task.originalText || task.rawText || '',
                 task.notes || ''
             ].filter(Boolean))].join('\n\n') || task.name;
             let actions = '';
-            if (task.isGCalEvent) {
-                const eventUrl = task.gcalEventId
-                    ? `https://calendar.google.com/calendar/r/eventedit/${encodeURIComponent(task.gcalEventId)}`
-                    : '';
-                actions = eventUrl
-                    ? `<a class="todo-detail-action primary" href="${escapeHtml(eventUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(langText('sourceCalendar'))}</a>`
-                    : '';
-            } else if (task.status === 'done' || task.status === 'skipped') {
+            if (task.status === 'done' || task.status === 'skipped') {
                 actions = `<button class="todo-detail-action" type="button" data-detail-action="task-undo"><i class="fa-solid fa-rotate-left"></i> ${appLanguage === 'en' ? 'Undo' : '撤销'}</button>`;
             } else {
                 actions = `
@@ -4890,10 +4621,7 @@
                 .filter(todo => !todo.dueDate || todo.dueDate === selectedDate)
                 .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
-            let tasks = loadTasks(selectedDate);
-            if (getGCalSettings().enabled) {
-                tasks = [...tasks, ...loadGCalEvents(selectedDate)];
-            }
+            const tasks = loadTasks(selectedDate);
             tasks.sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
 
             const agendaItems = [
@@ -4905,8 +4633,8 @@
                     return {
                         id: task.id,
                         kind: 'task',
-                        sourceType: task.isGCalEvent ? 'calendar' : 'loomi',
-                        source: `${task.isGCalEvent ? langText('sourceCalendar') : langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`,
+                        sourceType: 'loomi',
+                        source: `${langText('sourceLoomi')}${dateRange ? ` · ${dateRange}` : ''}${time ? ` · ${time}` : ''}`,
                         title: task.name || '',
                         done: task.status === 'done' || task.status === 'skipped'
                     };
@@ -4950,12 +4678,7 @@
             listContainer.innerHTML = '';
             renderTodayTodos();
 
-            let tasks = loadTasks(selectedDate);
-            const gcalSettings = getGCalSettings();
-            if (gcalSettings.enabled) {
-                const gcalEvents = loadGCalEvents(selectedDate);
-                tasks = [...tasks, ...gcalEvents];
-            }
+            const tasks = loadTasks(selectedDate);
             tasks.sort((a, b) => timeToMins(a.scheduledStart) - timeToMins(b.scheduledStart));
             
             if (tasks.length === 0) {
@@ -4972,37 +4695,28 @@
                 // 渲染 TaskCard
                 const wrapper = document.createElement('div');
                 const displayStatus = task.status === 'in_progress' ? 'todo' : task.status;
-                wrapper.className = `task-card-wrapper ${task.isGCalEvent ? 'gcal-event' : displayStatus}`;
-                wrapper.style.setProperty('--task-color', task.isGCalEvent ? '#4285f4' : (task.color || 'var(--primary)'));
+                wrapper.className = `task-card-wrapper ${displayStatus}`;
+                wrapper.style.setProperty('--task-color', task.color || 'var(--primary)');
 
                 // 卡片底行按钮逻辑
                 let footerButtons = '';
-                if (task.isGCalEvent) {
+                if (task.status === 'todo') {
                     footerButtons = `
-                        <div class="gcal-link-row">
-                            <span class="gcal-lock-badge"><i class="fa-solid fa-lock"></i> 日历锁定</span>
-                            <a href="https://calendar.google.com/calendar/r/eventedit/${task.gcalEventId || ''}" target="_blank"><i class="fa-solid fa-up-right-from-square" style="font-size:9px;"></i> 谷歌日历中编辑</a>
-                        </div>
+                        <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
+                        <button class="task-btn btn-skip" onclick="changeTaskStatus('${task.id}', 'skipped')"><i class="fa-solid fa-times"></i> 跳过</button>
                     `;
-                } else {
-                    if (task.status === 'todo') {
-                        footerButtons = `
-                            <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
-                            <button class="task-btn btn-skip" onclick="changeTaskStatus('${task.id}', 'skipped')"><i class="fa-solid fa-times"></i> 跳过</button>
-                        `;
-                    } else if (task.status === 'in_progress') {
-                        footerButtons = `
-                            <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
-                        `;
-                    } else if (task.status === 'done') {
-                        footerButtons = `
-                            <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已完成</span>
-                        `;
-                    } else if (task.status === 'skipped') {
-                        footerButtons = `
-                            <button class="task-btn" onclick="changeTaskStatus('${task.id}', 'todo')"><i class="fa-solid fa-undo"></i> 撤销</button>
-                        `;
-                    }
+                } else if (task.status === 'in_progress') {
+                    footerButtons = `
+                        <button class="task-btn btn-complete" onclick="changeTaskStatus('${task.id}', 'done')"><i class="fa-solid fa-check"></i> 完成</button>
+                    `;
+                } else if (task.status === 'done') {
+                    footerButtons = `
+                        <span style="font-size:11px; color:var(--success); font-weight:600;"><i class="fa-solid fa-check-circle"></i> 已完成</span>
+                    `;
+                } else if (task.status === 'skipped') {
+                    footerButtons = `
+                        <button class="task-btn" onclick="changeTaskStatus('${task.id}', 'todo')"><i class="fa-solid fa-undo"></i> 撤销</button>
+                    `;
                 }
 
                 wrapper.innerHTML = `
@@ -5139,32 +4853,8 @@
 
         }
 
-        // ==================== 任务删除控制器 (v3.1.0 New!) ====================
-        async function deleteGCalEvent(eventId) {
-            const settings = getGCalSettings();
-            if (!settings.enabled || !settings.clientId) return;
-
-            const token = DB.get('chrono_gcal_token');
-            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
-            if (!token || Date.now() >= expiresAt) return;
-
-            const calId = encodeURIComponent(settings.exportCalendarId || 'primary');
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}`;
-
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Google Calendar API delete error: ${response.status}`);
-            }
-        }
-
+        // ==================== 任务删除控制器 ====================
         function deleteTask(taskId) {
-            // 1. 尝试删除本地任务
             let tasks = loadTasks(selectedDate);
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             
@@ -5176,32 +4866,6 @@
                 showToast(`🗑️ 任务“${task.name}”已删除`, 'success');
                 renderTimeline();
                 renderWeekStrip();
-                return;
-            }
-
-            // 2. 尝试删除谷歌日历缓存事件，并同步在谷歌日历云端删除它
-            const gcalEvents = loadGCalEvents(selectedDate);
-            const gcalEvtIndex = gcalEvents.findIndex(t => t.id === taskId);
-            if (gcalEvtIndex !== -1) {
-                const gcalEvt = gcalEvents[gcalEvtIndex];
-                gcalEvents.splice(gcalEvtIndex, 1);
-                saveGCalEvents(selectedDate, gcalEvents);
-                
-                // 异步在云端 Google Calendar 执行删除
-                if (gcalEvt.gcalEventId) {
-                    showToast(`🗑️ 正在从 Google Calendar 云端删除事件...`, 'info');
-                    deleteGCalEvent(gcalEvt.gcalEventId)
-                        .then(() => {
-                            showToast(`🗑️ 谷歌日历事件已从本地和云端同步删除`, 'success');
-                        })
-                        .catch(err => {
-                            console.error('[GCal] Cloud delete failed:', err);
-                            showToast(`⚠️ 谷歌日历云端删除失败（已从本地视图移出）`, 'warning');
-                        });
-                } else {
-                    showToast(`🗑️ 谷歌日历事件缓存已清除`, 'success');
-                }
-                renderTimeline();
                 return;
             }
         }
@@ -5927,7 +5591,6 @@
                     };
                     tasks.push(newTask);
                     saveTasks(targetDate, tasks);
-                    exportTaskToGoogleCalendar(newTask);
                     saved = true;
                 }
             }
@@ -5943,366 +5606,6 @@
                 showToast(message, 'success');
             }
             return { saved, targetDate, kind };
-        }
-
-        // ==================== Google Calendar 核心通信与授权模块 (v3.0.0 New!) ====================
-        let tokenClient = null;
-
-        function initGCalClient() {
-            const settings = getGCalSettings();
-            const clientInput = document.getElementById('setting-gcal-client-id');
-            const calInput = document.getElementById('setting-gcal-calendar-id');
-            if (clientInput) clientInput.value = settings.clientId || '';
-            if (calInput) calInput.value = settings.calendarId || 'primary';
-
-            updateGCalStatusUI();
-
-            if (!settings.clientId) return;
-
-            try {
-                if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-                    tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: settings.clientId,
-                        scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events',
-                        callback: (tokenResponse) => {
-                            if (tokenResponse.error) {
-                                showToast(`⚠️ 授权失败: ${tokenResponse.error}`, 'error');
-                                return;
-                            }
-                            
-                            const expiresAt = Date.now() + (parseInt(tokenResponse.expires_in) * 1000);
-                            DB.set('chrono_gcal_token', tokenResponse.access_token);
-                            DB.set('chrono_gcal_expires_at', expiresAt);
-                            
-                            settings.enabled = true;
-                            saveGCalSettings(settings);
-                            
-                            showToast('🟢 Google Calendar 授权成功，正在同步数据...', 'success');
-                            syncGCalEvents(selectedDate);
-                            updateGCalStatusUI();
-                        },
-                    });
-                    console.log('[GCal] GIS TokenClient initialized successfully.');
-                }
-            } catch (e) {
-                console.error('[GCal] Failed to initialize GIS TokenClient:', e);
-            }
-        }
-
-        function updateGCalStatusUI() {
-            const settings = getGCalSettings();
-            const indicator = document.getElementById('setting-gcal-status-indicator');
-            const text = document.getElementById('setting-gcal-status-text');
-            const connBtn = document.getElementById('btn-connect-gcal');
-            const disBtn = document.getElementById('btn-disconnect-gcal');
-            const optionsPanel = document.getElementById('setting-gcal-options');
-            const autoImportChk = document.getElementById('setting-gcal-auto-import');
-            const autoExportChk = document.getElementById('setting-gcal-auto-export');
-
-            if (!indicator || !text) return;
-
-            if (autoImportChk) autoImportChk.checked = settings.autoImport;
-            if (autoExportChk) autoExportChk.checked = settings.autoExport;
-
-            if (!settings.clientId) {
-                indicator.style.backgroundColor = 'var(--text-faint)';
-                text.innerText = '未配置 Client ID';
-                text.style.color = 'var(--text-muted)';
-                if (connBtn) connBtn.style.display = 'none';
-                if (disBtn) disBtn.style.display = 'none';
-                if (optionsPanel) optionsPanel.style.display = 'none';
-                renderGCalStatusBar(false, '');
-                return;
-            }
-
-            const token = DB.get('chrono_gcal_token');
-            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
-
-            if (token && Date.now() < expiresAt) {
-                indicator.style.backgroundColor = 'var(--success)';
-                text.innerText = '已授权连接';
-                text.style.color = 'var(--success)';
-                if (connBtn) connBtn.style.display = 'none';
-                if (disBtn) disBtn.style.display = 'inline-block';
-                if (optionsPanel) optionsPanel.style.display = 'flex';
-                
-                renderGCalStatusBar(true);
-            } else if (token && Date.now() >= expiresAt) {
-                indicator.style.backgroundColor = 'var(--warning)';
-                text.innerText = '授权已过期';
-                text.style.color = 'var(--warning)';
-                if (connBtn) connBtn.style.display = 'inline-block';
-                if (disBtn) disBtn.style.display = 'none';
-                if (optionsPanel) optionsPanel.style.display = 'flex';
-
-                renderGCalStatusBar(false, `授权已过期 - 请重新连接 Google 账户`);
-            } else {
-                indicator.style.backgroundColor = 'var(--error)';
-                text.innerText = '未绑定授权';
-                text.style.color = 'var(--error)';
-                if (connBtn) connBtn.style.display = 'inline-block';
-                if (disBtn) disBtn.style.display = 'none';
-                if (optionsPanel) optionsPanel.style.display = 'none';
-
-                renderGCalStatusBar(false, `未绑定 Google 日历`);
-            }
-        }
-
-        function connectGoogleAccount() {
-            const settings = getGCalSettings();
-            if (!settings.clientId) {
-                showToast('⚠️ 请先配置并保存 Google Client ID', 'error');
-                return;
-            }
-            if (!tokenClient) {
-                initGCalClient();
-            }
-            if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: 'consent' });
-            } else {
-                showToast('⚠️ Google SDK 载入失败，请检查网络或稍后重试', 'error');
-            }
-        }
-
-        function disconnectGoogleAccount() {
-            const settings = getGCalSettings();
-            settings.enabled = false;
-            saveGCalSettings(settings);
-            DB.remove('chrono_gcal_token');
-            DB.remove('chrono_gcal_expires_at');
-            
-            Object.keys(localStorage).forEach(k => {
-                if (k.startsWith('chrono_gcal_events_')) {
-                    localStorage.removeItem(k);
-                }
-            });
-
-            showToast('🔌 已解除 Google 账号绑定并清除缓存', 'success');
-            updateGCalStatusUI();
-            if (currentTab === 'timeline') renderTimeline();
-        }
-
-        function renderGCalStatusBar(ok, msg) {
-            let bar = document.getElementById('gcal-status-bar');
-            const weekStrip = document.querySelector('.week-strip');
-            const settings = getGCalSettings();
-            
-            if (!settings.enabled || !settings.clientId) {
-                if (bar) bar.remove();
-                return;
-            }
-
-            if (!bar) {
-                bar = document.createElement('div');
-                bar.id = 'gcal-status-bar';
-                bar.className = 'gcal-status-bar';
-                if (weekStrip) weekStrip.after(bar);
-            }
-
-            bar.className = `gcal-status-bar ${ok ? '' : 'warning'}`;
-            
-            const timeLabel = settings.lastSyncedAt 
-                ? new Date(settings.lastSyncedAt).toTimeString().slice(0, 5) 
-                : '--:--';
-                
-            bar.innerHTML = `
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <i class="fa-brands fa-google" style="color: ${ok ? '#4285f4' : 'var(--warning)'};"></i>
-                    <span>${ok ? `日历日程已同步 (最新: ${timeLabel})` : msg}</span>
-                </div>
-                ${ok ? `
-                <button class="sync-btn" id="btn-sync-now">
-                    <i class="fa-solid fa-rotate" id="sync-icon-rotate"></i> 强制同步
-                </button>
-                ` : `
-                <button class="sync-btn" id="btn-reauth-now" style="color: var(--warning)">
-                    <i class="fa-solid fa-key"></i> 重新授权
-                </button>
-                `}
-            `;
-
-            const syncBtn = document.getElementById('btn-sync-now');
-            if (syncBtn) {
-                syncBtn.addEventListener('click', () => {
-                    const icon = document.getElementById('sync-icon-rotate');
-                    if (icon) icon.style.animation = 'pulse-node 1.5s linear infinite';
-                    syncGCalEvents(selectedDate).finally(() => {
-                        if (icon) icon.style.animation = '';
-                    });
-                });
-            }
-
-            const reauthBtn = document.getElementById('btn-reauth-now');
-            if (reauthBtn) {
-                reauthBtn.addEventListener('click', () => {
-                    openSheet('sheet-settings');
-                    connectGoogleAccount();
-                });
-            }
-        }
-
-        async function syncGCalEvents(dateStr) {
-            const settings = getGCalSettings();
-            if (!settings.enabled || !settings.clientId) return;
-
-            const token = DB.get('chrono_gcal_token');
-            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
-
-            if (!token || Date.now() >= expiresAt - 60000) {
-                console.warn('[GCal] Token expired or not found.');
-                updateGCalStatusUI();
-                return;
-            }
-
-            const calId = encodeURIComponent(settings.calendarId || 'primary');
-            // 采用时区安全的方式解析 YYYY-MM-DD 字符串，避免浏览器时区差导致偏差 1 天
-            const parts = dateStr.split('-');
-            const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            
-            const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
-            const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
-
-            const timeMin = startOfDay.toISOString();
-            const timeMax = endOfDay.toISOString();
-
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    let errMsg = `Google Calendar API error: ${response.status}`;
-                    try {
-                        const errData = await response.json();
-                        if (errData && errData.error && errData.error.message) {
-                            errMsg = errData.error.message;
-                        }
-                    } catch (e) {
-                        // ignore JSON parse error
-                    }
-
-                    if (response.status === 401) {
-                        DB.remove('chrono_gcal_token');
-                        updateGCalStatusUI();
-                        showToast('🔑 谷歌授权已失效，请重新连接账号', 'error');
-                        return;
-                    }
-                    if (response.status === 404) {
-                        throw new Error(`找不到日历 (404)。详细信息: ${errMsg}`);
-                    }
-                    if (response.status === 403) {
-                        const isApiDisabled = errMsg.toLowerCase().includes('disabled') || errMsg.toLowerCase().includes('not been used');
-                        throw new Error(`无权访问此日历 (403)。${isApiDisabled ? '⚠️ 您的 Google Cloud 项目尚未启用 Google Calendar API。' : '⚠️ 请确保您在登录谷歌授权弹窗时，手动勾选了“查看/修改日程”的复选框权限。'} 详细信息: ${errMsg}`);
-                    }
-                    throw new Error(errMsg);
-                }
-
-                const data = await response.json();
-                const items = data.items || [];
-
-                const gcalEvents = items.map(evt => {
-                    const startStr = evt.start.dateTime || evt.start.date;
-                    const endStr = evt.end.dateTime || evt.end.date;
-
-                    const startDt = new Date(startStr);
-                    const endDt = new Date(endStr);
-
-                    const pad = (n) => String(n).padStart(2, '0');
-                    const startHM = `${pad(startDt.getHours())}:${pad(startDt.getMinutes())}`;
-                    const endHM = `${pad(endDt.getHours())}:${pad(endDt.getMinutes())}`;
-
-                    const estMins = Math.round((endDt - startDt) / 60000);
-
-                    let category = 'personal';
-                    const textToAnalyze = `${evt.summary || ''} ${evt.description || ''}`.toLowerCase();
-                    const workKeywords = ['code', 'meeting', 'standup', '周报', '工作', '汇报', '会议', '对齐', '开发', 'Bloomberg', 'FOMC', '量化', '研究', 'strategy'];
-                    const healthKeywords = ['gym', 'yoga', 'hospital', '健身', '医院', '睡觉', '运动', 'run', 'fit', 'sleep'];
-                    if (workKeywords.some(kw => textToAnalyze.includes(kw))) category = 'work';
-                    else if (healthKeywords.some(kw => textToAnalyze.includes(kw))) category = 'health';
-
-                    return {
-                        id: `gcal_${startDt.getTime()}_${evt.id}`,
-                        routineId: null,
-                        name: evt.summary || '无标题日历事件',
-                        category: category,
-                        color: '#4285f4',
-                        date: dateStr,
-                        scheduledStart: startHM,
-                        scheduledEnd: endHM,
-                        adjustedEstMins: estMins,
-                        status: 'todo',
-                        actualStart: null,
-                        actualEnd: null,
-                        actualMins: null,
-                        isRoutineInstance: false,
-                        isManuallyPlaced: true,
-                        isGCalEvent: true,
-                        gcalEventId: evt.id,
-                        notes: evt.description || ''
-                    };
-                });
-
-                saveGCalEvents(dateStr, gcalEvents);
-                
-                settings.lastSyncedAt = new Date().toISOString();
-                saveGCalSettings(settings);
-
-                updateGCalStatusUI();
-                if (currentTab === 'timeline') renderTimeline();
-
-            } catch (err) {
-                console.error('[GCal] Sync events failed:', err);
-                showToast(`⚠️ 同步失败: ${err.message}`, 'error');
-            }
-        }
-
-        async function exportTaskToGoogleCalendar(task) {
-            const settings = getGCalSettings();
-            if (!settings.enabled || !settings.autoExport || !settings.clientId) return;
-
-            const token = DB.get('chrono_gcal_token');
-            const expiresAt = DB.get('chrono_gcal_expires_at', 0);
-            if (!token || Date.now() >= expiresAt) return;
-
-            const calId = encodeURIComponent(settings.exportCalendarId || 'primary');
-            const dateRange = task.rangeEndDate && task.rangeEndDate !== task.date
-                ? `${task.date} 至 ${task.rangeEndDate}`
-                : task.date;
-
-            const startIso = new Date(`${task.date}T${task.scheduledStart}:00`).toISOString();
-            const endIso = new Date(`${task.date}T${task.scheduledEnd}:00`).toISOString();
-
-            const eventBody = {
-                'summary': `[Loomi] ${task.name}`,
-                'description': `由 Loomi 自动排程。\n活动日期: ${dateRange}\n任务类别: ${task.category === 'work' ? '工作' : task.category === 'health' ? '健康' : '个人'}\n预估时长: ${task.adjustedEstMins} 分钟。\n备注: ${task.notes || '无'}`,
-                'start': { 'dateTime': startIso },
-                'end': { 'dateTime': endIso },
-                'colorId': task.category === 'work' ? '5' : (task.category === 'health' ? '10' : '7')
-            };
-
-            try {
-                const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calId}/events`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(eventBody)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    task.gcalEventId = data.id;
-                    console.log(`[GCal] Task successfully exported. EventID: ${data.id}`);
-                }
-            } catch (e) {
-                console.error('[GCal] Failed to export task:', e);
-            }
         }
 
         // ==================== 方案三：动态星空及触控流星微尘引擎 (v3.2.0) ====================
@@ -6451,10 +5754,6 @@
             setActiveAppMode(currentTab);
             setVoiceMode(voiceMode);
             applyLanguage(appLanguage);
-            
-            // Google Calendar 初始化 (v3.0.0)
-            initGCalClient();
-            syncGCalEvents(selectedDate);
             
             // 首屏初始化渲染
             document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
@@ -6709,51 +6008,6 @@
                 CONFIG.BACKEND_URL = url;
                 closeAllSheets();
                 showToast('💾 系统设置已成功保存并立即生效！', 'success');
-            });
-
-            // 保存 Google Client ID 与日历 ID (v3.0.0)
-            document.getElementById('btn-save-gcal-client').addEventListener('click', () => {
-                const clientId = document.getElementById('setting-gcal-client-id').value.trim();
-                const calendarId = document.getElementById('setting-gcal-calendar-id').value.trim() || 'primary';
-                
-                const settings = getGCalSettings();
-                settings.clientId = clientId;
-                settings.calendarId = calendarId;
-                saveGCalSettings(settings);
-
-                showToast('💾 Google 日历配置已成功保存！', 'success');
-                initGCalClient();
-            });
-
-            // 授权绑定 GCal (v3.0.0)
-            document.getElementById('btn-connect-gcal').addEventListener('click', () => {
-                connectGoogleAccount();
-            });
-
-            // 解除绑定 GCal (v3.0.0)
-            document.getElementById('btn-disconnect-gcal').addEventListener('click', () => {
-                if (confirm('🔌 确定要解除 Google Calendar 的授权绑定并清除本地日程缓存吗？')) {
-                    disconnectGoogleAccount();
-                }
-            });
-
-            // 自动导入切换 (v3.0.0)
-            document.getElementById('setting-gcal-auto-import').addEventListener('change', (e) => {
-                const settings = getGCalSettings();
-                settings.autoImport = e.target.checked;
-                saveGCalSettings(settings);
-                showToast(`🔄 自动导入忙碌日程已${settings.autoImport ? '开启' : '关闭'}`);
-                if (settings.autoImport) {
-                    syncGCalEvents(selectedDate);
-                }
-            });
-
-            // 自动导出切换 (v3.0.0)
-            document.getElementById('setting-gcal-auto-export').addEventListener('change', (e) => {
-                const settings = getGCalSettings();
-                settings.autoExport = e.target.checked;
-                saveGCalSettings(settings);
-                showToast(`📤 本地任务自动写入已${settings.autoExport ? '开启' : '关闭'}`);
             });
 
             // 导出原始 JSON 数据 (数据导出 4.5)
