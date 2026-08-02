@@ -126,6 +126,7 @@ class FirestoreRepository(RecordRepository):
                     record.title,
                     record.summary,
                     record.cleaned_text,
+                    record.content_markdown or "",
                     record.raw_transcript,
                     record.category_label,
                     " ".join(record.metadata.tags),
@@ -139,10 +140,17 @@ class FirestoreRepository(RecordRepository):
             "title",
             "summary",
             "cleaned_text",
+            "content_markdown",
             "raw_transcript",
             "category",
             "category_label",
             "needs_review",
+            "status",
+            "version",
+            "external_key_hash",
+            "content_hash",
+            "metadata",
+            "storage_status",
         }
         payload = {key: value for key, value in updates.items() if key in allowed}
         if not payload:
@@ -177,7 +185,10 @@ class FirestoreRepository(RecordRepository):
             tags=metadata_data.get("tags", []),
             time_expression=metadata_data.get("time_expression"),
             action_required=metadata_data.get("action_required", False),
-            calendar_candidate=metadata_data.get("calendar_candidate", False)
+            calendar_candidate=metadata_data.get("calendar_candidate", False),
+            source_title=metadata_data.get("source_title"),
+            project_name=metadata_data.get("project_name"),
+            content_format=metadata_data.get("content_format", "plain_text")
         )
         
         # Parse created_at / updated_at in case they are stored as strings or ISO format
@@ -196,6 +207,7 @@ class FirestoreRepository(RecordRepository):
             source=data.get("source", "voice"),
             raw_transcript=data["raw_transcript"],
             cleaned_text=data["cleaned_text"],
+            content_markdown=data.get("content_markdown"),
             category=data["category"],
             category_label=data["category_label"],
             confidence=data.get("confidence", 0.5),
@@ -203,5 +215,9 @@ class FirestoreRepository(RecordRepository):
             title=data["title"],
             summary=data["summary"],
             metadata=metadata,
-            storage_status=data.get("storage_status", {})
+            storage_status=data.get("storage_status", {}),
+            status=data.get("status", "active"),
+            version=int(data.get("version", 1)),
+            external_key_hash=data.get("external_key_hash"),
+            content_hash=data.get("content_hash")
         )

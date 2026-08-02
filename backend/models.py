@@ -12,6 +12,7 @@ RecordCategory = Literal[
     "life_knowledge",
     "self_reflection",
     "ask",
+    "notebook",
     "inbox",
 ]
 
@@ -22,6 +23,7 @@ CATEGORY_LABELS: dict[str, str] = {
     "life_knowledge": "Life Knowledge",
     "self_reflection": "Self Reflection",
     "ask": "Ask",
+    "notebook": "Notebook",
     "inbox": "Inbox",
 }
 
@@ -33,15 +35,19 @@ class RecordMetadata(BaseModel):
     time_expression: str | None = None
     action_required: bool = False
     calendar_candidate: bool = False
+    source_title: str | None = None
+    project_name: str | None = None
+    content_format: Literal["plain_text", "markdown"] = "plain_text"
 
 
 class Record(BaseModel):
     id: str
     created_at: datetime
     updated_at: datetime
-    source: Literal["voice", "text"]
+    source: Literal["voice", "text", "codex"]
     raw_transcript: str
     cleaned_text: str
+    content_markdown: str | None = None
     category: RecordCategory
     category_label: str
     confidence: float = 0.5
@@ -50,3 +56,7 @@ class Record(BaseModel):
     summary: str
     metadata: RecordMetadata = Field(default_factory=RecordMetadata)
     storage_status: dict[str, Any] = Field(default_factory=dict)
+    status: Literal["active", "archived", "trashed"] = "active"
+    version: int = 1
+    external_key_hash: str | None = None
+    content_hash: str | None = None

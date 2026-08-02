@@ -12,7 +12,10 @@ import sqlite3
 import uuid
 import re
 import base64
+import binascii
 import hmac
+import hashlib
+import html
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import httpx
@@ -59,6 +62,7 @@ except Exception:
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", os.getenv("FIRESTORE_PROJECT_ID") or "mercurial-weft-455321-v6")
 ALLOWED_FIREBASE_UID = os.getenv("ALLOWED_FIREBASE_UID", "").strip()
 WORKFLOW_API_KEY = os.getenv("WORKFLOW_API_KEY", "").strip()
+LOOMI_INGEST_API_KEY = os.getenv("LOOMI_INGEST_API_KEY", "").strip()
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
     "CORS_ALLOWED_ORIGINS",
     "https://bellerswang.github.io"
@@ -114,6 +118,12 @@ async def require_api_auth(request, call_next):
     workflow_header = request.headers.get("x-workflow-key", "")
     if is_workflow_api and WORKFLOW_API_KEY and hmac.compare_digest(workflow_header, WORKFLOW_API_KEY):
         request.state.auth_type = "workflow_key"
+        return await call_next(request)
+
+    is_notebook_ingest = path == "/api/integrations/notebook/ingest" and request.method == "POST"
+    ingest_header = request.headers.get("x-loomi-ingest-key", "")
+    if is_notebook_ingest and LOOMI_INGEST_API_KEY and hmac.compare_digest(ingest_header, LOOMI_INGEST_API_KEY):
+        request.state.auth_type = "loomi_ingest_key"
         return await call_next(request)
 
     authorization = request.headers.get("authorization", "")
@@ -187,6 +197,10 @@ GOOGLE_DOCS_DEFAULT_DOC_ID = os.getenv("GOOGLE_DOCS_DEFAULT_DOC_ID")
 FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "true").lower() in {"1", "true", "yes"}
 FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
 FIRESTORE_COLLECTION = os.getenv("FIRESTORE_COLLECTION", "records")
+NOTEBOOK_MAX_BODY_CHARS = int(os.getenv("NOTEBOOK_MAX_BODY_CHARS", "120000"))
+NOTEBOOK_MAX_SUMMARY_CHARS = int(os.getenv("NOTEBOOK_MAX_SUMMARY_CHARS", "800"))
+NOTEBOOK_MAX_TAGS = int(os.getenv("NOTEBOOK_MAX_TAGS", "12"))
+NOTEBOOK_REVISIONS_COLLECTION = os.getenv("NOTEBOOK_REVISIONS_COLLECTION", "notebook_revisions")
 WORKFLOW_RUNS_COLLECTION = os.getenv("WORKFLOW_RUNS_COLLECTION", "email_workflow_runs")
 WORKFLOW_ITEMS_COLLECTION = os.getenv("WORKFLOW_ITEMS_COLLECTION", "email_action_items")
 
@@ -221,7 +235,7 @@ class WikiEntryRequest(BaseModel):
 
 class MemoryAskRequest(BaseModel):
     query: str
-    types: list[str] = ["wiki", "journal"]
+    types: list[str] = ["wiki", "journal", "notebook"]
     limit: int = 8
 
 
@@ -244,6 +258,7 @@ class RecordUpdateRequest(BaseModel):
     title: str | None = None
     summary: str | None = None
     cleaned_text: str | None = None
+    content_markdown: str | None = None
     category: str | None = None
 
 
@@ -261,6 +276,35 @@ class WorkflowItemStatusRequest(BaseModel):
 class WorkflowIngestRequest(BaseModel):
     inbox_messages: list[dict] = []
     sent_messages: list[dict] = []
+
+
+class NotebookSource(BaseModel):
+    app: str
+    item_id: str
+    title: str | None = None
+    project_name: str | None = None
+
+
+class NotebookPayload(BaseModel):
+    title: str
+    summary: str
+    body_markdown: str
+    tags: list[str] = []
+
+
+class NotebookIngestRequest(BaseModel):
+    schema_version: str = "1.0"
+    source: NotebookSource
+    note: NotebookPayload
+    captured_at: str | None = None
+
+
+class NotebookUpdateRequest(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    body_markdown: str | None = None
+    tags: list[str] | None = None
+    status: str | None = None
 
 
 def utc_now_iso() -> str:
@@ -338,6 +382,7 @@ def init_voice_db() -> None:
                 source TEXT NOT NULL,
                 raw_transcript TEXT NOT NULL,
                 cleaned_text TEXT NOT NULL,
+                content_markdown TEXT,
                 category TEXT NOT NULL,
                 category_label TEXT NOT NULL,
                 confidence REAL NOT NULL,
@@ -351,7 +396,39 @@ def init_voice_db() -> None:
                 prompt_id TEXT,
                 google_doc_id TEXT,
                 google_doc_url TEXT,
-                google_doc_status TEXT
+                google_doc_status TEXT,
+                status TEXT NOT NULL DEFAULT 'active',
+                version INTEGER NOT NULL DEFAULT 1,
+                external_key_hash TEXT,
+                content_hash TEXT
+            )
+            """
+        )
+        record_columns = {row[1] for row in conn.execute("PRAGMA table_info(records)").fetchall()}
+        record_migrations = {
+            "content_markdown": "ALTER TABLE records ADD COLUMN content_markdown TEXT",
+            "status": "ALTER TABLE records ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
+            "version": "ALTER TABLE records ADD COLUMN version INTEGER NOT NULL DEFAULT 1",
+            "external_key_hash": "ALTER TABLE records ADD COLUMN external_key_hash TEXT",
+            "content_hash": "ALTER TABLE records ADD COLUMN content_hash TEXT",
+        }
+        for column, statement in record_migrations.items():
+            if column not in record_columns:
+                conn.execute(statement)
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_records_external_key_hash ON records(external_key_hash)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notebook_revisions (
+                note_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                body_markdown TEXT NOT NULL,
+                cleaned_text TEXT NOT NULL,
+                tags_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                source TEXT NOT NULL,
+                PRIMARY KEY (note_id, version)
             )
             """
         )
@@ -982,10 +1059,10 @@ def insert_record(record: Record, folder_id: str, mode: str, prompt_id: str | No
             """
             INSERT OR REPLACE INTO records (
                 id, created_at, updated_at, source, raw_transcript, cleaned_text,
-                category, category_label, confidence, needs_review, title, summary,
+                content_markdown, category, category_label, confidence, needs_review, title, summary,
                 metadata_json, storage_status_json, folder_id, mode, prompt_id,
-                google_doc_id, google_doc_url, google_doc_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                google_doc_id, google_doc_url, google_doc_status, status, version, external_key_hash, content_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 record.id,
@@ -994,6 +1071,7 @@ def insert_record(record: Record, folder_id: str, mode: str, prompt_id: str | No
                 record.source,
                 record.raw_transcript,
                 record.cleaned_text,
+                record.content_markdown,
                 record.category,
                 record.category_label,
                 record.confidence,
@@ -1008,6 +1086,10 @@ def insert_record(record: Record, folder_id: str, mode: str, prompt_id: str | No
                 primary.get("doc_id"),
                 primary.get("doc_url"),
                 primary.get("status"),
+                record.status,
+                record.version,
+                record.external_key_hash,
+                record.content_hash,
             ),
         )
         conn.commit()
@@ -1059,9 +1141,14 @@ def update_record(record_id: str, updates: dict) -> dict:
         "title",
         "summary",
         "cleaned_text",
+        "content_markdown",
         "raw_transcript",
         "category",
         "category_label",
+        "status",
+        "version",
+        "external_key_hash",
+        "content_hash",
     }
     payload = {key: value for key, value in updates.items() if key in allowed and value is not None}
     if not payload:
@@ -1134,6 +1221,8 @@ async def update_record_any(record_id: str, req: RecordUpdateRequest) -> dict:
         updates["raw_transcript"] = cleaned
         if "summary" not in updates:
             updates["summary"] = cleaned[:180]
+    if req.content_markdown is not None:
+        updates["content_markdown"] = req.content_markdown.strip()
     if req.category is not None:
         category = normalize_record_category(req.category)
         updates["category"] = category
@@ -1155,6 +1244,304 @@ async def update_record_any(record_id: str, req: RecordUpdateRequest) -> dict:
             raise
         results["sqlite"] = {"backend": "sqlite", "status": "skipped:not_found"}
     return {"ok": True, "record_id": record_id, "results": results}
+
+
+NOTEBOOK_STATUSES = {"active", "archived", "trashed"}
+
+
+def notebook_plain_text(markdown: str) -> str:
+    text = html.unescape(markdown or "")
+    text = re.sub(r"```(?:[A-Za-z0-9_+-]+)?\s*(.*?)```", r"\1", text, flags=re.DOTALL)
+    text = re.sub(r"!\[([^]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"\[([^]]+)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*>\s?", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*[-*+]\s+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*\d+[.)]\s+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"[*_~`]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def validate_notebook_text(title: str, summary: str, body_markdown: str) -> tuple[str, str, str, str]:
+    title = (title or "").strip()
+    summary = (summary or "").strip()
+    body_markdown = (body_markdown or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Notebook title cannot be empty.")
+    if not summary:
+        raise HTTPException(status_code=400, detail="Notebook summary cannot be empty.")
+    if not body_markdown:
+        raise HTTPException(status_code=400, detail="Notebook body_markdown cannot be empty.")
+    if len(title) > 120:
+        raise HTTPException(status_code=400, detail="Notebook title is too long.")
+    if len(summary) > NOTEBOOK_MAX_SUMMARY_CHARS:
+        raise HTTPException(status_code=400, detail="Notebook summary is too long.")
+    if len(body_markdown) > NOTEBOOK_MAX_BODY_CHARS:
+        raise HTTPException(status_code=413, detail="Notebook body_markdown is too large.")
+    return title, summary, body_markdown, notebook_plain_text(body_markdown)
+
+
+def validate_notebook_tags(tags: list[str] | None) -> list[str]:
+    cleaned: list[str] = []
+    for tag in tags or []:
+        value = str(tag).strip()
+        if not value:
+            continue
+        if len(value) > 60:
+            raise HTTPException(status_code=400, detail="Notebook tags must be 60 characters or fewer.")
+        if value not in cleaned:
+            cleaned.append(value)
+    if len(cleaned) > NOTEBOOK_MAX_TAGS:
+        raise HTTPException(status_code=400, detail=f"Notebook supports at most {NOTEBOOK_MAX_TAGS} tags.")
+    return cleaned
+
+
+def notebook_content_hash(title: str, summary: str, body_markdown: str, tags: list[str]) -> str:
+    canonical = json.dumps(
+        {"title": title, "summary": summary, "body_markdown": body_markdown, "tags": sorted(tags)},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def notebook_external_key_hash(app_name: str, item_id: str) -> str:
+    return hashlib.sha256(f"{app_name.strip().lower()}:{item_id.strip()}".encode("utf-8")).hexdigest()
+
+
+def notebook_record_from_dict(data: dict) -> Record:
+    return Record(**{key: value for key, value in data.items() if key != "tags"})
+
+
+async def get_record_any_for_notebook(record_id: str) -> Record | None:
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            record = await firestore_repo.get_record(record_id)
+            if record:
+                return record
+        except Exception as exc:
+            logger.warning(f"[Notebook] Firestore get failed; falling back to SQLite: {exc}")
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM records WHERE id = ? AND category = 'notebook'", (record_id,)).fetchone()
+    return notebook_record_from_dict(row_to_record_dict(row)) if row else None
+
+
+async def find_notebook_by_external_key(external_key_hash: str) -> Record | None:
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            docs = await firestore_repo.db.collection(FIRESTORE_COLLECTION).where(
+                "external_key_hash", "==", external_key_hash
+            ).limit(1).get()
+            if docs:
+                record = firestore_repo._dict_to_record(docs[0].to_dict())
+                if record and record.category == "notebook":
+                    return record
+        except Exception as exc:
+            logger.warning(f"[Notebook] Firestore external key lookup failed; falling back to SQLite: {exc}")
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM records WHERE category = 'notebook' AND external_key_hash = ? LIMIT 1",
+            (external_key_hash,),
+        ).fetchone()
+    return notebook_record_from_dict(row_to_record_dict(row)) if row else None
+
+
+async def save_notebook_revision(record: Record, reason: str = "update") -> None:
+    snapshot = {
+        "id": record.id,
+        "note_id": record.id,
+        "version": record.version,
+        "title": record.title,
+        "summary": record.summary,
+        "body_markdown": record.content_markdown or record.raw_transcript,
+        "cleaned_text": record.cleaned_text,
+        "tags": list(record.metadata.tags),
+        "created_at": record.created_at,
+        "updated_at": record.updated_at,
+        "reason": reason,
+    }
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            await firestore_repo.db.collection(NOTEBOOK_REVISIONS_COLLECTION).document(
+                f"{record.id}_v{record.version}"
+            ).set(snapshot)
+        except Exception as exc:
+            logger.error(f"[Notebook] Failed to save Firestore revision: {exc}")
+    with sqlite3.connect(VOICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO notebook_revisions
+            (note_id, version, title, summary, body_markdown, cleaned_text, tags_json, created_at, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.id,
+                record.version,
+                record.title,
+                record.summary,
+                record.content_markdown or record.raw_transcript,
+                record.cleaned_text,
+                json.dumps(record.metadata.tags, ensure_ascii=False),
+                record.updated_at.isoformat(),
+                reason,
+            ),
+        )
+        conn.commit()
+
+
+async def save_notebook_record(record: Record) -> dict:
+    storage_status: dict = {}
+    embedding = None
+    if FIRESTORE_ENABLED and firestore_repo:
+        embedding = await get_text_embedding(f"{record.title}\n{record.summary}\n{record.cleaned_text}")
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            storage_status["firestore"] = await firestore_repo.save_record(record, embedding=embedding)
+        except Exception as exc:
+            logger.error(f"[Notebook] Firestore save failed: {exc}")
+            storage_status["firestore"] = {"backend": "firestore", "status": f"failed:{exc}"}
+    storage_status["sqlite"] = insert_record(record, "Notebook", "notebook", None)
+    return storage_status
+
+
+async def update_notebook_record(
+    record: Record,
+    *,
+    title: str,
+    summary: str,
+    body_markdown: str,
+    tags: list[str],
+    status: str | None = None,
+    source_title: str | None = None,
+    project_name: str | None = None,
+    reactivate: bool = False,
+    reason: str = "update",
+) -> tuple[Record, str]:
+    title, summary, body_markdown, cleaned_text = validate_notebook_text(title, summary, body_markdown)
+    tags = validate_notebook_tags(tags)
+    new_hash = notebook_content_hash(title, summary, body_markdown, tags)
+    content_changed = new_hash != (record.content_hash or notebook_content_hash(
+        record.title,
+        record.summary,
+        record.content_markdown or record.raw_transcript,
+        record.metadata.tags,
+    ))
+    if status is not None and status not in NOTEBOOK_STATUSES:
+        raise HTTPException(status_code=400, detail="Notebook status must be active, archived, or trashed.")
+    if content_changed:
+        await save_notebook_revision(record, reason=reason)
+    next_status = status or record.status
+    if reactivate:
+        next_status = "active"
+    metadata = record.metadata.model_copy(update={
+        "tags": tags,
+        "source_title": source_title if source_title is not None else record.metadata.source_title,
+        "project_name": project_name if project_name is not None else record.metadata.project_name,
+        "content_format": "markdown",
+    })
+    now = datetime.now(timezone.utc)
+    updated = record.model_copy(update={
+        "updated_at": now,
+        "title": title,
+        "summary": summary,
+        "raw_transcript": body_markdown,
+        "cleaned_text": cleaned_text,
+        "content_markdown": body_markdown,
+        "metadata": metadata,
+        "status": next_status,
+        "version": record.version + 1 if content_changed else record.version,
+        "content_hash": new_hash,
+    })
+    await save_notebook_record(updated)
+    return updated, "updated" if content_changed else "unchanged"
+
+
+async def list_notebook_records(status: str, query: str | None, limit: int, cursor: str | None) -> dict:
+    if status not in NOTEBOOK_STATUSES and status != "all":
+        raise HTTPException(status_code=400, detail="Notebook status must be active, archived, trashed, or all.")
+    limit = max(1, min(limit, 100))
+    records: list[Record] = []
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            records = await firestore_repo.list_records(category="notebook", limit=500)
+        except Exception as exc:
+            logger.warning(f"[Notebook] Firestore list failed; falling back to SQLite: {exc}")
+    if not records:
+        with sqlite3.connect(VOICE_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM records WHERE category = 'notebook' ORDER BY updated_at DESC LIMIT 500"
+            ).fetchall()
+        records = [notebook_record_from_dict(row_to_record_dict(row)) for row in rows]
+    records = [record for record in records if status == "all" or record.status == status]
+    query_lower = (query or "").strip().lower()
+    if query_lower:
+        records = [
+            record for record in records
+            if query_lower in " ".join([
+                record.title,
+                record.summary,
+                record.cleaned_text,
+                record.content_markdown or "",
+                " ".join(record.metadata.tags),
+            ]).lower()
+        ]
+    records.sort(key=lambda record: (record.updated_at, record.id), reverse=True)
+    offset = 0
+    if cursor:
+        try:
+            offset = int(base64.urlsafe_b64decode(cursor.encode("ascii")).decode("ascii"))
+        except (ValueError, UnicodeDecodeError, binascii.Error):
+            raise HTTPException(status_code=400, detail="Invalid Notebook cursor.")
+    page = records[offset:offset + limit]
+    next_offset = offset + len(page)
+    next_cursor = None
+    if next_offset < len(records):
+        next_cursor = base64.urlsafe_b64encode(str(next_offset).encode("ascii")).decode("ascii")
+    return {
+        "notes": [record_to_public_dict(record) for record in page],
+        "next_cursor": next_cursor,
+        "count": len(page),
+        "status": status,
+        "query": query or "",
+    }
+
+
+async def list_notebook_revisions(note_id: str) -> list[dict]:
+    revisions: list[dict] = []
+    if FIRESTORE_ENABLED and firestore_repo:
+        try:
+            docs = await firestore_repo.db.collection(NOTEBOOK_REVISIONS_COLLECTION).where(
+                "note_id", "==", note_id
+            ).get()
+            revisions = [doc.to_dict() for doc in docs]
+        except Exception as exc:
+            logger.warning(f"[Notebook] Firestore revisions list failed; falling back to SQLite: {exc}")
+    if not revisions:
+        with sqlite3.connect(VOICE_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM notebook_revisions WHERE note_id = ? ORDER BY version DESC",
+                (note_id,),
+            ).fetchall()
+        revisions = []
+        for row in rows:
+            item = dict(row)
+            item["tags"] = json.loads(item.pop("tags_json") or "[]")
+            revisions.append(item)
+    for item in revisions:
+        for key in ("created_at", "updated_at"):
+            if isinstance(item.get(key), datetime):
+                item[key] = item[key].isoformat()
+    return sorted(revisions, key=lambda item: int(item.get("version", 0)), reverse=True)
+
+
+async def get_notebook_revision(note_id: str, version: int) -> dict | None:
+    revisions = await list_notebook_revisions(note_id)
+    return next((item for item in revisions if int(item.get("version", 0)) == version), None)
 
 
 async def delete_record_any(record_id: str) -> dict:
@@ -1231,8 +1618,8 @@ def normalize_memory_types(types: list[str] | str | None) -> set[str]:
     if isinstance(types, str):
         raw_types = [item.strip() for item in types.split(",")]
     else:
-        raw_types = types or ["wiki", "journal"]
-    allowed = {"wiki", "journal", "record", "records"}
+        raw_types = types or ["wiki", "journal", "notebook"]
+    allowed = {"wiki", "journal", "notebook", "record", "records"}
     selected = {item for item in raw_types if item in allowed}
     return selected or allowed
 
@@ -1398,6 +1785,8 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
             category_filter.append("life_knowledge")
         if "journal" in selected_types:
             category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+        if "notebook" in selected_types:
+            category_filter.append("notebook")
             
         results = []
         
@@ -1409,7 +1798,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                 
                 # Filter by category in memory
                 if category_filter:
-                    records = [r for r in records if r.category in category_filter]
+                    records = [r for r in records if r.category in category_filter and r.status != "trashed"]
                     
                 for r in records:
                     created_str = r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at)
@@ -1419,6 +1808,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                         "record_id": r.id,
                         "title": r.title,
                         "category_label": r.category_label,
+                        "version": r.version,
                         "created_at": created_str,
                         "snippet": (r.summary or r.cleaned_text or "")[:500]
                     })
@@ -1443,9 +1833,9 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                     conn.row_factory = sqlite3.Row
                     record_rows = conn.execute(
                         f"""
-                        SELECT id, category, category_label, title, summary, cleaned_text, created_at
+                        SELECT id, category, category_label, title, summary, cleaned_text, created_at, version
                         FROM records
-                        WHERE (created_at >= ? AND created_at <= ?)
+                        WHERE status != 'trashed' AND (created_at >= ? AND created_at <= ?)
                         {category_clause}
                         ORDER BY created_at DESC
                         LIMIT ?
@@ -1460,6 +1850,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                             "record_id": row["id"],
                             "title": row["title"],
                             "category_label": row["category_label"],
+                            "version": row["version"],
                             "created_at": row["created_at"],
                             "snippet": (row["summary"] or row["cleaned_text"] or "")[:500]
                         })
@@ -1485,6 +1876,8 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                 category_filter.append("life_knowledge")
             if "journal" in selected_types:
                 category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+            if "notebook" in selected_types:
+                category_filter.append("notebook")
             if "record" in selected_types or "records" in selected_types:
                 category_filter = []
                 
@@ -1498,6 +1891,8 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                     )
                     results = []
                     for r in records:
+                        if r.status == "trashed":
+                            continue
                         created_str = r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at)
                         results.append({
                             "type": r.category,
@@ -1505,6 +1900,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                             "record_id": r.id,
                             "title": r.title,
                             "category_label": r.category_label,
+                            "version": r.version,
                             "created_at": created_str,
                             "snippet": (r.summary or r.cleaned_text or "")[:500]
                         })
@@ -1526,6 +1922,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
             all_records = await firestore_repo.list_records(limit=150)
             if category_filter:
                 all_records = [r for r in all_records if r.category in category_filter]
+            all_records = [r for r in all_records if r.status != "trashed"]
                 
             scored_results = []
             keywords = [w.lower() for w in re.findall(r"[\w\u4e00-\u9fff]+", query)]
@@ -1562,6 +1959,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                     "record_id": r.id,
                     "title": r.title,
                     "category_label": r.category_label,
+                    "version": r.version,
                     "created_at": created_str,
                     "snippet": (r.summary or r.cleaned_text or "")[:500]
                 })
@@ -1577,6 +1975,8 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
         category_filter.append("life_knowledge")
     if "journal" in selected_types:
         category_filter.extend(["self_reflection", "work_idea", "family_plan", "inbox"])
+    if "notebook" in selected_types:
+        category_filter.append("notebook")
     if "record" in selected_types or "records" in selected_types:
         category_filter = []
 
@@ -1593,9 +1993,9 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
         try:
             record_rows = conn.execute(
                 f"""
-                SELECT id, category, category_label, title, summary, cleaned_text, created_at
+                SELECT id, category, category_label, title, summary, cleaned_text, created_at, version
                 FROM records
-                WHERE (title LIKE ? OR summary LIKE ? OR cleaned_text LIKE ?)
+                WHERE status != 'trashed' AND (title LIKE ? OR summary LIKE ? OR cleaned_text LIKE ?)
                 {category_clause}
                 ORDER BY created_at DESC
                 LIMIT ?
@@ -1609,6 +2009,7 @@ async def search_memory(query: str, types: list[str] | str | None = None, limit:
                     "record_id": row["id"],
                     "title": row["title"],
                     "category_label": row["category_label"],
+                    "version": row["version"],
                     "created_at": row["created_at"],
                     "snippet": (row["summary"] or row["cleaned_text"] or "")[:500],
                 }
@@ -1720,7 +2121,7 @@ def extract_wiki_entry_from_text(text: str) -> dict:
 
 
 async def build_memory_note(query: str) -> tuple[str | None, list[dict]]:
-    sources = await search_memory(query, ["wiki", "journal"], 5)
+    sources = await search_memory(query, ["wiki", "journal", "notebook"], 5)
     if not sources:
         return None, []
     snippets = " | ".join(f"{item['title']}: {item['snippet']}" for item in sources[:3])
@@ -2365,7 +2766,7 @@ async def get_wiki_entries(
 @app.get("/api/memory/search")
 async def get_memory_search(
     q: str = Query(..., min_length=1),
-    types: str = Query(default="wiki,journal"),
+    types: str = Query(default="wiki,journal,notebook"),
     limit: int = Query(default=8, ge=1, le=30),
 ):
     return {"results": await search_memory(q, types, limit)}
@@ -2444,6 +2845,157 @@ async def patch_record_category(record_id: str, req: RecordCategoryUpdateRequest
     return await update_record_any(record_id, RecordUpdateRequest(category=category))
 
 
+@app.post("/api/integrations/notebook/ingest")
+async def ingest_notebook(req: NotebookIngestRequest):
+    if req.schema_version != "1.0":
+        raise HTTPException(status_code=400, detail="Unsupported Notebook schema_version.")
+    app_name = (req.source.app or "").strip().lower()
+    item_id = (req.source.item_id or "").strip()
+    if not re.match(r"^[a-z0-9][a-z0-9._-]{0,63}$", app_name):
+        raise HTTPException(status_code=400, detail="Notebook source.app is invalid.")
+    if not item_id or len(item_id) > 300:
+        raise HTTPException(status_code=400, detail="Notebook source.item_id is required and must be short.")
+    title, summary, body_markdown, cleaned_text = validate_notebook_text(
+        req.note.title,
+        req.note.summary,
+        req.note.body_markdown,
+    )
+    tags = validate_notebook_tags(req.note.tags)
+    captured_at = datetime.now(timezone.utc)
+    if req.captured_at:
+        try:
+            captured_at = datetime.fromisoformat(req.captured_at.replace("Z", "+00:00"))
+            if captured_at.tzinfo is None:
+                captured_at = captured_at.replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="captured_at must be an ISO datetime.")
+    external_key_hash = notebook_external_key_hash(app_name, item_id)
+    content_hash = notebook_content_hash(title, summary, body_markdown, tags)
+    existing = await find_notebook_by_external_key(external_key_hash)
+    if existing:
+        updated, operation = await update_notebook_record(
+            existing,
+            title=title,
+            summary=summary,
+            body_markdown=body_markdown,
+            tags=tags,
+            source_title=(req.source.title or "").strip()[:200] or None,
+            project_name=(req.source.project_name or "").strip()[:120] or None,
+            reactivate=True,
+            reason="codex_ingest",
+        )
+        return {
+            "operation": operation,
+            "note_id": updated.id,
+            "version": updated.version,
+            "status": updated.status,
+            "note": record_to_public_dict(updated),
+        }
+
+    note_id = f"note_{external_key_hash[:32]}"
+    now = datetime.now(timezone.utc)
+    record = Record(
+        id=note_id,
+        created_at=captured_at,
+        updated_at=now,
+        source="codex",
+        raw_transcript=body_markdown,
+        cleaned_text=cleaned_text,
+        content_markdown=body_markdown,
+        category="notebook",
+        category_label=CATEGORY_LABELS["notebook"],
+        confidence=1.0,
+        needs_review=False,
+        title=title,
+        summary=summary,
+        metadata=RecordMetadata(
+            tags=tags,
+            source_title=(req.source.title or "").strip()[:200] or None,
+            project_name=(req.source.project_name or "").strip()[:120] or None,
+            content_format="markdown",
+        ),
+        status="active",
+        version=1,
+        external_key_hash=external_key_hash,
+        content_hash=content_hash,
+    )
+    await save_notebook_record(record)
+    return {
+        "operation": "created",
+        "note_id": record.id,
+        "version": record.version,
+        "status": record.status,
+        "note": record_to_public_dict(record),
+    }
+
+
+@app.get("/api/notebook/notes")
+async def get_notebook_notes(
+    status: str = Query(default="active"),
+    q: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = Query(default=None),
+):
+    return await list_notebook_records(status, q, limit, cursor)
+
+
+@app.get("/api/notebook/notes/{note_id}")
+async def get_notebook_note(note_id: str):
+    record = await get_record_any_for_notebook(note_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Notebook note not found.")
+    return {"note": record_to_public_dict(record)}
+
+
+@app.patch("/api/notebook/notes/{note_id}")
+async def patch_notebook_note(note_id: str, req: NotebookUpdateRequest):
+    record = await get_record_any_for_notebook(note_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Notebook note not found.")
+    body = req.body_markdown if req.body_markdown is not None else (record.content_markdown or record.raw_transcript)
+    title = req.title if req.title is not None else record.title
+    summary = req.summary if req.summary is not None else record.summary
+    tags = req.tags if req.tags is not None else record.metadata.tags
+    updated, operation = await update_notebook_record(
+        record,
+        title=title,
+        summary=summary,
+        body_markdown=body,
+        tags=tags,
+        status=req.status,
+        reason="app_edit",
+    )
+    return {"operation": operation, "note": record_to_public_dict(updated)}
+
+
+@app.get("/api/notebook/notes/{note_id}/revisions")
+async def get_notebook_note_revisions(note_id: str):
+    record = await get_record_any_for_notebook(note_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Notebook note not found.")
+    return {"revisions": await list_notebook_revisions(note_id)}
+
+
+@app.post("/api/notebook/notes/{note_id}/revisions/{version}/restore")
+async def restore_notebook_revision(note_id: str, version: int):
+    record = await get_record_any_for_notebook(note_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Notebook note not found.")
+    revision = await get_notebook_revision(note_id, version)
+    if not revision:
+        raise HTTPException(status_code=404, detail="Notebook revision not found.")
+    updated, operation = await update_notebook_record(
+        record,
+        title=revision.get("title") or record.title,
+        summary=revision.get("summary") or record.summary,
+        body_markdown=revision.get("body_markdown") or record.content_markdown or record.raw_transcript,
+        tags=revision.get("tags") or [],
+        status="active",
+        reason=f"restore_v{version}",
+    )
+    return {"operation": operation, "note": record_to_public_dict(updated)}
+
+
 @app.get("/api/voice/entries")
 async def get_voice_entries(
     folder_id: str | None = Query(default=None),
@@ -2500,7 +3052,7 @@ async def process_voice_submission(
         }
         insert_wiki_entry(wiki_entry)
     elif resolved_mode == "ask":
-        sources = await search_memory(transcript, ["wiki", "journal"], 8)
+        sources = await search_memory(transcript, ["wiki", "journal", "notebook"], 8)
         answer = await answer_with_deepseek(transcript, sources)
 
     record_draft = await create_record_draft(transcript, resolved_mode, source, route, parsed_task)

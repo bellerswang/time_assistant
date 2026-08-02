@@ -19,6 +19,8 @@
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
     <script src="./firebase-config.js?v=20260725.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     
     <!-- Icon Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -1679,6 +1681,29 @@
             backdrop-filter: blur(10px);
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 14px 34px rgba(0, 0, 0, 0.28);
         }
+
+        .notebook-toolbar { display:flex; gap:8px; align-items:center; margin:12px 0; }
+        .notebook-toolbar .form-input { margin:0; flex:1; min-width:0; }
+        .notebook-filter-row { display:flex; gap:7px; overflow-x:auto; padding-bottom:4px; }
+        .notebook-filter-chip { border:1px solid var(--border); background:rgba(0,0,0,.18); color:var(--text-muted); border-radius:999px; padding:6px 11px; font-size:11px; white-space:nowrap; cursor:pointer; }
+        .notebook-filter-chip.active { color:var(--primary); border-color:rgba(0,245,255,.55); background:var(--primary-dim); }
+        .notebook-list { display:flex; flex-direction:column; gap:10px; padding-bottom:20px; }
+        .notebook-card { border:1px solid rgba(189,147,249,.25); background:rgba(20,15,45,.72); border-radius:var(--radius-lg); padding:13px; cursor:pointer; transition:transform .18s ease, border-color .18s ease; }
+        .notebook-card:hover { transform:translateY(-1px); border-color:rgba(0,245,255,.55); }
+        .notebook-card-top { display:flex; justify-content:space-between; gap:8px; color:var(--text-faint); font-size:10px; }
+        .notebook-card-title { margin-top:7px; font-size:15px; font-weight:750; line-height:1.35; }
+        .notebook-card-summary { margin-top:7px; color:var(--text-muted); font-size:12px; line-height:1.55; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+        .notebook-card-tags { margin-top:9px; display:flex; gap:5px; flex-wrap:wrap; }
+        .notebook-tag { color:var(--accent); background:var(--accent-dim); border-radius:999px; padding:3px 7px; font-size:10px; }
+        .notebook-empty { color:var(--text-muted); text-align:center; padding:32px 14px; border:1px dashed var(--border); border-radius:var(--radius-lg); }
+        .notebook-preview { margin-top:10px; padding:13px; max-height:260px; overflow:auto; border:1px solid var(--divider); border-radius:var(--radius-md); background:rgba(0,0,0,.2); line-height:1.65; font-size:13px; }
+        .notebook-preview h1, .notebook-preview h2, .notebook-preview h3 { margin:10px 0 5px; color:var(--text); }
+        .notebook-preview p, .notebook-preview ul, .notebook-preview ol, .notebook-preview pre, .notebook-preview blockquote { margin:7px 0; }
+        .notebook-preview pre { overflow:auto; padding:9px; border-radius:8px; background:#090817; }
+        .notebook-preview code { color:var(--primary); }
+        .notebook-preview blockquote { border-left:3px solid var(--accent); padding-left:10px; color:var(--text-muted); }
+        .notebook-revisions { margin-top:12px; border-top:1px solid var(--divider); padding-top:10px; }
+        .notebook-revision-row { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:7px 0; font-size:11px; color:var(--text-muted); }
         .loomi-selector-btn {
             flex: 1;
             background: transparent;
@@ -2348,7 +2373,32 @@
                 </div>
             </div>
 
-            <!-- VIEW 7: Settings -->
+            <!-- VIEW 7: Notebook -->
+            <div id="tab-notebook" class="tab-panel record-home">
+                <div class="record-section-head">
+                    <div class="record-section-title">Notebook</div>
+                    <button class="action-pill primary" id="btn-refresh-notebook" style="height:34px;">
+                        <i class="fa-solid fa-rotate"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="notebook-toolbar">
+                    <input type="search" class="form-input" id="notebook-search-input" placeholder="Search notes...">
+                    <button class="record-primary-action" id="btn-search-notebook" style="height:38px; border-radius:var(--radius-md);" aria-label="Search Notebook">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+                <div class="notebook-filter-row" id="notebook-filter-row">
+                    <button class="notebook-filter-chip active" data-notebook-status="active">Active</button>
+                    <button class="notebook-filter-chip" data-notebook-status="archived">Archived</button>
+                    <button class="notebook-filter-chip" data-notebook-status="trashed">Trash</button>
+                    <button class="notebook-filter-chip" data-notebook-status="all">All</button>
+                </div>
+                <div class="notebook-list" id="notebook-list"></div>
+                <div class="notebook-empty" id="notebook-empty" hidden>No Notebook notes yet.</div>
+            </div>
+
+            <!-- VIEW 8: Settings -->
             <div id="tab-settings-home" class="tab-panel record-home">
                 <section class="record-hero compact">
                     <div class="record-hero-title">Settings</div>
@@ -2380,6 +2430,10 @@
             <button class="nav-item" data-tab="records">
                 <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
                 <span>Records</span>
+            </button>
+            <button class="nav-item" data-tab="notebook">
+                <svg viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v14a2 2 0 0 0 2 2h10V4H6zm3 3h7v2H9V7zm0 4h7v2H9v-2z"/></svg>
+                <span>Notebook</span>
             </button>
         </nav>
 
@@ -2517,6 +2571,26 @@
         </div>
 
         <!-- SHEET 2: 系统设置 -->
+        <div class="bottom-sheet" id="sheet-notebook-detail">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <span class="sheet-title"><i class="fa-solid fa-book-open"></i> Notebook note</span>
+                <button class="sheet-close-btn" onclick="closeAllSheets()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <input type="hidden" id="notebook-detail-id">
+            <input type="text" class="form-input" id="notebook-detail-title" placeholder="Title" style="margin:0;">
+            <textarea class="form-input" id="notebook-detail-summary" placeholder="Short summary" style="min-height:70px; margin:0; resize:vertical;"></textarea>
+            <div class="notebook-preview" id="notebook-detail-preview"></div>
+            <textarea class="semantic-textarea" id="notebook-detail-body" placeholder="Markdown content" style="min-height:220px; resize:vertical;"></textarea>
+            <input type="text" class="form-input" id="notebook-detail-tags" placeholder="Tags, separated by commas" style="margin:0;">
+            <div class="notebook-revisions" id="notebook-detail-revisions"></div>
+            <div class="sheet-action-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn-sheet-primary" id="btn-save-notebook-note" style="flex:1; min-width:130px;"><i class="fa-solid fa-check"></i> Save</button>
+                <button class="btn-sheet-secondary" id="btn-archive-notebook-note"><i class="fa-solid fa-box-archive"></i> Archive</button>
+                <button class="btn-sheet-secondary" id="btn-trash-notebook-note" style="color:var(--error); border-color:rgba(255,85,85,.35);"><i class="fa-solid fa-trash-can"></i> Trash</button>
+            </div>
+        </div>
+
         <div class="bottom-sheet" id="sheet-settings">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -3684,13 +3758,14 @@
         }
 
         function setActiveAppMode(tabName) {
-            const memoryTabs = ['voice', 'inbox', 'records'];
+            const memoryTabs = ['voice', 'inbox', 'records', 'notebook'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
                 timeline: appLanguage === 'en' ? 'Schedule' : '日程',
                 analytics: appLanguage === 'en' ? 'Analytics' : '分析',
                 voice: 'Loomi',
                 records: langText('records'),
+                notebook: 'Notebook',
                 sleep: '睡眠'
             };
             document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
@@ -3799,6 +3874,177 @@
         function setInboxFilter(filter) {
             inboxFilter = ['all', 'open', 'waiting', 'done', 'dismissed'].includes(filter) ? filter : 'open';
             loadInbox();
+        }
+
+        let notebookStatus = 'active';
+        let activeNotebookNote = null;
+
+        function renderNotebookMarkdown(markdown) {
+            const source = String(markdown || '');
+            try {
+                if (window.marked && window.DOMPurify) {
+                    const rendered = window.marked.parse(source, { mangle: false, headerIds: false });
+                    return window.DOMPurify.sanitize(rendered, {
+                        USE_PROFILES: { html: true },
+                        FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed'],
+                        ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i
+                    });
+                }
+            } catch (error) {
+                console.warn('[Notebook] Markdown rendering failed; using text fallback.', error);
+            }
+            return escapeHtml(source).replace(/\n/g, '<br>');
+        }
+
+        function formatMemorySource(source) {
+            const label = source?.type === 'notebook' ? 'Notebook' : (source?.category_label || source?.type || 'Memory');
+            const version = source?.type === 'notebook' && source?.version ? ` v${source.version}` : '';
+            return `${label}${version}: ${source?.title || source?.id || ''}`;
+        }
+
+        function notebookDate(value) {
+            if (!value) return '-';
+            try { return new Date(value).toLocaleString(appLanguage === 'en' ? 'en-GB' : 'zh-CN'); }
+            catch { return String(value); }
+        }
+
+        function renderNotebookList(notes) {
+            const list = document.getElementById('notebook-list');
+            const empty = document.getElementById('notebook-empty');
+            if (!list || !empty) return;
+            if (!notes.length) {
+                list.innerHTML = '';
+                empty.hidden = false;
+                empty.textContent = notebookStatus === 'active' ? 'No active Notebook notes yet.' : 'No notes in this view.';
+                return;
+            }
+            empty.hidden = true;
+            list.innerHTML = notes.map(note => {
+                const tags = (note.tags || note.metadata?.tags || []).map(tag => `<span class="notebook-tag">${escapeHtml(tag)}</span>`).join('');
+                const status = note.status && note.status !== 'active' ? ` · ${escapeHtml(note.status)}` : '';
+                return `<article class="notebook-card" data-notebook-note="${escapeHtml(note.id)}">
+                    <div class="notebook-card-top"><span>Codex${status}</span><span>v${escapeHtml(String(note.version || 1))} · ${escapeHtml(notebookDate(note.updated_at))}</span></div>
+                    <div class="notebook-card-title">${escapeHtml(note.title || 'Untitled note')}</div>
+                    <div class="notebook-card-summary">${escapeHtml(note.summary || note.cleaned_text || '')}</div>
+                    ${tags ? `<div class="notebook-card-tags">${tags}</div>` : ''}
+                </article>`;
+            }).join('');
+        }
+
+        async function loadNotebookNotes() {
+            const list = document.getElementById('notebook-list');
+            if (list) list.innerHTML = '<div class="notebook-empty">Loading Notebook...</div>';
+            const q = document.getElementById('notebook-search-input')?.value.trim() || '';
+            try {
+                const params = new URLSearchParams({ status: notebookStatus, limit: '50' });
+                if (q) params.set('q', q);
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes?${params.toString()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                renderNotebookList(data.notes || []);
+            } catch (error) {
+                console.error('[Notebook] Load failed:', error);
+                if (list) list.innerHTML = '';
+                const empty = document.getElementById('notebook-empty');
+                if (empty) { empty.hidden = false; empty.textContent = 'Could not load Notebook. Check backend connection.'; }
+            }
+        }
+
+        function setNotebookStatus(status) {
+            notebookStatus = ['active', 'archived', 'trashed', 'all'].includes(status) ? status : 'active';
+            document.querySelectorAll('[data-notebook-status]').forEach(button => {
+                button.classList.toggle('active', button.getAttribute('data-notebook-status') === notebookStatus);
+            });
+            loadNotebookNotes();
+        }
+
+        async function openNotebookNote(noteId) {
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes/${encodeURIComponent(noteId)}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                activeNotebookNote = data.note;
+                document.getElementById('notebook-detail-id').value = activeNotebookNote.id;
+                document.getElementById('notebook-detail-title').value = activeNotebookNote.title || '';
+                document.getElementById('notebook-detail-summary').value = activeNotebookNote.summary || '';
+                document.getElementById('notebook-detail-body').value = activeNotebookNote.content_markdown || activeNotebookNote.raw_transcript || '';
+                document.getElementById('notebook-detail-tags').value = (activeNotebookNote.tags || activeNotebookNote.metadata?.tags || []).join(', ');
+                document.getElementById('notebook-detail-preview').innerHTML = renderNotebookMarkdown(document.getElementById('notebook-detail-body').value);
+                const revisionsResponse = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes/${encodeURIComponent(noteId)}/revisions`);
+                const revisionsData = revisionsResponse.ok ? await revisionsResponse.json() : { revisions: [] };
+                const revisions = revisionsData.revisions || [];
+                document.getElementById('notebook-detail-revisions').innerHTML = revisions.length
+                    ? `<div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Version history</div>${revisions.map(revision => `<div class="notebook-revision-row"><span>v${escapeHtml(String(revision.version))} · ${escapeHtml(notebookDate(revision.created_at || revision.updated_at))}</span><button class="btn-sheet-secondary" data-notebook-restore="${escapeHtml(String(revision.version))}" style="padding:4px 8px; font-size:10px;">Restore</button></div>`).join('')}`
+                    : '<div style="font-size:11px; color:var(--text-muted);">No previous versions.</div>';
+                document.getElementById('btn-archive-notebook-note').style.display = activeNotebookNote.status === 'archived' ? 'none' : '';
+                document.getElementById('btn-trash-notebook-note').style.display = activeNotebookNote.status === 'trashed' ? 'none' : '';
+                openSheet('sheet-notebook-detail');
+            } catch (error) {
+                console.error('[Notebook] Detail load failed:', error);
+                showToast('Could not load Notebook note.', 'error');
+            }
+        }
+
+        async function saveNotebookDetail() {
+            const noteId = document.getElementById('notebook-detail-id')?.value;
+            if (!noteId) return;
+            const tags = document.getElementById('notebook-detail-tags').value.split(',').map(tag => tag.trim()).filter(Boolean);
+            const payload = {
+                title: document.getElementById('notebook-detail-title').value,
+                summary: document.getElementById('notebook-detail-summary').value,
+                body_markdown: document.getElementById('notebook-detail-body').value,
+                tags
+            };
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes/${encodeURIComponent(noteId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                activeNotebookNote = (await response.json()).note;
+                document.getElementById('notebook-detail-preview').innerHTML = renderNotebookMarkdown(activeNotebookNote.content_markdown || '');
+                await loadNotebookNotes();
+                showToast('Notebook saved.', 'success');
+            } catch (error) {
+                console.error('[Notebook] Save failed:', error);
+                showToast('Could not save Notebook note.', 'error');
+            }
+        }
+
+        async function updateNotebookStatus(status) {
+            const noteId = document.getElementById('notebook-detail-id')?.value;
+            if (!noteId) return;
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes/${encodeURIComponent(noteId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                closeAllSheets();
+                await loadNotebookNotes();
+                showToast(status === 'archived' ? 'Notebook archived.' : 'Notebook moved to Trash.', 'success');
+            } catch (error) {
+                console.error('[Notebook] Status update failed:', error);
+                showToast('Could not update Notebook status.', 'error');
+            }
+        }
+
+        async function restoreNotebookRevision(version) {
+            const noteId = document.getElementById('notebook-detail-id')?.value;
+            if (!noteId) return;
+            if (!confirm(`Restore Notebook version ${version}?`)) return;
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/notebook/notes/${encodeURIComponent(noteId)}/revisions/${encodeURIComponent(version)}/restore`, { method: 'POST' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                await openNotebookNote(noteId);
+                await loadNotebookNotes();
+                showToast('Notebook version restored.', 'success');
+            } catch (error) {
+                console.error('[Notebook] Revision restore failed:', error);
+                showToast('Could not restore Notebook version.', 'error');
+            }
         }
 
         function setRecordFilter(category) {
@@ -3950,7 +4196,7 @@
             const box = document.getElementById('voice-save-result');
             if (!box) return;
             if (data.mode === 'ask') {
-                const sources = (data.sources || []).map(src => `${escapeHtml(src.type || src.category_label)}: ${escapeHtml(src.title || src.id)}`).join('<br>');
+                const sources = (data.sources || []).map(src => escapeHtml(formatMemorySource(src))).join('<br>');
                 box.innerHTML = `<strong>Memory Answer</strong><br>${escapeHtml(data.answer || 'No answer returned.')}<br><span style="color:var(--text-muted); font-size:12px; display:block; margin-top:8px;">Sources:<br>${sources}</span>`;
                 box.classList.add('active');
                 return;
@@ -4059,7 +4305,7 @@
                 const data = await response.json();
                 const sources = (data.sources || []).map((src, i) =>
                     `<div style="padding: 4px 0; border-top: 1px solid var(--divider); font-size: 11px; color: var(--text-muted);">
-                        <span style="color:var(--primary);">[${i+1}]</span> ${escapeHtml(src.category_label || src.type)}: ${escapeHtml(src.title || src.id)}
+                        <span style="color:var(--primary);">[${i+1}]</span> ${escapeHtml(formatMemorySource(src))}
                     </div>`
                 ).join('');
                 if (result) {
@@ -4212,7 +4458,7 @@
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/records?${params.toString()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                const entries = data.records || data.entries || [];
+                const entries = (data.records || data.entries || []).filter(entry => entry.category !== 'notebook');
                 latestRecordEntries = entries;
                 if (!entries.length) {
                     list.innerHTML = '<div class="voice-entry-card"><div class="voice-entry-text">No voice notes yet.</div></div>';
@@ -4266,7 +4512,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-todo-detail', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-todo-detail', 'sheet-notebook-detail', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -5777,6 +6023,7 @@
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
+                    else if (targetTab === 'notebook') loadNotebookNotes();
                 });
             });
 
@@ -5888,6 +6135,29 @@
             document.getElementById('inbox-list')?.addEventListener('click', event => {
                 const button = event.target.closest('[data-inbox-action]');
                 if (button) updateInboxStatus(button.getAttribute('data-inbox-item'), button.getAttribute('data-inbox-action'));
+            });
+
+            document.querySelectorAll('[data-notebook-status]').forEach(button => {
+                button.addEventListener('click', () => setNotebookStatus(button.getAttribute('data-notebook-status') || 'active'));
+            });
+            document.getElementById('btn-refresh-notebook')?.addEventListener('click', loadNotebookNotes);
+            document.getElementById('btn-search-notebook')?.addEventListener('click', loadNotebookNotes);
+            document.getElementById('notebook-search-input')?.addEventListener('keydown', event => {
+                if (event.key === 'Enter') loadNotebookNotes();
+            });
+            document.getElementById('notebook-list')?.addEventListener('click', event => {
+                const card = event.target.closest('[data-notebook-note]');
+                if (card) openNotebookNote(card.getAttribute('data-notebook-note'));
+            });
+            document.getElementById('notebook-detail-body')?.addEventListener('input', event => {
+                document.getElementById('notebook-detail-preview').innerHTML = renderNotebookMarkdown(event.target.value);
+            });
+            document.getElementById('btn-save-notebook-note')?.addEventListener('click', saveNotebookDetail);
+            document.getElementById('btn-archive-notebook-note')?.addEventListener('click', () => updateNotebookStatus('archived'));
+            document.getElementById('btn-trash-notebook-note')?.addEventListener('click', () => updateNotebookStatus('trashed'));
+            document.getElementById('notebook-detail-revisions')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-notebook-restore]');
+                if (button) restoreNotebookRevision(button.getAttribute('data-notebook-restore'));
             });
 
             document.querySelectorAll('.voice-mode-btn').forEach(btn => {

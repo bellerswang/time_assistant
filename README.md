@@ -260,3 +260,17 @@ Email Workflow results are stored in Firestore, not in the local SQLite file. Th
 - Full email bodies are not persisted. The workflow stores only the structured action card data needed by Loomi.
 
 Cloud Run must run with a service account that has `roles/datastore.user` for the Firestore project.
+
+## v2.4.0 - Codex Notebook ingestion
+
+- Added the `notebook` Record category and `codex` source metadata.
+- Added revisioned Notebook notes with active, archived, and trashed lifecycle states.
+- Added authenticated `POST /api/integrations/notebook/ingest` using `X-Loomi-Ingest-Key` and the `LOOMI_INGEST_API_KEY` secret.
+- Added Notebook CRUD, search, archive/trash/restore, revision listing, and revision restore endpoints.
+- Added a dedicated Notebook tab with Markdown-safe rendering, editing, lifecycle controls, and version history.
+- Included Notebook records in Ask/memory search while excluding trashed notes.
+- Updated the PWA cache version and bundled pinned Markdown renderer dependencies.
+
+Notebook ingestion accepts a structured final Codex answer only; it does not store the preceding conversation. The sender should provide `source.app`, `source.item_id` (normally `CODEX_THREAD_ID`), `note.title`, `note.summary`, `note.body_markdown`, and optional tags. The same source item is idempotently updated and creates a new revision only when content changes.
+
+For Cloud Run, configure `LOOMI_INGEST_API_KEY` from Secret Manager as a secret environment variable. The local global Codex skill reads `LOOMI_API_URL` and `LOOMI_INGEST_API_KEY` from the ignored `%USERPROFILE%\\.codex\\loomi.env` file; it never uses the email workflow key. App Notebook reads and edits continue to use Firebase authentication.

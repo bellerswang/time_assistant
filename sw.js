@@ -1,7 +1,9 @@
-const CACHE_NAME = 'chronoai-v2.1.3';
+const CACHE_NAME = 'chronoai-v2.1.4';
 const ASSETS = [
   './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js',
+  'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js',
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap'
 ];
 
