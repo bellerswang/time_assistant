@@ -197,6 +197,7 @@ GOOGLE_DOCS_DEFAULT_DOC_ID = os.getenv("GOOGLE_DOCS_DEFAULT_DOC_ID")
 FIRESTORE_ENABLED = os.getenv("FIRESTORE_ENABLED", "true").lower() in {"1", "true", "yes"}
 FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
 FIRESTORE_COLLECTION = os.getenv("FIRESTORE_COLLECTION", "records")
+TODO_COLLECTION = os.getenv("TODO_COLLECTION", "todos")
 NOTEBOOK_MAX_BODY_CHARS = int(os.getenv("NOTEBOOK_MAX_BODY_CHARS", "120000"))
 NOTEBOOK_MAX_SUMMARY_CHARS = int(os.getenv("NOTEBOOK_MAX_SUMMARY_CHARS", "800"))
 NOTEBOOK_MAX_TAGS = int(os.getenv("NOTEBOOK_MAX_TAGS", "12"))
@@ -260,6 +261,36 @@ class RecordUpdateRequest(BaseModel):
     cleaned_text: str | None = None
     content_markdown: str | None = None
     category: str | None = None
+
+
+class TodoUpsertRequest(BaseModel):
+    title: str
+    category: str = "personal"
+    categoryLabel: str | None = None
+    estimatedMins: int | None = None
+    dueDate: str | None = None
+    rangeEndDate: str | None = None
+    notes: str = ""
+    originalText: str = ""
+    status: str = "open"
+    source: str = "text"
+    sourceRecordId: str | None = None
+    createdAt: str | None = None
+    updatedAt: str | None = None
+
+
+class TodoUpdateRequest(BaseModel):
+    title: str | None = None
+    category: str | None = None
+    categoryLabel: str | None = None
+    estimatedMins: int | None = None
+    dueDate: str | None = None
+    rangeEndDate: str | None = None
+    notes: str | None = None
+    originalText: str | None = None
+    status: str | None = None
+    source: str | None = None
+    sourceRecordId: str | None = None
 
 
 class WorkflowResultRequest(BaseModel):
@@ -613,6 +644,135 @@ def get_workflow_store() -> FirestoreWorkflowService:
     if workflow_store is None:
         raise HTTPException(status_code=503, detail="Firestore workflow storage is not configured")
     return workflow_store
+
+
+TODO_STATUSES = {"open", "done"}
+
+
+def get_todo_collection():
+    if not (FIRESTORE_ENABLED and firestore_repo):
+        raise HTTPException(status_code=503, detail="Firestore Todo storage is not configured")
+    return firestore_repo.db.collection(TODO_COLLECTION)
+
+
+def normalize_todo_value(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().casefold())
+
+
+def todo_dedupe_key(data: dict) -> str:
+    source_record_id = normalize_todo_value(data.get("sourceRecordId"))
+    if source_record_id:
+        canonical = f"source:{source_record_id}"
+    else:
+        canonical = json.dumps(
+            {
+                "title": normalize_todo_value(data.get("title")),
+                "dueDate": normalize_todo_value(data.get("dueDate")),
+                "rangeEndDate": normalize_todo_value(data.get("rangeEndDate")),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def todo_doc_id(dedupe_key: str) -> str:
+    return f"todo_{dedupe_key}"
+
+
+def firestore_value_to_json(value):
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: firestore_value_to_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [firestore_value_to_json(item) for item in value]
+    return value
+
+
+def todo_public_dict(todo_id: str, data: dict) -> dict:
+    result = firestore_value_to_json(dict(data))
+    result["id"] = todo_id
+    result["dedupeKey"] = result.get("dedupeKey") or result.get("dedupe_key")
+    result.pop("dedupe_key", None)
+    return result
+
+
+def validate_todo_dates(todo: dict) -> None:
+    for field in ("dueDate", "rangeEndDate"):
+        value = todo.get(field)
+        if not value:
+            continue
+        try:
+            datetime.strptime(str(value), "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"{field} must use YYYY-MM-DD format.")
+
+
+async def list_firestore_todos(date: str | None, include_completed: bool, limit: int) -> list[dict]:
+    collection = get_todo_collection()
+    docs = await collection.limit(min(max(limit, 1), 500)).get()
+    todos = []
+    for doc in docs:
+        todo = todo_public_dict(doc.id, doc.to_dict() or {})
+        if date and todo.get("dueDate") != date:
+            continue
+        if not include_completed and todo.get("status", "open") == "done":
+            continue
+        todos.append(todo)
+    todos.sort(key=lambda item: item.get("createdAt") or item.get("updatedAt") or "")
+    return todos[:limit]
+
+
+async def upsert_firestore_todo(payload: dict) -> tuple[dict, bool]:
+    title = str(payload.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Todo title cannot be empty.")
+    status = str(payload.get("status") or "open").strip().lower()
+    if status not in TODO_STATUSES:
+        raise HTTPException(status_code=400, detail="Todo status must be open or done.")
+    payload = dict(payload)
+    payload["title"] = title
+    payload["status"] = status
+    validate_todo_dates(payload)
+    now = utc_now_iso()
+    dedupe_key = todo_dedupe_key(payload)
+    document_id = todo_doc_id(dedupe_key)
+    reference = get_todo_collection().document(document_id)
+    snapshot = await reference.get()
+    existing = snapshot.to_dict() or {} if snapshot.exists else {}
+    document = {
+        "title": title,
+        "category": payload.get("category") or "personal",
+        "categoryLabel": payload.get("categoryLabel"),
+        "estimatedMins": payload.get("estimatedMins"),
+        "dueDate": payload.get("dueDate"),
+        "rangeEndDate": payload.get("rangeEndDate") or payload.get("dueDate"),
+        "notes": payload.get("notes") or "",
+        "originalText": payload.get("originalText") or title,
+        "status": status,
+        "source": payload.get("source") or "text",
+        "sourceRecordId": payload.get("sourceRecordId"),
+        "dedupeKey": dedupe_key,
+        "createdAt": existing.get("createdAt") or payload.get("createdAt") or now,
+        "updatedAt": now,
+    }
+    await reference.set(document, merge=True)
+    return todo_public_dict(document_id, document), not snapshot.exists
+
+
+async def delete_firestore_todo(todo_id: str, dedupe_key: str | None = None) -> bool:
+    collection = get_todo_collection()
+    reference = collection.document(todo_id)
+    snapshot = await reference.get()
+    if not snapshot.exists and dedupe_key:
+        reference = collection.document(todo_doc_id(dedupe_key))
+        snapshot = await reference.get()
+    if not snapshot.exists:
+        return False
+    await reference.delete()
+    return True
 
 
 
@@ -2717,6 +2877,7 @@ async def system_status():
         "firestore_enabled": FIRESTORE_ENABLED,
         "firestore_project_id": FIRESTORE_PROJECT_ID or getattr(firestore_repo, "project_id", None),
         "firestore_collection": FIRESTORE_COLLECTION,
+        "todo_collection": TODO_COLLECTION,
         "firestore_ready": bool(FIRESTORE_ENABLED and firestore_repo),
         "firebase_project_id": FIREBASE_PROJECT_ID,
         "firebase_auth_ready": firebase_auth_ready,
@@ -2780,6 +2941,60 @@ async def ask_memory(req: MemoryAskRequest):
     sources = await search_memory(query, req.types, max(1, min(req.limit, 30)))
     answer = await answer_with_deepseek(query, sources)
     return {"answer": answer, "sources": sources}
+
+
+@app.get("/api/todos")
+async def get_todos(
+    date: str | None = Query(default=None),
+    include_completed: bool = Query(default=False),
+    limit: int = Query(default=200, ge=1, le=500),
+):
+    if date:
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="date must use YYYY-MM-DD format.")
+    todos = await list_firestore_todos(date, include_completed, limit)
+    return {
+        "todos": todos,
+        "count": len(todos),
+        "storage": "firestore",
+        "date": date,
+        "include_completed": include_completed,
+    }
+
+
+@app.post("/api/todos/upsert")
+async def upsert_todo(req: TodoUpsertRequest):
+    todo, created = await upsert_firestore_todo(req.model_dump())
+    return {
+        "todo": todo,
+        "created": created,
+        "duplicate": not created,
+        "storage": "firestore",
+    }
+
+
+@app.patch("/api/todos/{todo_id}")
+async def patch_todo(todo_id: str, req: TodoUpdateRequest):
+    collection = get_todo_collection()
+    reference = collection.document(todo_id)
+    snapshot = await reference.get()
+    if not snapshot.exists:
+        raise HTTPException(status_code=404, detail="Todo not found.")
+    current = snapshot.to_dict() or {}
+    updates = {key: value for key, value in req.model_dump().items() if value is not None}
+    merged = {**current, **updates}
+    todo, _ = await upsert_firestore_todo(merged)
+    if todo["id"] != todo_id:
+        await reference.delete()
+    return {"todo": todo, "storage": "firestore"}
+
+
+@app.delete("/api/todos/{todo_id}")
+async def delete_todo_endpoint(todo_id: str, dedupe_key: str | None = Query(default=None)):
+    deleted = await delete_firestore_todo(todo_id, dedupe_key)
+    return {"ok": True, "deleted": deleted, "todo_id": todo_id, "storage": "firestore"}
 
 
 @app.get("/api/records")

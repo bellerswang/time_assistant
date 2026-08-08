@@ -143,6 +143,7 @@ GOOGLE_DOCS_DEFAULT_DOC_ID=optional-doc-id
 FIRESTORE_ENABLED=true
 FIRESTORE_PROJECT_ID=mercurial-weft-455321
 FIRESTORE_COLLECTION=records
+TODO_COLLECTION=todos
 WORKFLOW_RUNS_COLLECTION=email_workflow_runs
 WORKFLOW_ITEMS_COLLECTION=email_action_items
 ```
@@ -218,6 +219,21 @@ DEEPSEEK_MODEL=DeepSeek-V4-Flash
 ```
 
 If `DEEPSEEK_API_KEY` is missing, Ask returns `503` but Journal, Wiki, and Schedule still work.
+
+### Schedule Todos and Firestore deduplication
+
+Schedule items without a fixed time are stored as Todos. The browser keeps a local cache for fast rendering, while the authenticated API stores the canonical copy in the Firestore `todos` collection. On login, existing browser-only Todos are migrated to Firestore once.
+
+The Todo API is:
+
+```text
+GET  /api/todos?include_completed=true&limit=500
+POST /api/todos/upsert
+PATCH /api/todos/{todo_id}
+DELETE /api/todos/{todo_id}
+```
+
+Writes are idempotent. A Todo with a source record uses that record ID as its identity; otherwise the normalized title, due date, and end date are used. Re-submitting the same item updates the existing Firestore document instead of creating another copy. The deterministic document IDs also protect against duplicates when the same voice input is submitted from more than one device.
 
 ### Google Docs sync on Cloud Run
 

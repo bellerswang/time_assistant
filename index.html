@@ -2689,8 +2689,36 @@
         const saveRoutines = (data) => DB.set('chrono_routines', data);
         const loadTasks = (date) => DB.get(`chrono_tasks_${date}`, []);
         const saveTasks = (date, data) => DB.set(`chrono_tasks_${date}`, data);
-        const loadTodos = () => DB.get('chrono_todos', []);
-        const saveTodos = (data) => DB.set('chrono_todos', data);
+        function normalizeTodoValue(value) {
+            return String(value || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function todoIdentity(todo = {}) {
+            if (todo.dedupeKey) return `key:${todo.dedupeKey}`;
+            const sourceRecordId = normalizeTodoValue(todo.sourceRecordId);
+            if (sourceRecordId) return `source:${sourceRecordId}`;
+            return JSON.stringify({
+                title: normalizeTodoValue(todo.title),
+                dueDate: normalizeTodoValue(todo.dueDate),
+                rangeEndDate: normalizeTodoValue(todo.rangeEndDate)
+            });
+        }
+
+        function dedupeTodoList(items) {
+            const byIdentity = new Map();
+            (Array.isArray(items) ? items : []).forEach(todo => {
+                const identity = todoIdentity(todo);
+                const previous = byIdentity.get(identity);
+                // Prefer the cloud copy because it has the canonical Firestore id.
+                if (!previous || (String(todo.id || '').startsWith('todo_') && !String(previous.id || '').startsWith('todo_'))) {
+                    byIdentity.set(identity, todo);
+                }
+            });
+            return Array.from(byIdentity.values());
+        }
+
+        const loadTodos = () => dedupeTodoList(DB.get('chrono_todos', []));
+        const saveTodos = (data) => DB.set('chrono_todos', dedupeTodoList(data));
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
@@ -2835,6 +2863,56 @@
             return response;
         }
 
+        async function saveTodoToCloud(todo) {
+            const response = await authFetch(`${CONFIG.BACKEND_URL}/api/todos/upsert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(todo)
+            });
+            if (!response.ok) {
+                throw new Error(`Todo sync failed: HTTP ${response.status} ${await response.text()}`);
+            }
+            const data = await response.json();
+            const savedTodo = data.todo;
+            if (!savedTodo) throw new Error('Todo sync returned no todo.');
+
+            const current = loadTodos();
+            const identity = todoIdentity(todo);
+            const next = current.filter(item => todoIdentity(item) !== identity && item.id !== todo.id);
+            next.push(savedTodo);
+            saveTodos(next);
+            return data;
+        }
+
+        async function refreshTodosFromCloud() {
+            if (!firebaseUser) return;
+            const response = await authFetch(`${CONFIG.BACKEND_URL}/api/todos?include_completed=true&limit=500`);
+            if (!response.ok) {
+                throw new Error(`Todo load failed: HTTP ${response.status} ${await response.text()}`);
+            }
+            const data = await response.json();
+            let merged = Array.isArray(data.todos) ? data.todos : [];
+            const cloudIdentities = new Set(merged.map(todoIdentity));
+
+            // Migrate older browser-only Todos once, then let Firestore become canonical.
+            for (const localTodo of loadTodos()) {
+                if (cloudIdentities.has(todoIdentity(localTodo))) continue;
+                try {
+                    const saved = await saveTodoToCloud(localTodo);
+                    const savedTodo = saved.todo;
+                    merged = merged.filter(item => todoIdentity(item) !== todoIdentity(savedTodo));
+                    merged.push(savedTodo);
+                    cloudIdentities.add(todoIdentity(savedTodo));
+                } catch (error) {
+                    console.warn('[Todos] Could not migrate local Todo to Firestore:', error);
+                    merged.push(localTodo);
+                }
+            }
+            saveTodos(merged);
+            refreshScheduleHome();
+            return merged;
+        }
+
         async function validateFirebaseSession(user) {
             firebaseUser = user;
             updateAuthAccountUi(user);
@@ -2860,6 +2938,7 @@
                 } else {
                     loadVoiceFolders().then(renderVoiceInbox);
                     loadInbox();
+                    refreshTodosFromCloud().catch(error => console.warn('[Todos] Cloud refresh failed:', error));
                     renderTimeline();
                 }
             } catch (error) {
@@ -4676,6 +4755,7 @@
             renderWeekStrip();
             renderMonthPicker();
             renderTimeline();
+            refreshTodosFromCloud().catch(error => console.warn('[Todos] Initial Firestore refresh failed:', error));
         }
 
         function renderMonthPicker() {
@@ -4824,7 +4904,7 @@
             return labels[category] || (appLanguage === 'en' ? 'Personal' : '个人');
         }
 
-        function updateTodoStatus(todoId, status) {
+        async function updateTodoStatus(todoId, status) {
             const todos = loadTodos();
             const todo = todos.find(item => item.id === todoId);
             if (!todo) return;
@@ -4833,6 +4913,13 @@
             saveTodos(todos);
             renderTodayTodos();
             showToast(status === 'done' ? `✅ ${langText('todoComplete')}` : langText('todoSaved'), 'success');
+            try {
+                await saveTodoToCloud(todo);
+                renderTodayTodos();
+            } catch (error) {
+                console.error('[Todos] Firestore status update failed:', error);
+                showToast(appLanguage === 'en' ? 'Status changed locally; Firestore sync failed.' : '状态已在本地更新，但 Firestore 同步失败。', 'error');
+            }
         }
 
         function arrangeTodo(todoId) {
@@ -4848,12 +4935,20 @@
             }, 30);
         }
 
-        function deleteTodo(todoId) {
+        async function deleteTodo(todoId) {
             const todo = loadTodos().find(item => item.id === todoId);
             if (!todo) return;
             if (!window.confirm(`${langText('todoDelete')}?`)) return;
             saveTodos(loadTodos().filter(item => item.id !== todoId));
             renderTodayTodos();
+            try {
+                const params = todo.dedupeKey ? `?dedupe_key=${encodeURIComponent(todo.dedupeKey)}` : '';
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/todos/${encodeURIComponent(todo.id)}${params}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            } catch (error) {
+                console.error('[Todos] Firestore delete failed:', error);
+                showToast(appLanguage === 'en' ? 'Todo removed locally; Firestore delete failed.' : '日程已从本地移除，但 Firestore 删除失败。', 'error');
+            }
         }
 
         function renderTimeline() {
@@ -5788,25 +5883,32 @@
 
             if (candidate.isTodo) {
                 const todos = loadTodos();
-                const duplicate = sourceRecordId && todos.some(todo => todo.sourceRecordId === sourceRecordId);
+                const newTodo = {
+                    id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    title: candidate.name,
+                    category: candidate.category,
+                    categoryLabel: taskCategoryLabel(candidate.category),
+                    estimatedMins: candidate.adjustedEstMins,
+                    dueDate: targetDate,
+                    rangeEndDate,
+                    notes: candidate.notes || '',
+                    originalText: candidate.originalText || candidate.name,
+                    status: 'open',
+                    source: candidate.source || pendingInputSource || 'text',
+                    sourceRecordId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                const duplicate = todos.some(todo => todoIdentity(todo) === todoIdentity(newTodo));
                 if (!duplicate) {
-                    todos.push({
-                        id: `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                        title: candidate.name,
-                        category: candidate.category,
-                        categoryLabel: taskCategoryLabel(candidate.category),
-                        estimatedMins: candidate.adjustedEstMins,
-                        dueDate: targetDate,
-                        rangeEndDate,
-                        notes: candidate.notes || '',
-                        originalText: candidate.originalText || candidate.name,
-                        status: 'open',
-                        source: candidate.source || pendingInputSource || 'text',
-                        sourceRecordId,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    });
+                    todos.push(newTodo);
                     saveTodos(todos);
+                    saveTodoToCloud(newTodo)
+                        .then(() => refreshScheduleHome())
+                        .catch(error => {
+                            console.error('[Todos] Firestore save failed:', error);
+                            showToast(appLanguage === 'en' ? 'Todo saved locally; Firestore sync failed.' : '日程已保存在本地，但 Firestore 同步失败。', 'error');
+                        });
                     saved = true;
                 }
             } else {
