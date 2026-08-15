@@ -2913,6 +2913,20 @@
             return merged;
         }
 
+        function startAuthenticatedApp() {
+            setAuthGateVisible(false);
+            setAuthGateStatus('');
+            if (!appStarted) {
+                appStarted = true;
+                initApp();
+            } else {
+                loadVoiceFolders().then(renderVoiceInbox);
+                loadInbox();
+                refreshTodosFromCloud().catch(error => console.warn('[Todos] Cloud refresh failed:', error));
+                renderTimeline();
+            }
+        }
+
         async function validateFirebaseSession(user) {
             firebaseUser = user;
             updateAuthAccountUi(user);
@@ -2930,29 +2944,29 @@
                     const detail = await response.text();
                     throw Object.assign(new Error(detail || `HTTP ${response.status}`), { status: response.status });
                 }
-                setAuthGateVisible(false);
-                setAuthGateStatus('');
-                if (!appStarted) {
-                    appStarted = true;
-                    initApp();
-                } else {
-                    loadVoiceFolders().then(renderVoiceInbox);
-                    loadInbox();
-                    refreshTodosFromCloud().catch(error => console.warn('[Todos] Cloud refresh failed:', error));
-                    renderTimeline();
-                }
+                startAuthenticatedApp();
             } catch (error) {
-                firebaseUser = null;
-                setAuthGateVisible(true);
-                if (error.status === 403) {
-                    authGateStickyError = appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。';
+                if (error.status === 401 || error.status === 403) {
+                    // A real authorization failure should end the remembered session.
+                    firebaseUser = null;
+                    setAuthGateVisible(true);
+                    authGateStickyError = error.status === 403
+                        ? (appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。')
+                        : (appLanguage === 'en' ? 'Your Loomi session expired. Please sign in again.' : 'Loomi 登录状态已过期，请重新登录。');
+                    await firebaseAuth?.signOut();
+                    setAuthGateStatus(authGateStickyError, true);
                 } else if (error.status === 503) {
-                    authGateStickyError = appLanguage === 'en' ? 'Backend authentication is not configured yet.' : '后端认证配置尚未完成。';
+                    // Keep Firebase LOCAL persistence intact. A backend rollout/config issue
+                    // should not force a new Google login on the next app launch.
+                    console.warn('[Auth] Backend authentication is temporarily unavailable:', error);
+                    startAuthenticatedApp();
+                    showToast(appLanguage === 'en' ? 'Backend is unavailable. Your login is still remembered.' : '后端暂时不可用，但登录状态已经保留。', 'warning');
                 } else {
-                    authGateStickyError = appLanguage === 'en' ? 'Could not verify the backend.' : '无法验证后端登录状态。';
+                    // Network errors and transient API failures are not identity failures.
+                    console.warn('[Auth] Backend check failed; keeping the local Firebase session:', error);
+                    startAuthenticatedApp();
+                    showToast(appLanguage === 'en' ? 'Could not reach the backend. Your login is still remembered.' : '暂时无法连接后端，但登录状态已经保留。', 'warning');
                 }
-                await firebaseAuth?.signOut();
-                setAuthGateStatus(authGateStickyError, true);
             }
         }
 
