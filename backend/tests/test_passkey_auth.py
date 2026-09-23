@@ -73,6 +73,8 @@ class MemoryDb:
 
 class FirebaseStub:
     def verify_id_token(self, token, check_revoked=False):
+        if check_revoked:
+            raise PermissionError("Revocation lookup is not available cross-project")
         if token != "owner":
             raise ValueError("bad token")
         return {"uid": "owner-uid"}

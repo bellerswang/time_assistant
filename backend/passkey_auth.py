@@ -184,7 +184,10 @@ class PasskeyAuth:
         if not header.lower().startswith("bearer "):
             raise HTTPException(401, "Existing owner sign-in required")
         try:
-            decoded = self.firebase_auth.verify_id_token(header[7:].strip(), check_revoked=True)
+            # Signature, expiry, project and owner UID are checked locally.
+            # Revocation lookup makes a second Firebase Auth API call, which
+            # can fail when the Cloud Run identity belongs to another project.
+            decoded = self.firebase_auth.verify_id_token(header[7:].strip())
         except Exception:
             raise HTTPException(401, "Existing owner sign-in required") from None
         if decoded.get("uid") != self.uid:
