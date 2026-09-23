@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname, '../index.html'), 'utf8');
+const bootstrapCode = html.slice(html.indexOf('        const DB ='), html.indexOf('        let firebaseAuth ='));
 const tokenCode = html.slice(html.indexOf('        function isInvalidFirebaseSession'), html.indexOf('        async function saveTodoToCloud'));
 const validationCode = html.slice(html.indexOf('        async function validateFirebaseSession'), html.indexOf('        async function signInToLoomi'));
 
@@ -28,6 +29,16 @@ function harness(statuses, tokenError) {
     vm.runInContext(tokenCode + validationCode, context);
     return { state, context, user };
 }
+
+test('private page initializes without the public Firebase config script', () => {
+    const context = vm.createContext({
+        window: { LOOMI_PRIVATE_HOST: true, location: { origin: 'https://loomi.example' } },
+        localStorage: { getItem: () => null },
+        console,
+    });
+    vm.runInContext(bootstrapCode + '\nglobalThis.privateBackendUrl = CONFIG.BACKEND_URL;', context);
+    assert.equal(context.privateBackendUrl, 'https://loomi.example');
+});
 
 test('expired access token refreshes once and succeeds without logout', async () => {
     const { state, context } = harness([401, 200]);
