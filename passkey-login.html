@@ -36,13 +36,21 @@
     const status = document.getElementById('status');
     const loginButton = document.getElementById('login');
     const registerButton = document.getElementById('register');
+    const verifyGoogleButton = document.getElementById('verify-google');
     let ownerToken = '';
+    let setupAuth = null;
     document.getElementById('login-section').hidden = registration;
     document.getElementById('setup-section').hidden = !registration;
     if (adding) {
       document.getElementById('setup-intro').textContent = '为已登录的 Loomi 添加一把通行密钥。';
       document.getElementById('verify-google').hidden = true;
       registerButton.disabled = false;
+    }
+    if (setup) {
+      verifyGoogleButton.disabled = true;
+      prepareOriginalAccount().catch(error => {
+        status.textContent = error.message || '原账号登录组件加载失败，请刷新重试。';
+      });
     }
 
     function decode(value) {
@@ -100,7 +108,7 @@
       } catch (error) { status.textContent = error.message || '登录失败'; busy(loginButton, false); }
     });
 
-    async function verifyOriginalAccount() {
+    async function prepareOriginalAccount() {
       const scripts = [
         'https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js',
         'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js',
@@ -114,19 +122,23 @@
         });
       }
       firebase.initializeApp(window.LOOMI_FIREBASE_CONFIG);
-      const auth = firebase.auth();
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-      const result = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      setupAuth = firebase.auth();
+      await setupAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      verifyGoogleButton.disabled = false;
+    }
+    async function verifyOriginalAccount() {
+      // Start the popup directly from the click. Awaiting script loading first
+      // can cause Safari and other browsers to block it.
+      const result = await setupAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
       ownerToken = await result.user.getIdToken();
       registerButton.disabled = false;
       status.textContent = '身份已确认，现在创建通行密钥。';
     }
     document.getElementById('verify-google').addEventListener('click', async () => {
-      const button = document.getElementById('verify-google');
-      busy(button, true);
+      busy(verifyGoogleButton, true);
       try { await verifyOriginalAccount(); }
       catch (error) { status.textContent = error.message || '身份确认失败'; }
-      finally { button.disabled = false; }
+      finally { verifyGoogleButton.disabled = false; }
     });
     registerButton.addEventListener('click', async () => {
       busy(registerButton, true);
@@ -142,7 +154,7 @@
         status.textContent = '通行密钥已创建。';
         if (adding) location.replace('/');
         else {
-          await firebase.auth().signOut();
+          await setupAuth.signOut();
           location.replace('/auth/login');
         }
       } catch (error) { status.textContent = error.message || '创建失败'; }
