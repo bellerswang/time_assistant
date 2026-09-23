@@ -67,8 +67,20 @@ CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
     "CORS_ALLOWED_ORIGINS",
     "https://bellerswang.github.io"
 ).split(",") if origin.strip()]
+LOOMI_PASSKEY_ENABLED = os.getenv("LOOMI_PASSKEY_ENABLED", "false").lower() in {"1", "true", "yes"}
+LOOMI_PASSKEY_ONLY = os.getenv("LOOMI_PASSKEY_ONLY", "false").lower() in {"1", "true", "yes"}
+if LOOMI_PASSKEY_ONLY and not LOOMI_PASSKEY_ENABLED:
+    raise RuntimeError("LOOMI_PASSKEY_ONLY requires LOOMI_PASSKEY_ENABLED")
+if LOOMI_PASSKEY_ONLY and os.getenv("LOOMI_SETUP_GOOGLE_ENABLED", "true").lower() in {"1", "true", "yes"}:
+    raise RuntimeError("Disable Google setup when enabling passkey-only access")
+passkey_auth = None
 
-app = FastAPI(title="ChronoAI Backend Server v2.0")
+app = FastAPI(
+    title="ChronoAI Backend Server v2.0",
+    docs_url=None if LOOMI_PASSKEY_ENABLED else "/docs",
+    redoc_url=None if LOOMI_PASSKEY_ENABLED else "/redoc",
+    openapi_url=None if LOOMI_PASSKEY_ENABLED else "/openapi.json",
+)
 
 # CORS is an additional browser boundary, not the authentication mechanism.
 app.add_middleware(
@@ -125,6 +137,18 @@ async def require_api_auth(request, call_next):
     if is_notebook_ingest and LOOMI_INGEST_API_KEY and hmac.compare_digest(ingest_header, LOOMI_INGEST_API_KEY):
         request.state.auth_type = "loomi_ingest_key"
         return await call_next(request)
+
+    if passkey_auth is not None and passkey_auth.session_uid(request) == ALLOWED_FIREBASE_UID:
+        if request.method not in {"GET", "HEAD"}:
+            try:
+                passkey_auth.check_origin(request)
+            except HTTPException:
+                return auth_json(403, "Invalid origin.")
+        request.state.auth_type = "passkey"
+        request.state.user_uid = ALLOWED_FIREBASE_UID
+        return await call_next(request)
+    if LOOMI_PASSKEY_ONLY:
+        return auth_json(401, "Passkey session required.")
 
     authorization = request.headers.get("authorization", "")
     if not authorization.lower().startswith("bearer "):
@@ -638,6 +662,19 @@ if FIRESTORE_ENABLED:
     except Exception as e:
         logger.error(f"Failed to initialize FirestoreRepository: {e}")
         FIRESTORE_ENABLED = False
+
+if LOOMI_PASSKEY_ENABLED:
+    if not FIRESTORE_ENABLED or firestore_repo is None or not firebase_auth_ready:
+        raise RuntimeError("Passkey hosting requires working Firestore and Firebase Admin")
+    from passkey_auth import PasskeyAuth, mount_passkey_routes
+    passkey_auth = PasskeyAuth(
+        db=firestore_repo.sync_db,
+        firebase_auth=firebase_auth,
+        uid=ALLOWED_FIREBASE_UID,
+        origin=os.getenv("LOOMI_PUBLIC_ORIGIN", "https://voice-assistant-1090997558704.europe-west2.run.app"),
+        setup_google_enabled=os.getenv("LOOMI_SETUP_GOOGLE_ENABLED", "true").lower() in {"1", "true", "yes"},
+    )
+    mount_passkey_routes(app, passkey_auth)
 
 
 def get_workflow_store() -> FirestoreWorkflowService:

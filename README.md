@@ -1,5 +1,28 @@
 # ChronoAI - 智能自适应时间日程安排助理
 
+## 2026-09-23 — 私人入口与通行密钥迁移（开发中）
+
+- 新增 `backend/passkey_auth.py`、`passkey-login.html`，在现有 Cloud Run 后端提供 WebAuthn 通行密钥注册、验证、持久会话和受保护的应用页面；记录继续使用原 Firebase UID。
+- 修改 `backend/main.py`、`backend/Dockerfile`、`backend/requirements.txt`、`index.html`、`backend/.env.example`，支持同源私有页面、服务端通行密钥会话和分阶段切换认证。云端密钥仍只在服务端。
+- 迁移必须按顺序：先在新 Cloud Run 地址注册并测试通行密钥，再启用 `LOOMI_PASSKEY_ONLY=true`、关闭旧 GitHub Pages。切换前不能关闭原 Google 登录或旧入口，以免锁定账号。
+- 新增 `backend/tests/test_passkey_auth.py` 和 [迁移步骤](docs/passkey-migration.md)；认证边界、页面保护、会话续期测试通过。
+- 云端切换仍需配置与设备验证。公开 GitHub Pages 在停用前仍可访问旧网页。
+
+
+## 2026-09-09 — 避免后端认证错误清除持久登录
+
+- 修改 `index.html`：保留 Firebase LOCAL 持久化与 401 后的一次 Token 刷新；后端 401/403 不再直接执行 Firebase signOut，启动校验失败仍显示访问限制。
+- 仅当 Firebase 明确报告凭据失效、账号禁用或删除时清除当前会话；网络错误不清除凭据。拒绝使用已切换或退出账号的异步 Token 结果。
+- 新增 `tests/auth-session.test.cjs`，使用 Node 内置测试运行器验证自动刷新、后端拒绝访问但保留会话、网络异常、凭据失效及账号切换；6 项检查通过。
+- 无法保证跨浏览器、清理站点数据或账号安全变更后仍免登录；尚未确认用户设备上反复登录的全部原因。
+
+## 2026-09-09 — 录音优先方向与本地静态服务安全修复
+
+- 产品目标调整为录音记录优先：打开即可开始记录，其他功能作为辅助入口。目标流程为先保存本地音频，再通过认证上传和转写；该流程尚未实施。
+- 已修改 `start_frontend.bat`，新增 `serve_frontend.py`：仅提供明确允许的前端资源，阻止项目根目录中的密钥、后端数据和 Git 文件被静态下载。默认仅监听 `127.0.0.1`。
+- 登录仍使用原有 Firebase 持久会话与后端 UID 校验，本次未更改认证或部署线上版本。
+- 状态：静态服务资源白名单已实现；录音本地持久化、后台同步与界面简化待实施。
+
 欢迎来到 ChronoAI 项目。本项目是一款专为移动端（iOS / PWA）优化的时间日程安排助手。其核心价值在于“自适应效率纠偏”——通过采集用户的真实专注耗时，动态构建效率乘数模型，自适应伸缩日程长度并智能寻找空闲 Gap 进行插针，辅助用户掌控时间。
 
 ### v2.0.0 — 2026-05-24
@@ -150,10 +173,10 @@ WORKFLOW_ITEMS_COLLECTION=email_action_items
 
 ## Authentication
 
-The GitHub Pages frontend is public, but private Loomi API data requires Firebase Google sign-in.
+Current production on GitHub Pages still uses Firebase Google sign-in until the [passkey migration](docs/passkey-migration.md) is deployed and verified. The new private Cloud Run frontend uses a server-side passkey session for its pages and API.
 Copy the public Firebase Web App config into `firebase-config.js` and add `bellerswang.github.io` to Firebase Authentication Authorized domains. The backend only accepts the Firebase UID configured by `ALLOWED_FIREBASE_UID`.
 
-Setup order:
+Legacy GitHub Pages setup order:
 
 1. In Firebase Console, enable the Google sign-in provider and create a Web App.
 2. Copy that Web App's `apiKey`, `messagingSenderId`, and `appId` into `firebase-config.js`. These values are public browser configuration, not service-account secrets.

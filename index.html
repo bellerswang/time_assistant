@@ -19,6 +19,7 @@
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
     <script src="./firebase-config.js?v=20260725.2"></script>
+    <!-- LOOMI_PRIVATE_BOOTSTRAP -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     
@@ -2618,9 +2619,10 @@
                     <span class="auth-account-email" id="auth-account-email">未登录</span>
                     <button class="btn-sheet-secondary" id="btn-google-logout" type="button" style="padding: 5px 10px; font-size: 11px;">退出登录</button>
                 </div>
+                <a id="add-passkey-link" href="/auth/add-passkey" hidden style="color:var(--primary);font-size:12px;">添加另一把通行密钥</a>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="backend-url-settings">
                 <span class="form-label">后端 API 服务端端点 (Backend URL)</span>
                 <input type="text" class="form-input" id="setting-backend-url" placeholder="例如：http://192.168.1.100:11337">
                 <span style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
@@ -2722,12 +2724,14 @@
         const loadEfficiencyLogs = () => DB.get('chrono_efficiency_log', []);
         const saveEfficiencyLogs = (data) => DB.set('chrono_efficiency_log', data);
 
-        const DEFAULT_BACKEND_URL = 'https://voice-assistant-1090997558704.europe-west2.run.app';
+        const DEFAULT_BACKEND_URL = window.LOOMI_PRIVATE_HOST
+            ? window.location.origin
+            : 'https://voice-assistant-1090997558704.europe-west2.run.app';
 
         // ==================== CONFIGS & DIALECTS ====================
         const savedSettings = DB.get('chrono_settings', {});
         const CONFIG = {
-            BACKEND_URL: savedSettings.backendUrl || DEFAULT_BACKEND_URL,
+            BACKEND_URL: window.LOOMI_PRIVATE_HOST ? DEFAULT_BACKEND_URL : (savedSettings.backendUrl || DEFAULT_BACKEND_URL),
             COLORS: [
                 '#5ba8b5', // 蓝绿
                 '#6daa45', // 绿色
@@ -2762,7 +2766,7 @@
             return Boolean(
                 FIREBASE_CONFIG.apiKey &&
                 FIREBASE_CONFIG.appId &&
-                FIREBASE_CONFIG.googleClientId &&
+                (window.LOOMI_PRIVATE_HOST || FIREBASE_CONFIG.googleClientId) &&
                 !String(FIREBASE_CONFIG.apiKey).startsWith('REPLACE_') &&
                 !String(FIREBASE_CONFIG.appId).startsWith('REPLACE_')
             );
@@ -2781,10 +2785,16 @@
         }
 
         function updateAuthAccountUi(user = firebaseUser) {
+            const addPasskeyLink = document.getElementById('add-passkey-link');
+            if (addPasskeyLink) addPasskeyLink.hidden = !window.LOOMI_PRIVATE_HOST;
+            const backendSettings = document.getElementById('backend-url-settings');
+            if (backendSettings) backendSettings.style.display = window.LOOMI_PRIVATE_HOST ? 'none' : '';
             const email = document.getElementById('auth-account-email');
             if (email) email.textContent = user?.email || (appLanguage === 'en' ? 'Signed out' : '未登录');
             const loginLabel = document.getElementById('auth-login-label');
-            if (loginLabel) loginLabel.textContent = appLanguage === 'en' ? 'Continue with Google' : '使用 Google 登录';
+            if (loginLabel) loginLabel.textContent = window.LOOMI_PRIVATE_HOST
+                ? (appLanguage === 'en' ? 'Use passkey' : '使用通行密钥')
+                : (appLanguage === 'en' ? 'Continue with Google' : '使用 Google 登录');
             const accountLabel = document.getElementById('auth-account-label');
             if (accountLabel) accountLabel.textContent = appLanguage === 'en' ? 'Loomi account' : 'Loomi 账号';
             const logout = document.getElementById('btn-google-logout');
@@ -2844,22 +2854,50 @@
             return firebaseGoogleTokenClient;
         }
 
+        function isInvalidFirebaseSession(error) {
+            return ['auth/user-token-expired', 'auth/invalid-user-token',
+                'auth/user-disabled', 'auth/user-not-found'].includes(error?.code);
+        }
+
+        async function getSessionToken(user, forceRefresh) {
+            try {
+                const token = await user.getIdToken(forceRefresh);
+                if (firebaseUser !== user) {
+                    throw Object.assign(new Error('Account changed during request.'), { status: 401 });
+                }
+                return token;
+            } catch (error) {
+                // Only Firebase can establish that its remembered credential is invalid.
+                if (isInvalidFirebaseSession(error) && firebaseUser === user) {
+                    authGateStickyError = appLanguage === 'en'
+                        ? 'Your session is no longer valid. Please sign in again.'
+                        : '登录凭据已失效，请重新登录。';
+                    await firebaseAuth?.signOut();
+                }
+                throw error;
+            }
+        }
+
         async function authFetch(resource, options = {}, retry = true) {
+            if (window.LOOMI_PRIVATE_HOST) {
+                const response = await fetch(resource, { ...options, credentials: 'same-origin' });
+                if (response.status === 401) window.location.replace('/auth/login');
+                return response;
+            }
             if (!firebaseUser) {
                 const error = new Error('Firebase authentication is required.');
                 error.status = 401;
                 throw error;
             }
+            const user = firebaseUser;
             const headers = new Headers(options.headers || {});
-            headers.set('Authorization', `Bearer ${await firebaseUser.getIdToken(false)}`);
+            headers.set('Authorization', `Bearer ${await getSessionToken(user, false)}`);
             let response = await fetch(resource, { ...options, headers });
-            if (response.status === 401 && retry && firebaseUser) {
-                headers.set('Authorization', `Bearer ${await firebaseUser.getIdToken(true)}`);
+            if (response.status === 401 && retry && firebaseUser === user) {
+                headers.set('Authorization', `Bearer ${await getSessionToken(user, true)}`);
                 response = await fetch(resource, { ...options, headers });
             }
-            if (response.status === 401 && firebaseAuth) {
-                await firebaseAuth.signOut();
-            }
+            // A backend rejection must not destroy the Firebase refresh credential.
             return response;
         }
 
@@ -2940,20 +2978,20 @@
             setAuthGateStatus(appLanguage === 'en' ? 'Checking Loomi access...' : '正在验证 Loomi 权限...');
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/system/status`);
+                if (firebaseUser !== user) return;
                 if (!response.ok) {
                     const detail = await response.text();
                     throw Object.assign(new Error(detail || `HTTP ${response.status}`), { status: response.status });
                 }
                 startAuthenticatedApp();
             } catch (error) {
-                if (error.status === 401 || error.status === 403) {
-                    // A real authorization failure should end the remembered session.
-                    firebaseUser = null;
+                if (firebaseUser !== user) return;
+                if (error.status === 401 || error.status === 403 || isInvalidFirebaseSession(error)) {
+                    // Keep the gate closed without erasing a potentially valid Google session.
                     setAuthGateVisible(true);
                     authGateStickyError = error.status === 403
                         ? (appLanguage === 'en' ? 'This Google account is not authorized.' : '这个 Google 账号没有 Loomi 权限。')
-                        : (appLanguage === 'en' ? 'Your Loomi session expired. Please sign in again.' : 'Loomi 登录状态已过期，请重新登录。');
-                    await firebaseAuth?.signOut();
+                        : (appLanguage === 'en' ? 'Cloud access could not be verified. Your login is remembered; refresh to retry or sign in again.' : '暂时无法验证云端访问权限。登录已保留，可以刷新重试或重新登录。');
                     setAuthGateStatus(authGateStickyError, true);
                 } else if (error.status === 503) {
                     // Keep Firebase LOCAL persistence intact. A backend rollout/config issue
@@ -2971,6 +3009,10 @@
         }
 
         async function signInToLoomi() {
+            if (window.LOOMI_PRIVATE_HOST) {
+                window.location.assign('/auth/login');
+                return;
+            }
             if (!firebaseAuth) return;
             setGoogleLoginBusy(true);
             setAuthGateStatus(appLanguage === 'en' ? 'Opening Google sign-in...' : '正在打开 Google 登录...');
@@ -2989,6 +3031,20 @@
 
         async function initFirebaseAuth() {
             setAuthGateVisible(true);
+            if (window.LOOMI_PRIVATE_HOST) {
+                const user = { email: appLanguage === 'en' ? 'Private account' : '私人账号' };
+                firebaseUser = user;
+                updateAuthAccountUi(user);
+                setAuthGateStatus(appLanguage === 'en' ? 'Opening Loomi…' : '正在打开 Loomi…');
+                try {
+                    const response = await authFetch(`${CONFIG.BACKEND_URL}/api/system/status`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    startAuthenticatedApp();
+                } catch (error) {
+                    setAuthGateStatus(appLanguage === 'en' ? 'Could not verify access. Refresh to retry.' : '暂时无法验证访问权限，请刷新重试。', true);
+                }
+                return;
+            }
             if (!firebaseConfigReady()) {
                 setAuthGateStatus('请先把 Firebase Web 配置写入 firebase-config.js。', true);
                 return;
@@ -3407,7 +3463,9 @@
             appLanguage = lang === 'en' ? 'en' : 'zh';
             DB.set('loomi_language', appLanguage);
             document.documentElement.lang = appLanguage === 'en' ? 'en' : 'zh-CN';
-            setNodeText('#auth-gate-subtitle', appLanguage === 'en' ? 'Sign in with your Google account' : '请使用你的 Google 账号登录');
+            setNodeText('#auth-gate-subtitle', window.LOOMI_PRIVATE_HOST
+                ? (appLanguage === 'en' ? 'Your private recording space' : '你的私人录音空间')
+                : (appLanguage === 'en' ? 'Sign in with your Google account' : '请使用你的 Google 账号登录'));
             updateAuthAccountUi();
 
             document.getElementById('lang-zh-btn')?.classList.toggle('active', appLanguage === 'zh');
@@ -6376,6 +6434,11 @@
 
             // 保存设置
             document.getElementById('btn-save-settings').addEventListener('click', () => {
+                if (window.LOOMI_PRIVATE_HOST) {
+                    CONFIG.BACKEND_URL = window.location.origin;
+                    closeAllSheets();
+                    return;
+                }
                 let url = document.getElementById('setting-backend-url').value.trim();
                 if (!url) {
                     showToast('⚠️ 后端 API 地址不能为空', 'error');
@@ -6446,7 +6509,11 @@
         window.onload = () => {
             document.getElementById('btn-google-login')?.addEventListener('click', signInToLoomi);
             document.getElementById('btn-google-logout')?.addEventListener('click', async () => {
+                if (window.LOOMI_PRIVATE_HOST) {
+                    await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+                }
                 await firebaseAuth?.signOut();
+                if (window.LOOMI_PRIVATE_HOST) window.location.replace('/auth/login');
             });
             applyLanguage(appLanguage);
             initFirebaseAuth();

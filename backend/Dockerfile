@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source files
 COPY backend/ .
 COPY folders.json ./folders.json
+COPY index.html firebase-config.js manifest.json sw.js loomi_icon.png passkey-login.html ./public/
 
 # Cloud Run injects $PORT environment variable, default to 8080
 ENV PORT=8080
