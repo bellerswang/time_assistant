@@ -181,6 +181,8 @@ class PasskeyBoundaryTests(unittest.TestCase):
         with patch.object(auth_module, "PUBLIC_DIR", Path(__file__).resolve().parents[2]):
             app_response = self.auth.app_page(request(path="/", method="GET", cookie=cookie))
         self.assertEqual(app_response.status_code, 200)
+        self.assertIn(b'<html lang="zh-CN" class="private-host">', app_response.body)
+        self.assertIn(b'auth-gate-private', app_response.body)
         self.assertIn(b"LOOMI_PRIVATE_HOST = true", app_response.body)
         self.assertNotIn(b"accounts.google.com/gsi/client", app_response.body)
         self.assertNotIn(b"firebase-app-compat.js", app_response.body)

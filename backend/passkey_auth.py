@@ -282,6 +282,7 @@ class PasskeyAuth:
         if self.session_uid(request) != self.uid:
             return _no_store(RedirectResponse("/auth/login", status_code=303))
         html = (PUBLIC_DIR / "index.html").read_text(encoding="utf-8")
+        html = html.replace('<html lang="zh-CN">', '<html lang="zh-CN" class="private-host">', 1)
         html = html.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>', '')
         html = html.replace('<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js" defer></script>', '')
         html = html.replace('<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>', '')

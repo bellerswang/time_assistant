@@ -103,6 +103,18 @@
             display: none;
         }
 
+        .auth-gate-private {
+            display: none;
+        }
+
+        .private-host .auth-gate-public {
+            display: none;
+        }
+
+        .private-host .auth-gate-private {
+            display: block;
+        }
+
         .auth-gate-card {
             width: min(360px, 100%);
             padding: 28px 24px;
@@ -2145,13 +2157,18 @@
 <body>
 
     <div class="auth-gate" id="auth-gate">
-        <div class="auth-gate-card">
+        <div class="auth-gate-card auth-gate-public">
             <div class="auth-gate-logo">Loomi</div>
             <div class="auth-gate-subtitle" id="auth-gate-subtitle">请使用你的 Google 账号登录</div>
             <button class="auth-google-button" id="btn-google-login" type="button">
                 <i class="fa-brands fa-google"></i>
                 <span id="auth-login-label">使用 Google 登录</span>
             </button>
+            <div class="auth-gate-status" id="auth-gate-public-status"></div>
+        </div>
+        <div class="auth-gate-card auth-gate-private">
+            <div class="auth-gate-logo">Loomi</div>
+            <div class="auth-gate-subtitle">正在打开 Loomi…</div>
             <div class="auth-gate-status" id="auth-gate-status"></div>
         </div>
     </div>
@@ -2773,7 +2790,8 @@
         }
 
         function setAuthGateStatus(message, isError = false) {
-            const status = document.getElementById('auth-gate-status');
+            const status = document.getElementById(window.LOOMI_PRIVATE_HOST
+                ? 'auth-gate-status' : 'auth-gate-public-status');
             if (!status) return;
             status.textContent = message || '';
             status.style.color = isError ? 'var(--error)' : 'var(--text-muted)';
