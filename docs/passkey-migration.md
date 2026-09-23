@@ -2,6 +2,8 @@
 
 这份流程保留现有记录、Firestore 数据和 Firebase UID。迁移只更换用户进入 Loomi 的方式。新入口由 Cloud Run 同时提供网页和 API；未登录者只能访问通行密钥登录页和公开健康检查。
 
+当前状态（2026-09-24）：第二阶段已完成。手机端语音录入成功；Cloud Run 已设为仅通行密钥，Google 首次设置入口关闭，GitHub Pages 已停用。以下步骤保留作为部署与故障回退记录。
+
 ## 上线前
 
 1. 确认 Cloud Run 当前部署服务、项目、服务账号和 `ALLOWED_FIREBASE_UID`。不要在配置或日志中输出私密环境变量的值。

@@ -1,12 +1,18 @@
 # ChronoAI - 智能自适应时间日程安排助理
 
-## 2026-09-23 — 私人入口与通行密钥迁移（开发中）
+## 2026-09-24 — 私人入口已启用
+
+- 正式入口：https://voice-assistant-1090997558704.europe-west2.run.app 。浏览器访问应用与个人数据需要通行密钥会话；未登录访问会进入通行密钥登录页。
+- `LOOMI_PASSKEY_ENABLED=true`、`LOOMI_PASSKEY_ONLY=true`、`LOOMI_SETUP_GOOGLE_ENABLED=false` 已部署。手机端语音录入已验证。
+- 旧 GitHub Pages 站点已停用，原地址返回 404。Google/Firebase 登录令牌不再能访问应用 API。已有会话每次打开续期；闲置 90 天后再次用通行密钥登录。
+
+## 2026-09-23 — 私人入口与通行密钥迁移实现
 
 - 新增 `backend/passkey_auth.py`、`passkey-login.html`，在现有 Cloud Run 后端提供 WebAuthn 通行密钥注册、验证、持久会话和受保护的应用页面；记录继续使用原 Firebase UID。
 - 修改 `backend/main.py`、`backend/Dockerfile`、`backend/requirements.txt`、`index.html`、`backend/.env.example`，支持同源私有页面、服务端通行密钥会话和分阶段切换认证。云端密钥仍只在服务端。
 - 迁移必须按顺序：先在新 Cloud Run 地址注册并测试通行密钥，再启用 `LOOMI_PASSKEY_ONLY=true`、关闭旧 GitHub Pages。切换前不能关闭原 Google 登录或旧入口，以免锁定账号。
 - 新增 `backend/tests/test_passkey_auth.py` 和 [迁移步骤](docs/passkey-migration.md)；认证边界、页面保护、会话续期测试通过。
-- 云端切换仍需配置与设备验证。公开 GitHub Pages 在停用前仍可访问旧网页。
+- 第一阶段曾保留公开 GitHub Pages 入口作为迁移回退；该入口已于 2026-09-24 停用。
 
 
 ## 2026-09-09 — 避免后端认证错误清除持久登录
@@ -173,10 +179,9 @@ WORKFLOW_ITEMS_COLLECTION=email_action_items
 
 ## Authentication
 
-Current production on GitHub Pages still uses Firebase Google sign-in until the [passkey migration](docs/passkey-migration.md) is deployed and verified. The new private Cloud Run frontend uses a server-side passkey session for its pages and API.
-Copy the public Firebase Web App config into `firebase-config.js` and add `bellerswang.github.io` to Firebase Authentication Authorized domains. The backend only accepts the Firebase UID configured by `ALLOWED_FIREBASE_UID`.
+Production uses the private Cloud Run URL above with a server-side passkey session for both pages and API. GitHub Pages is disabled. The backend accepts only the owner UID configured by `ALLOWED_FIREBASE_UID`, and Firebase bearer tokens no longer grant access. See the [passkey migration and recovery steps](docs/passkey-migration.md).
 
-Legacy GitHub Pages setup order:
+Historical GitHub Pages setup (no longer the production login):
 
 1. In Firebase Console, enable the Google sign-in provider and create a Web App.
 2. Copy that Web App's `apiKey`, `messagingSenderId`, and `appId` into `firebase-config.js`. These values are public browser configuration, not service-account secrets.
