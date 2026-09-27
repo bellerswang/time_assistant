@@ -2374,9 +2374,12 @@
         .cyber-capture-module .loomi-selector-btn { min-height: 32px; padding: 6px 10px; border-radius: 1px; font-size: 11px; }
         .cyber-capture-module .loomi-selector-slider { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 1px; box-shadow: 2px 2px 0 rgba(247,53,160,.36); }
         .cyber-capture-module .loomi-selector-btn.active { color: #07121c; }
-        .loomi-category-control { display: flex; width: 100%; justify-content: flex-end; margin: 2px 0 8px; }
-        .loomi-category-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid rgba(0,229,255,.45); border-radius: 2px; background: rgba(0,229,255,.07); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; }
-        .loomi-category-button:active { background: rgba(0,229,255,.16); }
+        .loomi-mode-control { display: flex; width: 100%; justify-content: flex-end; margin: 2px 0 8px; }
+        .loomi-mode-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid rgba(0,229,255,.45); border-radius: 2px; background: rgba(0,229,255,.07); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; }
+        .loomi-mode-button:active { background: rgba(0,229,255,.16); }
+        .voice-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+        .voice-mode-option { min-height: 50px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 3px; font-size: 14px; font-weight: 800; cursor: pointer; }
+        .voice-mode-option.active { border-color: var(--primary); color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary-dim); }
         .cyber-capture-module .loomi-voice-area { gap: 7px !important; }
         .record-orb-button { width: 92px; height: 92px; margin: 3px 0 0; border: 1px solid rgba(0,229,255,.82); border-radius: 4px; font-size: 30px; clip-path: polygon(0 0, 84% 0, 100% 16%, 100% 100%, 16% 100%, 0 84%); }
         .record-orb-button::after { inset: 4px; border-radius: 2px; filter: blur(10px); }
@@ -2550,9 +2553,9 @@
                             <div class="loomi-selector-slider"></div>
                         </div>
 
-                        <div class="loomi-category-control">
-                            <button class="loomi-category-button" id="loomi-category-button" type="button">
-                                <i class="fa-solid fa-tags"></i><span id="loomi-category-label">分类：个人反思</span><i class="fa-solid fa-chevron-down"></i>
+                        <div class="loomi-mode-control">
+                            <button class="loomi-mode-button" id="loomi-mode-button" type="button">
+                                <i class="fa-solid fa-shuffle"></i><span id="loomi-mode-label">记录方式：日记</span><i class="fa-solid fa-chevron-down"></i>
                             </button>
                         </div>
 
@@ -2752,7 +2755,7 @@
                 <span class="sheet-title">检查录音文字</span>
                 <button class="sheet-close-btn">&times;</button>
             </div>
-            <p class="loomi-data-meta">转录完成后可以直接在这里修改，确认无误再保存到日记。</p>
+            <p class="loomi-data-meta">转录完成后可在这里修改，再按首页选择的记录方式处理。</p>
             <textarea class="semantic-textarea" id="textarea-input" placeholder="录音文字会显示在这里…"></textarea>
             
             <div class="sheet-action-row" style="display: flex; gap: 8px; width: 100%;">
@@ -2775,20 +2778,34 @@
 
         </div>
 
-        <!-- SHEET 1: 记录分类 -->
+        <div class="bottom-sheet" id="sheet-voice-mode">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <span class="sheet-title"><i class="fa-solid fa-shuffle"></i> 选择记录方式</span>
+                <button class="sheet-close-btn">&times;</button>
+            </div>
+            <div class="voice-mode-options">
+                <button class="voice-mode-option active" type="button" data-voice-mode="journal">日记</button>
+                <button class="voice-mode-option" type="button" data-voice-mode="schedule">日程</button>
+                <button class="voice-mode-option" type="button" data-voice-mode="ask">Ask</button>
+                <button class="voice-mode-option" type="button" data-voice-mode="wiki">Wiki</button>
+            </div>
+        </div>
+
+        <!-- SHEET 1: 内容分类（由 LLM 自动判断；此处用于事后手动修改） -->
         <div class="bottom-sheet" id="sheet-record-category">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <span class="sheet-title"><i class="fa-solid fa-tags"></i> 选择记录分类</span>
+                <span class="sheet-title"><i class="fa-solid fa-tags"></i> 修改内容分类</span>
                 <button class="sheet-close-btn">&times;</button>
             </div>
             <input type="hidden" id="record-category-target-id">
             <div class="category-sheet-list">
-                <button class="category-choice-btn" data-category="work_idea">工作想法 <span>灵感、项目、代码</span></button>
-                <button class="category-choice-btn" data-category="family_plan">家庭计划 <span>计划、提醒、待安排事项</span></button>
-                <button class="category-choice-btn" data-category="life_knowledge">生活知识 <span>可复用的信息</span></button>
-                <button class="category-choice-btn" data-category="self_reflection">个人反思 <span>日记与个人记录</span></button>
-                <button class="category-choice-btn" data-category="inbox">稍后整理 <span>留待以后归类</span></button>
+                <button class="category-choice-btn" data-category="work_idea">Work Idea <span>Ideas, projects, code</span></button>
+                <button class="category-choice-btn" data-category="family_plan">Family Plan <span>Plans, reminders, calendar candidates</span></button>
+                <button class="category-choice-btn" data-category="life_knowledge">Life Knowledge <span>Reusable facts and wiki notes</span></button>
+                <button class="category-choice-btn" data-category="self_reflection">Self Reflection <span>Journal and personal notes</span></button>
+                <button class="category-choice-btn" data-category="inbox">Inbox <span>Review later</span></button>
             </div>
         </div>
 
@@ -3759,27 +3776,18 @@
         let currentTab = 'voice';
         let voiceMode = 'journal';
         let voiceFolders = [];
-        let selectedVoiceCategory = 'self_reflection';
+        const voiceModes = { journal: '日记', schedule: '日程', ask: 'Ask', wiki: 'Wiki' };
 
-        const voiceCategoryLabels = {
-            work_idea: '工作想法',
-            family_plan: '家庭计划',
-            life_knowledge: '生活知识',
-            self_reflection: '个人反思',
-            inbox: '稍后整理'
-        };
-        const savedVoiceCategory = localStorage.getItem('loomi.voiceCategory');
-        if (savedVoiceCategory && voiceCategoryLabels[savedVoiceCategory]) selectedVoiceCategory = savedVoiceCategory;
-
-        function updateVoiceCategoryButton() {
-            const label = document.getElementById('loomi-category-label');
-            if (label) label.textContent = '分类：' + (voiceCategoryLabels[selectedVoiceCategory] || voiceCategoryLabels.self_reflection);
+        function updateVoiceModeButton() {
+            const label = document.getElementById('loomi-mode-label');
+            if (label) label.textContent = '记录方式：' + (voiceModes[voiceMode] || voiceModes.journal);
+            document.querySelectorAll('.voice-mode-option').forEach(button => {
+                button.classList.toggle('active', button.dataset.voiceMode === voiceMode);
+            });
         }
 
-        function openVoiceCategoryPicker() {
-            const target = document.getElementById('record-category-target-id');
-            if (target) target.value = 'new-voice-entry';
-            openSheet('sheet-record-category');
+        function openVoiceModePicker() {
+            openSheet('sheet-voice-mode');
         }
 
         // ==================== 时间日期工具函数 ====================
@@ -4102,7 +4110,7 @@
         }
 
         function setVoiceMode(mode) {
-            voiceMode = mode === 'ask' ? 'ask' : 'journal';
+            voiceMode = ['journal', 'schedule', 'ask', 'wiki'].includes(mode) ? mode : 'journal';
             const modeReadout = document.getElementById('loomi-mode-readout');
             const destinationReadout = document.getElementById('loomi-destination-readout');
             const routeLabel = voiceMode === 'schedule' ? 'SCHEDULE' : voiceMode.toUpperCase();
@@ -4118,15 +4126,10 @@
             const parseBtn = document.getElementById('btn-parse-text');
             const result = document.getElementById('voice-save-result');
             if (tools) tools.classList.toggle('active', ['journal', 'wiki', 'ask'].includes(voiceMode));
-            if (parseBtn) {
-                const labels = {
-                    journal: '<i class="fa-solid fa-check"></i> 保存',
-                    ask: '<i class="fa-solid fa-magnifying-glass"></i> 提问'
-                };
-                parseBtn.innerHTML = labels[voiceMode] || labels.journal;
-            }
+            if (parseBtn) parseBtn.innerHTML = '<i class="fa-solid fa-check"></i> 保存';
             if (result) result.classList.remove('active');
             document.getElementById('preview-result-card')?.classList.remove('active');
+            updateVoiceModeButton();
         }
 
         function openVoiceCapture(mode = 'journal') {
@@ -4134,7 +4137,7 @@
             document.getElementById('preview-result-card')?.classList.remove('active');
             document.getElementById('voice-save-result')?.classList.remove('active');
             pendingInputSource = 'text';
-            setVoiceMode('journal');
+            setVoiceMode(mode);
             openSheet('sheet-input');
         }
 
@@ -4631,7 +4634,6 @@
             formData.append('text', text);
             formData.append('mode', 'journal');
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
-            formData.append('category', selectedVoiceCategory);
 
             showLoading(true, 'Saving voice note...');
             try {
@@ -4655,12 +4657,39 @@
             }
         }
 
+        function persistScheduleResponse(data, originalText, closeSheets = true) {
+            const parsed = data.parsed_task || {};
+            const targetDate = parsed.startDate || selectedDate;
+            const start = parsed.startTime || parsed.anchorTime || null;
+            const duration = Number(parsed.estMins) || 30;
+            const startMins = start ? timeToMins(start) : null;
+            const end = start ? (parsed.endTime || minsToTime(startMins + duration)) : null;
+            lastParsedResult = {
+                name: parsed.name || data.transcript || originalText,
+                category: parsed.category || 'personal',
+                color: parsed.category === 'work' ? '#5ba8b5' : parsed.category === 'health' ? '#6daa45' : '#e8af34',
+                scheduledStart: start,
+                scheduledEnd: end,
+                scheduledDate: targetDate,
+                rangeEndDate: parsed.endDate || targetDate,
+                adjustedEstMins: duration,
+                notes: parsed.memory_note || '',
+                source: pendingInputSource,
+                originalText: data.transcript || originalText,
+                isTodo: !start
+            };
+            return persistLastParsedSchedule({
+                sourceRecordId: data.record?.id || null,
+                closeSheets,
+                showFeedback: false
+            });
+        }
+
         async function submitVoiceText(text) {
             const formData = new FormData();
             formData.append('text', text);
-            formData.append('mode', 'journal');
+            formData.append('mode', voiceMode);
             formData.append('folder_id', 'LifeVoice');
-            formData.append('category', selectedVoiceCategory);
             formData.append('source', pendingInputSource);
 
             setSendingButton('btn-parse-text', true);
@@ -4676,9 +4705,15 @@
                 }
                 const data = await response.json();
                 showLoading(false);
+                if (data.mode === 'schedule') {
+                    const result = persistScheduleResponse(data, text, true);
+                    await renderVoiceInbox();
+                    showToast(result.saved ? '已加入日程' : '这条日程已经存在', 'success');
+                    return true;
+                }
                 showVoiceSaveResult(data);
                 await renderVoiceInbox();
-                showToast('日记已保存', 'success');
+                showToast(data.mode === 'ask' ? '回答已生成' : data.mode === 'wiki' ? '已保存到 Wiki' : '日记已保存', 'success');
                 return true;
             } catch (e) {
                 showLoading(false);
@@ -5010,7 +5045,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-voice-mode', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -5867,7 +5902,7 @@
             const orbIcon = document.getElementById('loomi-orb-icon');
             const statusEl = document.getElementById('loomi-status');
             const resultCard = document.getElementById('loomi-result-card');
-            const selectedMode = 'journal';
+            const selectedMode = voiceMode;
             setVoiceMode(selectedMode);
 
             if (!isRecording) {
@@ -5961,16 +5996,7 @@
                 titleEl.innerText = `📅 ${data.parsed_task.name || 'Task'}`;
                 bodyEl.innerText = `${data.parsed_task.estMins || '?'}分钟 · ${data.parsed_task.category || 'work'}`;
                 metaEl.innerText = data.transcript || '';
-                if (data.transcript) document.getElementById('textarea-input').value = data.transcript;
-                renderRecommendationPreview({
-                    ...data.parsed_task,
-                    original_text: data.transcript || data.parsed_task.original_text || ''
-                });
-                data.local_schedule_result = persistLastParsedSchedule({
-                    sourceRecordId: data.record?.id || null,
-                    closeSheets: false,
-                    showFeedback: false
-                });
+                data.local_schedule_result = persistScheduleResponse(data, data.transcript || '', false);
                 const result = data.local_schedule_result;
                 bodyEl.innerText = result.saved
                     ? (appLanguage === 'en' ? `Added to ${result.targetDate}` : `已加入 ${result.targetDate} 的日程`)
@@ -6012,7 +6038,6 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-            formData.append('category', selectedVoiceCategory);
             formData.append('source', 'text');
 
             statusEl.innerText = langText('sending');
@@ -6082,9 +6107,8 @@
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
-            formData.append('mode', 'journal');
+            formData.append('mode', voiceMode);
             formData.append('folder_id', 'LifeVoice');
-            formData.append('category', selectedVoiceCategory);
 
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
@@ -6123,7 +6147,7 @@
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
-            formData.append('mode', 'journal');
+            formData.append('mode', voiceMode);
             formData.append('folder_id', 'LifeVoice');
 
             try {
@@ -6517,7 +6541,7 @@
 
                     currentTab = targetTab;
                     setActiveAppMode(targetTab);
-                    if (targetTab === 'voice') setVoiceMode('journal');
+                    if (targetTab === 'voice') setVoiceMode(voiceMode);
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
@@ -6617,19 +6641,17 @@
                 btn.addEventListener('click', () => {
                     const recordId = document.getElementById('record-category-target-id')?.value;
                     if (!recordId) return;
-                    if (recordId === 'new-voice-entry') {
-                        selectedVoiceCategory = btn.getAttribute('data-category') || 'self_reflection';
-                        localStorage.setItem('loomi.voiceCategory', selectedVoiceCategory);
-                        updateVoiceCategoryButton();
-                        closeAllSheets();
-                        return;
-                    }
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
-            document.getElementById('loomi-category-button')?.addEventListener('click', openVoiceCategoryPicker);
-            updateVoiceCategoryButton();
-            setVoiceMode('journal');
+            document.getElementById('loomi-mode-button')?.addEventListener('click', openVoiceModePicker);
+            document.querySelectorAll('.voice-mode-option').forEach(button => {
+                button.addEventListener('click', () => {
+                    setVoiceMode(button.dataset.voiceMode || 'journal');
+                    closeAllSheets();
+                });
+            });
+            setVoiceMode(voiceMode);
             document.getElementById('btn-search-records')?.addEventListener('click', renderVoiceInbox);
             document.getElementById('records-search-input')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') renderVoiceInbox();
