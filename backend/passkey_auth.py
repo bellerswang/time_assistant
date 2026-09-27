@@ -38,7 +38,7 @@ COOKIE_NAME = "__Host-loomi-session"
 PUBLIC_DIR = Path(__file__).resolve().parent / "public"
 if not PUBLIC_DIR.is_dir():
     PUBLIC_DIR = Path(__file__).resolve().parent.parent
-ASSETS = {"firebase-config.js", "manifest.json", "sw.js", "loomi_icon.png"}
+ASSETS = {"firebase-config.js", "manifest.json", "sw.js", "loomi_icon.png", "loomi_icon_hud.png"}
 
 
 def _b64(data: bytes) -> str:
@@ -296,7 +296,8 @@ class PasskeyAuth:
         return _no_store(self.renew_session(request, HTMLResponse(html), session_data))
 
     def asset(self, request: Request, name: str):
-        if name != "firebase-config.js":
+        # The app mark is branding only and is displayed on the unauthenticated passkey screen.
+        if name not in {"firebase-config.js", "loomi_icon_hud.png"}:
             self.require_session(request)
         if name not in ASSETS:
             raise HTTPException(404)

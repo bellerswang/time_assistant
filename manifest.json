@@ -3,15 +3,15 @@
   "name": "Loomi - 私人录音记录",
   "icons": [
     {
-      "src": "./loomi_icon.png",
+      "src": "./loomi_icon_hud.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
   "start_url": "./index.html",
-  "background_color": "#0f0f0e",
-  "theme_color": "#161614",
+  "background_color": "#08121e",
+  "theme_color": "#08121e",
   "display": "standalone",
   "orientation": "portrait"
 }

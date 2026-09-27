@@ -9,6 +9,7 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parent
 PUBLIC_FILES = frozenset({
     "index.html", "firebase-config.js", "manifest.json", "sw.js", "loomi_icon.png",
+    "loomi_icon_hud.png",
 })
 
 

@@ -223,6 +223,7 @@ class PrivatePageTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(root.headers["location"], "/auth/login")
                 self.assertEqual((await client.get("/index.html")).status_code, 303)
                 self.assertEqual((await client.get("/loomi_icon.png")).status_code, 401)
+                self.assertEqual((await client.get("/loomi_icon_hud.png")).status_code, 200)
                 self.assertEqual((await client.post("/auth/login/options", headers={"Origin": "https://evil.example"})).status_code, 403)
                 self.assertEqual((await client.get("/auth/login")).status_code, 200)
                 self.assertEqual((await client.get("/auth/setup")).status_code, 200)

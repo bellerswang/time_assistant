@@ -3,23 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#161614">
+  <meta name="theme-color" content="#08121e">
+  <link rel="icon" type="image/png" sizes="512x512" href="/loomi_icon_hud.png">
+  <link rel="apple-touch-icon" href="/loomi_icon_hud.png">
   <title>Loomi · 私人记录</title>
   <style>
-    :root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#10110f;color:#f5f1e8}
-    body{min-height:100dvh;display:grid;place-items:center;margin:0;padding:22px;box-sizing:border-box}
-    main{width:min(100%,380px);text-align:center}
-    h1{font-size:2.8rem;letter-spacing:-.06em;margin:0 0 8px}
-    p{color:#bdbdb7;line-height:1.65}
-    button{border:0;border-radius:18px;background:#bdecc1;color:#15251a;font-size:1.05rem;font-weight:700;padding:16px 22px;width:100%;margin-top:16px;cursor:pointer}
+    *,*::before,*::after{box-sizing:border-box}
+    :root{font-family:'Bahnschrift','Arial Narrow',system-ui,sans-serif;color-scheme:dark;background:#08121e;color:#f1f4f7}
+    body{min-height:100dvh;display:grid;place-items:center;margin:0;padding:22px;box-sizing:border-box;background:radial-gradient(ellipse at 15% 15%,rgba(0,229,255,.1),transparent 38%),linear-gradient(145deg,#0b1724,#060b12 72%)}
+    main{position:relative;width:min(100%,380px);padding:30px 24px 18px;text-align:left;background:linear-gradient(135deg,#142435,#0d1b2a);border:1px solid #345168;border-left:3px solid #00e5ff;box-shadow:6px 6px 0 rgba(247,53,160,.22)}
+    main::before{content:'LOOMI // SECURE ACCESS';display:block;margin-bottom:18px;color:#00e5ff;font-size:.66rem;font-weight:900;letter-spacing:.12em}
+    h1{font-size:2.8rem;font-style:italic;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;color:#eaff35;margin:0 0 8px}
+    p{color:#a9b8c5;line-height:1.65}
+    button{border:1px solid #00e5ff;border-radius:2px;background:#00e5ff;color:#07121c;font-size:1rem;font-weight:900;letter-spacing:.04em;padding:15px 20px;width:100%;margin-top:16px;cursor:pointer;box-shadow:3px 3px 0 rgba(247,53,160,.45)}
     button:disabled{opacity:.5;cursor:wait}
-    .secondary{background:#30342f;color:#f5f1e8}
-    #status{min-height:3em;font-size:.9rem}
+    .secondary{background:#182a3b;border-color:#f735a0;color:#f1f4f7;box-shadow:3px 3px 0 rgba(0,229,255,.32)}
+    #status{min-height:3em;font-size:.9rem;color:#00e5ff}
+    .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .login-brand img{width:50px;height:50px;object-fit:cover;border:1px solid rgba(0,229,255,.7);box-shadow:3px 3px 0 rgba(247,53,160,.42)}
+    .login-brand h1{margin:0;font-size:2.15rem}
   </style>
 </head>
 <body>
   <main>
-    <h1>Loomi</h1>
+    <div class="login-brand"><img src="/loomi_icon_hud.png" alt=""><h1>Loomi</h1></div>
     <p id="intro">你的私人录音空间。使用设备的 Face ID、指纹或屏幕锁进入。</p>
     <section id="login-section"><button id="login" type="button">使用通行密钥进入</button></section>
     <section id="setup-section" hidden>
