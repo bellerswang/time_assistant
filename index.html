@@ -2374,12 +2374,12 @@
         .cyber-capture-module .loomi-selector-btn { min-height: 32px; padding: 6px 10px; border-radius: 1px; font-size: 11px; }
         .cyber-capture-module .loomi-selector-slider { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 1px; box-shadow: 2px 2px 0 rgba(247,53,160,.36); }
         .cyber-capture-module .loomi-selector-btn.active { color: #07121c; }
-        .loomi-mode-control { display: flex; width: 100%; justify-content: flex-end; margin: 2px 0 8px; }
-        .loomi-mode-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid rgba(0,229,255,.45); border-radius: 2px; background: rgba(0,229,255,.07); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; }
-        .loomi-mode-button:active { background: rgba(0,229,255,.16); }
-        .voice-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-        .voice-mode-option { min-height: 50px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 3px; font-size: 14px; font-weight: 800; cursor: pointer; }
-        .voice-mode-option.active { border-color: var(--primary); color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary-dim); }
+        .loomi-mode-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; }
+        .loomi-mode-tab { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 48px; padding: 8px 5px; border: 1px solid rgba(69,101,125,.72); border-radius: 2px; background: rgba(14,27,42,.92); color: var(--text-muted); font-size: 12px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+        .loomi-mode-tab i { font-size: 12px; }
+        .loomi-mode-tab.active { border-color: var(--primary); background: rgba(0,229,255,.13); color: var(--primary); box-shadow: inset 0 -2px 0 var(--primary), 2px 2px 0 rgba(247,53,160,.28); }
+        .loomi-mode-tab:active { transform: translateY(1px); }
+        @media (max-width: 380px) { .loomi-mode-tabs { gap: 4px; } .loomi-mode-tab { gap: 4px; padding: 8px 3px; font-size: 11px; } }
         .cyber-capture-module .loomi-voice-area { gap: 7px !important; }
         .record-orb-button { width: 92px; height: 92px; margin: 3px 0 0; border: 1px solid rgba(0,229,255,.82); border-radius: 4px; font-size: 30px; clip-path: polygon(0 0, 84% 0, 100% 16%, 100% 100%, 16% 100%, 0 84%); }
         .record-orb-button::after { inset: 4px; border-radius: 2px; filter: blur(10px); }
@@ -2553,12 +2553,6 @@
                             <div class="loomi-selector-slider"></div>
                         </div>
 
-                        <div class="loomi-mode-control">
-                            <button class="loomi-mode-button" id="loomi-mode-button" type="button">
-                                <i class="fa-solid fa-shuffle"></i><span id="loomi-mode-label">记录方式：日记</span><i class="fa-solid fa-chevron-down"></i>
-                            </button>
-                        </div>
-
                         <div class="loomi-voice-area" id="loomi-voice-area" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
                             <button class="record-orb-button" id="record-home-mic" aria-label="Start voice capture">
                                 <i class="fa-solid fa-microphone" id="loomi-orb-icon"></i>
@@ -2584,6 +2578,13 @@
                             </div>
                         </div>
                     </section>
+
+                    <div class="loomi-mode-tabs" role="group" aria-label="记录方式">
+                        <button class="loomi-mode-tab active" type="button" data-voice-mode="journal" aria-pressed="true"><i class="fa-solid fa-book-open"></i><span>日记</span></button>
+                        <button class="loomi-mode-tab" type="button" data-voice-mode="schedule" aria-pressed="false"><i class="fa-solid fa-calendar-check"></i><span>日程</span></button>
+                        <button class="loomi-mode-tab" type="button" data-voice-mode="ask" aria-pressed="false"><i class="fa-solid fa-circle-question"></i><span>Ask</span></button>
+                        <button class="loomi-mode-tab" type="button" data-voice-mode="wiki" aria-pressed="false"><i class="fa-solid fa-book"></i><span>Wiki</span></button>
+                    </div>
 
                     <div class="loomi-result-card" id="loomi-result-card">
                         <div class="result-title" id="loomi-result-title"></div>
@@ -2776,20 +2777,6 @@
 
             <div class="voice-save-result" id="voice-save-result"></div>
 
-        </div>
-
-        <div class="bottom-sheet" id="sheet-voice-mode">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <span class="sheet-title"><i class="fa-solid fa-shuffle"></i> 选择记录方式</span>
-                <button class="sheet-close-btn">&times;</button>
-            </div>
-            <div class="voice-mode-options">
-                <button class="voice-mode-option active" type="button" data-voice-mode="journal">日记</button>
-                <button class="voice-mode-option" type="button" data-voice-mode="schedule">日程</button>
-                <button class="voice-mode-option" type="button" data-voice-mode="ask">Ask</button>
-                <button class="voice-mode-option" type="button" data-voice-mode="wiki">Wiki</button>
-            </div>
         </div>
 
         <!-- SHEET 1: 内容分类（由 LLM 自动判断；此处用于事后手动修改） -->
@@ -3779,15 +3766,11 @@
         const voiceModes = { journal: '日记', schedule: '日程', ask: 'Ask', wiki: 'Wiki' };
 
         function updateVoiceModeButton() {
-            const label = document.getElementById('loomi-mode-label');
-            if (label) label.textContent = '记录方式：' + (voiceModes[voiceMode] || voiceModes.journal);
-            document.querySelectorAll('.voice-mode-option').forEach(button => {
-                button.classList.toggle('active', button.dataset.voiceMode === voiceMode);
+            document.querySelectorAll('.loomi-mode-tab').forEach(button => {
+                const active = button.dataset.voiceMode === voiceMode;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
-        }
-
-        function openVoiceModePicker() {
-            openSheet('sheet-voice-mode');
         }
 
         // ==================== 时间日期工具函数 ====================
@@ -5045,7 +5028,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-voice-mode', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -6644,11 +6627,9 @@
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
-            document.getElementById('loomi-mode-button')?.addEventListener('click', openVoiceModePicker);
-            document.querySelectorAll('.voice-mode-option').forEach(button => {
+            document.querySelectorAll('.loomi-mode-tab').forEach(button => {
                 button.addEventListener('click', () => {
                     setVoiceMode(button.dataset.voiceMode || 'journal');
-                    closeAllSheets();
                 });
             });
             setVoiceMode(voiceMode);
