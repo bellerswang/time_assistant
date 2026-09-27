@@ -126,14 +126,18 @@ class PasskeyAuth:
         )
         return response
 
-    def renew_session(self, request: Request, response):
+    def renew_session(self, request: Request, response, session_data: dict | None = None):
         ref = self._session_ref(request)
         if ref is None:
             return response
-        snap = ref.get()
-        if not snap.exists or snap.to_dict().get("uid") != self.uid:
+        if session_data is None:
+            snap = ref.get()
+            if not snap.exists:
+                return response
+            session_data = snap.to_dict()
+        if session_data.get("uid") != self.uid:
             return response
-        if snap.to_dict().get("expires_at", _now()) - _now() < timedelta(days=30):
+        if session_data.get("expires_at", _now()) - _now() < timedelta(days=30):
             ref.update({"expires_at": _now() + SESSION_LIFETIME})
             response.set_cookie(
                 COOKIE_NAME, request.cookies[COOKIE_NAME],
@@ -279,7 +283,8 @@ class PasskeyAuth:
         return response
 
     def app_page(self, request: Request):
-        if self.session_uid(request) != self.uid:
+        session_data = self._session_data(request)
+        if not session_data or session_data.get("uid") != self.uid:
             return _no_store(RedirectResponse("/auth/login", status_code=303))
         html = (PUBLIC_DIR / "index.html").read_text(encoding="utf-8")
         html = html.replace('<html lang="zh-CN">', '<html lang="zh-CN" class="private-host">', 1)
@@ -288,7 +293,7 @@ class PasskeyAuth:
         html = html.replace('<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>', '')
         html = html.replace('<script src="./firebase-config.js?v=20260725.2"></script>', '')
         html = html.replace("<!-- LOOMI_PRIVATE_BOOTSTRAP -->", "<script>window.LOOMI_PRIVATE_HOST = true;</script>")
-        return _no_store(self.renew_session(request, HTMLResponse(html)))
+        return _no_store(self.renew_session(request, HTMLResponse(html), session_data))
 
     def asset(self, request: Request, name: str):
         if name != "firebase-config.js":

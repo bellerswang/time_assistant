@@ -20,16 +20,16 @@
     <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js" defer></script>
     <script src="./firebase-config.js?v=20260725.2"></script>
     <!-- LOOMI_PRIVATE_BOOTSTRAP -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     
     <!-- Icon Font -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
     
     <!-- Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
     
     <style>
         :root {
@@ -3053,14 +3053,9 @@
                 const user = { email: appLanguage === 'en' ? 'Private account' : '私人账号' };
                 firebaseUser = user;
                 updateAuthAccountUi(user);
-                setAuthGateStatus(appLanguage === 'en' ? 'Opening Loomi…' : '正在打开 Loomi…');
-                try {
-                    const response = await authFetch(`${CONFIG.BACKEND_URL}/api/system/status`);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    startAuthenticatedApp();
-                } catch (error) {
-                    setAuthGateStatus(appLanguage === 'en' ? 'Could not verify access. Refresh to retry.' : '暂时无法验证访问权限，请刷新重试。', true);
-                }
+                // The server only serves this document after validating the HttpOnly session.
+                // Start the shell immediately; every data API still checks that session.
+                startAuthenticatedApp();
                 return;
             }
             if (!firebaseConfigReady()) {
@@ -4065,6 +4060,28 @@
             return escapeHtml(source).replace(/\n/g, '<br>');
         }
 
+        let notebookMarkdownLibrariesPromise;
+        function ensureNotebookMarkdownLibraries() {
+            if (window.marked && window.DOMPurify) return Promise.resolve();
+            if (!notebookMarkdownLibrariesPromise) {
+                const loadScript = (src) => new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error(`Could not load ${src}`));
+                    document.head.appendChild(script);
+                });
+                notebookMarkdownLibrariesPromise = Promise.all([
+                    loadScript('https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js'),
+                    loadScript('https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js')
+                ]).catch(error => {
+                    console.warn('[Notebook] Markdown libraries unavailable; using text preview.', error);
+                });
+            }
+            return notebookMarkdownLibrariesPromise;
+        }
+
         function formatMemorySource(source) {
             const label = source?.type === 'notebook' ? 'Notebook' : (source?.category_label || source?.type || 'Memory');
             const version = source?.type === 'notebook' && source?.version ? ` v${source.version}` : '';
@@ -4133,6 +4150,7 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 activeNotebookNote = data.note;
+                await ensureNotebookMarkdownLibraries();
                 document.getElementById('notebook-detail-id').value = activeNotebookNote.id;
                 document.getElementById('notebook-detail-title').value = activeNotebookNote.title || '';
                 document.getElementById('notebook-detail-summary').value = activeNotebookNote.summary || '';
@@ -6524,7 +6542,7 @@
             });
         }
 
-        window.onload = () => {
+        (() => {
             document.getElementById('btn-google-login')?.addEventListener('click', signInToLoomi);
             document.getElementById('btn-google-logout')?.addEventListener('click', async () => {
                 if (window.LOOMI_PRIVATE_HOST) {
@@ -6535,7 +6553,7 @@
             });
             applyLanguage(appLanguage);
             initFirebaseAuth();
-        };
+        })();
     </script>
 </body>
 </html>
