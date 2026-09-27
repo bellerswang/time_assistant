@@ -24,6 +24,7 @@ import httpx
 
 from models import CATEGORY_LABELS, Record, RecordMetadata
 from services.firestore_workflow_service import FirestoreWorkflowService
+from services.email_links import attach_gmail_thread_ids
 from services.email_workflow_runner import build_workflow_items
 
 try:
@@ -3613,7 +3614,8 @@ async def workflow_result_endpoint(run_id: str, req: WorkflowResultRequest):
     if req.status == "failed":
         await store.fail_run(run_id, req.error or "Workflow failed")
     else:
-        await store.save_result(run_id, req.items, len(req.raw_messages))
+        items = attach_gmail_thread_ids(req.items, req.raw_messages)
+        await store.save_result(run_id, items, len(req.raw_messages))
     return {"run": await store.get_run(run_id)}
 
 
