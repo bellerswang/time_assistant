@@ -16,7 +16,9 @@ import binascii
 import hmac
 import hashlib
 import html
+import ipaddress
 from datetime import datetime, timezone
+from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 import httpx
 
@@ -62,6 +64,7 @@ except Exception:
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", os.getenv("FIRESTORE_PROJECT_ID") or "mercurial-weft-455321-v6")
 ALLOWED_FIREBASE_UID = os.getenv("ALLOWED_FIREBASE_UID", "").strip()
 WORKFLOW_API_KEY = os.getenv("WORKFLOW_API_KEY", "").strip()
+INVESTMENT_REPORT_API_KEY = os.getenv("INVESTMENT_REPORT_API_KEY", "").strip()
 LOOMI_INGEST_API_KEY = os.getenv("LOOMI_INGEST_API_KEY", "").strip()
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
     "CORS_ALLOWED_ORIGINS",
@@ -130,6 +133,12 @@ async def require_api_auth(request, call_next):
     workflow_header = request.headers.get("x-workflow-key", "")
     if is_workflow_api and WORKFLOW_API_KEY and hmac.compare_digest(workflow_header, WORKFLOW_API_KEY):
         request.state.auth_type = "workflow_key"
+        return await call_next(request)
+
+    is_report_ingest = path == "/api/workflows/investment-reports/ingest" and request.method == "POST"
+    report_header = request.headers.get("x-investment-report-key", "")
+    if is_report_ingest and INVESTMENT_REPORT_API_KEY and hmac.compare_digest(report_header, INVESTMENT_REPORT_API_KEY):
+        request.state.auth_type = "investment_report_key"
         return await call_next(request)
 
     is_notebook_ingest = path == "/api/integrations/notebook/ingest" and request.method == "POST"
@@ -205,9 +214,11 @@ GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 VOICE_DB_PATH = os.getenv("VOICE_DB_PATH", os.path.join(backend_dir, "data", "chronoai.db"))
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
 if DEEPSEEK_MODEL:
     DEEPSEEK_MODEL = DEEPSEEK_MODEL.lower()
+    if DEEPSEEK_MODEL in {"deepseek-chat", "deepseek-reasoner", "deepseek-v4-flash"}:
+        DEEPSEEK_MODEL = "deepseek-flash"
 GOOGLE_DOCS_ENABLED = os.getenv("GOOGLE_DOCS_ENABLED", "true").lower() not in {"0", "false", "no"}
 GOOGLE_DOCS_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_DOCS_CREDENTIALS_PATH",
@@ -228,6 +239,8 @@ NOTEBOOK_MAX_TAGS = int(os.getenv("NOTEBOOK_MAX_TAGS", "12"))
 NOTEBOOK_REVISIONS_COLLECTION = os.getenv("NOTEBOOK_REVISIONS_COLLECTION", "notebook_revisions")
 WORKFLOW_RUNS_COLLECTION = os.getenv("WORKFLOW_RUNS_COLLECTION", "email_workflow_runs")
 WORKFLOW_ITEMS_COLLECTION = os.getenv("WORKFLOW_ITEMS_COLLECTION", "email_action_items")
+INVESTMENT_REPORTS_COLLECTION = os.getenv("INVESTMENT_REPORTS_COLLECTION", "investment_reports")
+CRAWLER_LINKS_COLLECTION = os.getenv("CRAWLER_LINKS_COLLECTION", "crawler_links")
 
 
 def resolve_folders_config_path() -> str:
@@ -260,7 +273,7 @@ class WikiEntryRequest(BaseModel):
 
 class MemoryAskRequest(BaseModel):
     query: str
-    types: list[str] = ["wiki", "journal", "notebook"]
+    types: list[str] = ["wiki", "journal"]
     limit: int = 8
 
 
@@ -331,6 +344,19 @@ class WorkflowItemStatusRequest(BaseModel):
 class WorkflowIngestRequest(BaseModel):
     inbox_messages: list[dict] = []
     sent_messages: list[dict] = []
+
+
+class InvestmentReportRequest(BaseModel):
+    date: str
+    title: str
+    body_markdown: str
+    summary: str = ""
+    source_links: list[str] = []
+    draft_json: dict | None = None
+
+
+class CrawlerLinksRequest(BaseModel):
+    links: list[str]
 
 
 class NotebookSource(BaseModel):
@@ -1815,7 +1841,7 @@ def normalize_memory_types(types: list[str] | str | None) -> set[str]:
     if isinstance(types, str):
         raw_types = [item.strip() for item in types.split(",")]
     else:
-        raw_types = types or ["wiki", "journal", "notebook"]
+        raw_types = types or ["wiki", "journal"]
     allowed = {"wiki", "journal", "notebook", "record", "records"}
     selected = {item for item in raw_types if item in allowed}
     return selected or allowed
@@ -2359,6 +2385,7 @@ async def answer_with_deepseek(query: str, sources: list[dict]) -> str:
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
             json={
                 "model": DEEPSEEK_MODEL,
+                "thinking": {"type": "disabled"},
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Question: {query}\n\nMemory context:\n{context}"},
@@ -2964,7 +2991,7 @@ async def get_wiki_entries(
 @app.get("/api/memory/search")
 async def get_memory_search(
     q: str = Query(..., min_length=1),
-    types: str = Query(default="wiki,journal,notebook"),
+    types: str = Query(default="wiki,journal"),
     limit: int = Query(default=8, ge=1, le=30),
 ):
     return {"results": await search_memory(q, types, limit)}
@@ -3456,6 +3483,104 @@ async def voice_draft_endpoint(
 
 
 # --- Workflow API ---------------------------------------------------------
+
+def loomi_collection(name: str):
+    if not (FIRESTORE_ENABLED and firestore_repo):
+        raise HTTPException(status_code=503, detail="Firestore storage is not configured")
+    return firestore_repo.db.collection(name)
+
+
+def loomi_firestore_project() -> str | None:
+    return FIRESTORE_PROJECT_ID or getattr(firestore_repo.db, "project", None)
+
+
+def normalize_crawler_link(raw_url: str) -> str:
+    url = raw_url.strip()
+    if len(url) > 2048 or any(ord(char) < 32 for char in url):
+        raise HTTPException(status_code=400, detail="Links must be 2048 characters or shorter")
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname
+        port = parts.port
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid link") from None
+    if parts.scheme.lower() not in {"http", "https"} or not host or parts.username or parts.password:
+        raise HTTPException(status_code=400, detail="Only public http(s) links without embedded credentials are supported")
+    if host.lower() == "localhost" or host.lower().endswith(".localhost"):
+        raise HTTPException(status_code=400, detail="Private network links are not supported")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if address is not None and not address.is_global:
+        raise HTTPException(status_code=400, detail="Private network links are not supported")
+    normalized_host = f"[{host.lower()}]" if ":" in host else host.lower()
+    host_port = normalized_host + (f":{port}" if port else "")
+    return urlunsplit((parts.scheme.lower(), host_port, parts.path or "/", parts.query, ""))
+
+
+@app.get("/api/crawler-links")
+async def list_crawler_links(limit: int = Query(default=100, ge=1, le=500)):
+    docs = await loomi_collection(CRAWLER_LINKS_COLLECTION).order_by("created_at", direction="DESCENDING").limit(limit).get()
+    return {"links": [firestore_value_to_json(doc.to_dict()) for doc in docs],
+            "collection": CRAWLER_LINKS_COLLECTION,
+            "project_id": loomi_firestore_project()}
+
+
+@app.post("/api/crawler-links")
+async def save_crawler_links(req: CrawlerLinksRequest):
+    if not 1 <= len(req.links) <= 50:
+        raise HTTPException(status_code=400, detail="Provide 1 to 50 links")
+    collection = loomi_collection(CRAWLER_LINKS_COLLECTION)
+    saved = []
+    for url in dict.fromkeys(normalize_crawler_link(link) for link in req.links):
+        document_id = "link_" + hashlib.sha256(url.encode("utf-8")).hexdigest()[:24]
+        payload = {"id": document_id, "url": url, "status": "pending",
+                   "created_at": datetime.now(timezone.utc), "source": "loomi"}
+        await collection.document(document_id).set(payload)
+        saved.append({"id": document_id, "url": url,
+                      "document_path": f"{CRAWLER_LINKS_COLLECTION}/{document_id}"})
+    return {"saved": saved, "collection": CRAWLER_LINKS_COLLECTION,
+            "project_id": loomi_firestore_project()}
+
+
+@app.get("/api/investment-reports")
+async def list_investment_reports(limit: int = Query(default=60, ge=1, le=200)):
+    docs = await loomi_collection(INVESTMENT_REPORTS_COLLECTION).order_by("date", direction="DESCENDING").limit(limit).get()
+    return {"reports": [{**{key: firestore_value_to_json(value) for key, value in doc.to_dict().items()
+                             if key != "draft_json"},
+                          "draft_json_available": doc.to_dict().get("draft_json") is not None} for doc in docs]}
+
+
+@app.get("/api/investment-reports/{report_date}/draft")
+async def get_investment_report_draft(report_date: str):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", report_date):
+        raise HTTPException(status_code=400, detail="Invalid report date")
+    doc = await loomi_collection(INVESTMENT_REPORTS_COLLECTION).document(report_date).get()
+    if not doc.exists or doc.to_dict().get("draft_json") is None:
+        raise HTTPException(status_code=404, detail="Research draft not found")
+    return doc.to_dict()["draft_json"]
+
+
+@app.post("/api/workflows/investment-reports/ingest")
+async def ingest_investment_report(req: InvestmentReportRequest):
+    try:
+        report_date = datetime.strptime(req.date, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must use YYYY-MM-DD format") from None
+    title = req.title.strip()
+    body = req.body_markdown.strip()
+    if not title or len(title) > 240 or not body or len(body) > 120000 or len(req.source_links) > 60:
+        raise HTTPException(status_code=400, detail="Invalid report title, body, or source links")
+    if req.draft_json is not None and len(json.dumps(req.draft_json, ensure_ascii=False).encode("utf-8")) > 750000:
+        raise HTTPException(status_code=400, detail="Research draft exceeds the Firestore document limit")
+    payload = {"id": report_date, "date": report_date, "title": title,
+               "summary": req.summary.strip()[:1500], "body_markdown": body,
+               "source_links": [normalize_crawler_link(link) for link in req.source_links],
+               "draft_json": req.draft_json, "review_status": "pending_review",
+               "source_job": "每日投资研究待审报告", "published_at": datetime.now(timezone.utc)}
+    await loomi_collection(INVESTMENT_REPORTS_COLLECTION).document(report_date).set(payload)
+    return {"ok": True, "document_path": f"{INVESTMENT_REPORTS_COLLECTION}/{report_date}"}
 
 @app.get("/api/workflows/email-action-check/latest")
 async def workflow_latest_endpoint():

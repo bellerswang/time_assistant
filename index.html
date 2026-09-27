@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Loomi — 智能自适应日程</title>
+    <title>Loomi — 私人录音与阅读</title>
     
     <!-- PWA Meta Tags & Manifest -->
     <link rel="manifest" href="./manifest.json">
@@ -2419,6 +2419,18 @@
         .bottom-nav .nav-item { text-transform: uppercase; }
         .month-picker { background: #101e2c; }
         .record-orb-button { animation-name: planetary-pulse; }
+        .week-strip, #date-title-picker, #month-picker, #hidden-date-input { display: none !important; }
+        #sheet-input { max-height: 90dvh; }
+        #sheet-input #textarea-input { min-height: 42dvh; height: 42dvh; resize: vertical; font-size: 16px; line-height: 1.6; }
+        .loomi-data-card { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--primary); padding: 14px; margin-top: 12px; overflow-wrap: anywhere; }
+        .loomi-data-card:nth-child(even) { border-left-color: var(--accent); }
+        .loomi-data-card h3 { margin: 4px 0 8px; font-size: 17px; }
+        .loomi-data-card small, .loomi-data-meta { color: var(--text-muted); font-size: 11px; }
+        .loomi-data-card summary { cursor: pointer; font-weight: 800; color: var(--primary); margin-top: 12px; }
+        .loomi-report-body { line-height: 1.7; margin-top: 12px; overflow-wrap: anywhere; }
+        .loomi-report-body img { max-width: 100%; }
+        .loomi-link-input { width: 100%; min-height: 155px; resize: vertical; font-size: 15px; line-height: 1.6; }
+        .loomi-path { display: block; margin-top: 10px; padding: 9px; background: #08121e; color: var(--primary); overflow-wrap: anywhere; font-size: 11px; }
         @keyframes planetary-pulse {
             0%, 100% { box-shadow: 0 0 18px rgba(0,229,255,.22), 0 0 0 0 rgba(0,229,255,.1), 0 0 0 0 rgba(247,53,160,.1); transform: scale(1); }
             50% { box-shadow: 0 0 32px rgba(0,229,255,.48), 0 0 0 8px rgba(0,229,255,.08), 0 0 0 16px rgba(247,53,160,.08); transform: scale(1.02); }
@@ -2507,22 +2519,8 @@
         <div class="main-content">
             
             <!-- VIEW 1: 今日事项 -->
-            <div id="tab-timeline" class="tab-panel active">
-                <section class="today-agenda-section">
-                    <div class="today-section-head">
-                        <div>
-                            <span class="today-section-kicker" id="today-agenda-kicker">TODAY</span>
-                            <h3 id="today-agenda-title">事项</h3>
-                        </div>
-                        <span class="today-section-count" id="today-agenda-count">0</span>
-                    </div>
-                    <div class="today-agenda-list" id="today-agenda-list"></div>
-                    <div class="today-agenda-empty" id="today-agenda-empty">今天没有事项。</div>
-                </section>
-            </div>
-
             <!-- VIEW 3: Voice (沉浸式智能输入 Loomi) -->
-            <div id="tab-voice" class="tab-panel record-home">
+            <div id="tab-voice" class="tab-panel record-home active">
                 <div class="loomi-immersive">
                     <div class="cyber-screen-heading">
                         <div class="cyber-screen-emblem" aria-hidden="true">
@@ -2564,7 +2562,7 @@
 
                         <div class="loomi-text-area" id="loomi-text-area" style="display: none; width: 100%; flex-direction: column; gap: 12px; align-items: center;">
                             <div class="quick-record-composer" style="width: 100%; max-width: 380px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; backdrop-filter: blur(20px);">
-                                <textarea id="loomi-text-input" placeholder="输入你想记录的内容，或向 AI 提问..." style="width: 100%; min-height: 80px; background: transparent; border: 0; color: var(--text); font-size: 14px; resize: none; outline: none;"></textarea>
+                                <textarea id="loomi-text-input" placeholder="输入你想记录的内容..." style="width: 100%; min-height: 80px; background: transparent; border: 0; color: var(--text); font-size: 14px; resize: none; outline: none;"></textarea>
                                 <div class="quick-record-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                                     <div></div>
                                     <button class="record-primary-action" id="btn-loomi-text-submit" style="background: linear-gradient(135deg, var(--primary), var(--accent)); border: 0; border-radius: 4px; color: #07121c; font-size: 13px; font-weight: 700; padding: 7px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 3px 3px 0 rgba(247, 53, 160, 0.4);">
@@ -2572,21 +2570,6 @@
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-
-                    <section class="cyber-module cyber-route-module">
-                        <div class="cyber-module-heading"><span><b>02</b> / RECORD ROUTE</span><small>SELECT DESTINATION</small></div>
-                        <div class="loomi-mode-row" id="loomi-mode-row">
-                            <button class="loomi-mode-chip active" data-mode="journal">Journal 日记</button>
-                            <button class="loomi-mode-chip" data-mode="wiki">Wiki 百科</button>
-                            <button class="loomi-mode-chip" data-mode="ask">Ask 问答</button>
-                            <button class="loomi-mode-chip" data-mode="schedule">Schedule 日程</button>
-                        </div>
-                        <div class="cyber-status-grid">
-                            <div><span>ACCESS</span><strong>PRIVATE</strong></div>
-                            <div><span>INPUT</span><strong>VOICE / TEXT</strong></div>
-                            <div><span>DESTINATION</span><strong id="loomi-destination-readout">JOURNAL</strong></div>
                         </div>
                     </section>
 
@@ -2686,29 +2669,29 @@
                 </div>
             </div>
 
-            <!-- VIEW 7: Notebook -->
-            <div id="tab-notebook" class="tab-panel record-home">
+            <div id="tab-reports" class="tab-panel record-home">
                 <div class="record-section-head">
-                    <div class="record-section-title">Notebook</div>
-                    <button class="action-pill primary" id="btn-refresh-notebook" style="height:34px;">
-                        <i class="fa-solid fa-rotate"></i>
-                        Refresh
-                    </button>
+                    <div class="record-section-title">要闻阅读</div>
+                    <button class="action-pill primary" id="btn-refresh-reports" type="button"><i class="fa-solid fa-rotate"></i> 刷新</button>
                 </div>
-                <div class="notebook-toolbar">
-                    <input type="search" class="form-input" id="notebook-search-input" placeholder="Search notes...">
-                    <button class="record-primary-action" id="btn-search-notebook" style="height:38px; border-radius:var(--radius-md);" aria-label="Search Notebook">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
+                <p class="loomi-data-meta">每日投资研究待审报告 · 待审草稿 · 按日期排列</p>
+                <div id="investment-report-list"></div>
+            </div>
+
+            <div id="tab-links" class="tab-panel record-home">
+                <div class="record-section-head"><div class="record-section-title">爬虫 Link</div></div>
+                <div class="loomi-data-card">
+                    <div class="cyber-module-heading"><span><b>01</b> / LINK INBOX</span><small>FIRESTORE</small></div>
+                    <p class="loomi-data-meta">每行粘贴一个链接，保存后爬虫可读取待处理项。</p>
+                    <textarea class="form-input loomi-link-input" id="crawler-link-input" placeholder="https://example.com/article-1&#10;https://example.com/article-2"></textarea>
+                    <button class="btn-sheet-primary" id="btn-save-crawler-links" type="button">上传链接</button>
+                    <div id="crawler-link-location" class="loomi-path" hidden></div>
                 </div>
-                <div class="notebook-filter-row" id="notebook-filter-row">
-                    <button class="notebook-filter-chip active" data-notebook-status="active">Active</button>
-                    <button class="notebook-filter-chip" data-notebook-status="archived">Archived</button>
-                    <button class="notebook-filter-chip" data-notebook-status="trashed">Trash</button>
-                    <button class="notebook-filter-chip" data-notebook-status="all">All</button>
+                <div class="record-section-head" style="margin-top:20px">
+                    <div class="record-section-title">已上传</div>
+                    <button class="action-pill secondary" id="btn-refresh-crawler-links" type="button">刷新</button>
                 </div>
-                <div class="notebook-list" id="notebook-list"></div>
-                <div class="notebook-empty" id="notebook-empty" hidden>No Notebook notes yet.</div>
+                <div id="crawler-link-list"></div>
             </div>
 
             <!-- VIEW 8: Settings -->
@@ -2728,11 +2711,7 @@
 
         <!-- Bottom navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-tab="timeline">
-                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                <span>Today</span>
-            </button>
-            <button class="nav-item" data-tab="voice">
+            <button class="nav-item active" data-tab="voice">
                 <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 <span>Loomi</span>
             </button>
@@ -2744,9 +2723,13 @@
                 <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
                 <span>Records</span>
             </button>
-            <button class="nav-item" data-tab="notebook">
-                <svg viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v14a2 2 0 0 0 2 2h10V4H6zm3 3h7v2H9V7zm0 4h7v2H9v-2z"/></svg>
-                <span>Notebook</span>
+            <button class="nav-item" data-tab="reports">
+                <svg viewBox="0 0 24 24"><path d="M4 3h16v18H4V3zm3 4v2h10V7H7zm0 4v2h10v-2H7zm0 4v2h7v-2H7z"/></svg>
+                <span>要闻</span>
+            </button>
+            <button class="nav-item" data-tab="links">
+                <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 1.42 1.42 1.71-1.71a3 3 0 0 1 4.24 4.24l-3 3A3 3 0 0 1 11.58 12L10 13zm4-2a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71-1.42-1.42-1.71 1.71a3 3 0 0 1-4.24-4.24l3-3A3 3 0 0 1 12.42 12L14 11z"/></svg>
+                <span>爬虫</span>
             </button>
         </nav>
 
@@ -2757,35 +2740,19 @@
         <div class="bottom-sheet" id="sheet-input">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <span class="sheet-title">新日程智能解析安排</span>
+                <span class="sheet-title">检查录音文字</span>
                 <button class="sheet-close-btn">&times;</button>
             </div>
-            
-            <div class="voice-mode-toggle" id="voice-mode-toggle">
-                <button class="voice-mode-btn active" data-mode="journal">Journal</button>
-                <button class="voice-mode-btn" data-mode="schedule">Schedule</button>
-                <button class="voice-mode-btn" data-mode="wiki">Wiki</button>
-                <button class="voice-mode-btn" data-mode="ask">Ask</button>
-            </div>
-
-            <div class="voice-journal-tools" id="voice-journal-tools">
-                <select class="form-input" id="voice-folder-select" style="margin:0; height:36px; font-size:12px;"></select>
-            </div>
-
-            <textarea class="semantic-textarea" id="textarea-input" placeholder="输入你想做的事，例如：&#10;“下午三点写量化策略报告两小时”&#10;“明天早晨健身锻炼四十五分钟”"></textarea>
+            <p class="loomi-data-meta">转录完成后可以直接在这里修改，确认无误再保存到日记。</p>
+            <textarea class="semantic-textarea" id="textarea-input" placeholder="录音文字会显示在这里…"></textarea>
             
             <div class="sheet-action-row" style="display: flex; gap: 8px; width: 100%;">
-                <button class="btn-sheet-secondary" id="btn-voice-record" style="flex: 1;">
-                    <i class="fa-solid fa-microphone" id="voice-record-icon"></i>
-                    <span id="voice-record-text">按键录音</span>
-                </button>
-                <button class="btn-sheet-secondary" id="btn-drop-draft" style="flex: 0.8; background: rgba(255, 85, 85, 0.1); border-color: rgba(255, 85, 85, 0.35); color: var(--error); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <button class="btn-sheet-secondary" id="btn-drop-draft" style="flex: 1; background: rgba(255, 85, 85, 0.1); border-color: rgba(255, 85, 85, 0.35); color: var(--error); display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <i class="fa-solid fa-trash-can"></i>
                     丢弃
                 </button>
                 <button class="btn-sheet-primary" id="btn-parse-text" style="flex: 1.2;">
-                    <i class="fa-solid fa-wand-magic"></i>
-                    智能安排
+                    <i class="fa-solid fa-check"></i> 保存
                 </button>
             </div>
 
@@ -2797,38 +2764,6 @@
 
             <div class="voice-save-result" id="voice-save-result"></div>
 
-            <!-- 结构化预览卡 -->
-            <div class="preview-card" id="preview-result-card">
-                <div class="preview-header">✨ Loomi 结构化解析结果</div>
-                <div class="preview-item">
-                    <span class="preview-label">类型</span>
-                    <span class="preview-val" id="prev-type">-</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">事项名称</span>
-                    <span class="preview-val" id="prev-name">-</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">日程分类</span>
-                    <span class="preview-val" id="prev-cat">-</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">预估用时</span>
-                    <span class="preview-val" id="prev-dur">-</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">安排方案</span>
-                    <span class="preview-val" id="prev-time">-</span>
-                </div>
-                <div class="preview-item" style="border-top:1px dashed var(--border); padding-top:6px; margin-top:2px;">
-                    <span class="preview-label">安排说明</span>
-                    <span class="preview-val" id="prev-reason" style="font-weight:normal; color:var(--text-muted); text-align:right; max-width:70%;">-</span>
-                </div>
-                <button class="btn-sheet-primary" id="btn-confirm-place" style="margin-top: 4px;">
-                    <i class="fa-solid fa-calendar-check"></i>
-                    确认编入今日日程
-                </button>
-            </div>
         </div>
 
         <!-- SHEET 1: 记录分类 -->
@@ -2868,40 +2803,6 @@
             <button class="btn-sheet-primary" id="btn-save-record-edit">
                 <i class="fa-solid fa-check"></i> Save changes
             </button>
-        </div>
-
-        <div class="bottom-sheet" id="sheet-todo-detail">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <span class="sheet-title" id="todo-detail-heading"><i class="fa-solid fa-list-check"></i> 事项详情</span>
-                <button class="sheet-close-btn" aria-label="Close">&times;</button>
-            </div>
-            <div class="todo-detail-source" id="todo-detail-source"></div>
-            <div class="todo-detail-title" id="todo-detail-title"></div>
-            <div class="todo-detail-label" id="todo-detail-original-label">详细内容</div>
-            <div class="todo-detail-original" id="todo-detail-original"></div>
-            <div class="todo-detail-actions" id="todo-detail-actions"></div>
-        </div>
-
-        <!-- SHEET 2: 系统设置 -->
-        <div class="bottom-sheet" id="sheet-notebook-detail">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <span class="sheet-title"><i class="fa-solid fa-book-open"></i> Notebook note</span>
-                <button class="sheet-close-btn" onclick="closeAllSheets()"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <input type="hidden" id="notebook-detail-id">
-            <input type="text" class="form-input" id="notebook-detail-title" placeholder="Title" style="margin:0;">
-            <textarea class="form-input" id="notebook-detail-summary" placeholder="Short summary" style="min-height:70px; margin:0; resize:vertical;"></textarea>
-            <div class="notebook-preview" id="notebook-detail-preview"></div>
-            <textarea class="semantic-textarea" id="notebook-detail-body" placeholder="Markdown content" style="min-height:220px; resize:vertical;"></textarea>
-            <input type="text" class="form-input" id="notebook-detail-tags" placeholder="Tags, separated by commas" style="margin:0;">
-            <div class="notebook-revisions" id="notebook-detail-revisions"></div>
-            <div class="sheet-action-row" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn-sheet-primary" id="btn-save-notebook-note" style="flex:1; min-width:130px;"><i class="fa-solid fa-check"></i> Save</button>
-                <button class="btn-sheet-secondary" id="btn-archive-notebook-note"><i class="fa-solid fa-box-archive"></i> Archive</button>
-                <button class="btn-sheet-secondary" id="btn-trash-notebook-note" style="color:var(--error); border-color:rgba(255,85,85,.35);"><i class="fa-solid fa-trash-can"></i> Trash</button>
-            </div>
         </div>
 
         <div class="bottom-sheet" id="sheet-settings">
@@ -2952,13 +2853,6 @@
                     <i class="fa-solid fa-rotate"></i> 重新检测连接
                 </button>
                 <pre id="setting-conn-debug" style="display:none; max-height:120px; overflow:auto; white-space:pre-wrap; word-break:break-word; margin-top:6px; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:10px;"></pre>
-            </div>
-
-            <div class="form-group" style="border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 4px;">
-                <span class="form-label">系统数据管理</span>
-                <button class="btn-sheet-secondary" id="btn-reset-demo" style="border-color: var(--error); color: var(--error); background: rgba(217, 107, 107, 0.05); align-self: flex-start;">
-                    <i class="fa-solid fa-trash-can"></i> 重置并恢复初始演示数据
-                </button>
             </div>
 
             <div class="sheet-action-row" style="margin-top: 12px;">
@@ -3271,10 +3165,7 @@
                 appStarted = true;
                 initApp();
             } else {
-                loadVoiceFolders().then(renderVoiceInbox);
-                loadInbox();
-                refreshTodosFromCloud().catch(error => console.warn('[Todos] Cloud refresh failed:', error));
-                renderTimeline();
+                loadVoiceFolders();
             }
         }
 
@@ -3856,7 +3747,7 @@
 
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
-        let currentTab = 'timeline';
+        let currentTab = 'voice';
         let voiceMode = 'journal';
         let voiceFolders = [];
 
@@ -4180,7 +4071,7 @@
         }
 
         function setVoiceMode(mode) {
-            voiceMode = ['schedule', 'journal', 'wiki', 'ask'].includes(mode) ? mode : 'journal';
+            voiceMode = mode === 'ask' ? 'ask' : 'journal';
             const modeReadout = document.getElementById('loomi-mode-readout');
             const destinationReadout = document.getElementById('loomi-destination-readout');
             const routeLabel = voiceMode === 'schedule' ? 'SCHEDULE' : voiceMode.toUpperCase();
@@ -4196,15 +4087,10 @@
             const parseBtn = document.getElementById('btn-parse-text');
             const result = document.getElementById('voice-save-result');
             if (tools) tools.classList.toggle('active', ['journal', 'wiki', 'ask'].includes(voiceMode));
-            if (parseBtn) parseBtn.innerHTML = voiceMode === 'journal'
-                ? '<i class="fa-solid fa-inbox"></i> Save note'
-                : '<i class="fa-solid fa-wand-magic"></i> 智能安排';
             if (parseBtn) {
                 const labels = {
-                    schedule: '<i class="fa-solid fa-wand-magic"></i> Schedule',
-                    journal: '<i class="fa-solid fa-inbox"></i> Save note',
-                    wiki: '<i class="fa-solid fa-book"></i> Save wiki',
-                    ask: '<i class="fa-solid fa-magnifying-glass"></i> Ask memory'
+                    journal: '<i class="fa-solid fa-check"></i> 保存',
+                    ask: '<i class="fa-solid fa-magnifying-glass"></i> 提问'
                 };
                 parseBtn.innerHTML = labels[voiceMode] || labels.journal;
             }
@@ -4217,19 +4103,20 @@
             document.getElementById('preview-result-card')?.classList.remove('active');
             document.getElementById('voice-save-result')?.classList.remove('active');
             pendingInputSource = 'text';
-            setVoiceMode(mode);
+            setVoiceMode('journal');
             openSheet('sheet-input');
         }
 
         function setActiveAppMode(tabName) {
-            const memoryTabs = ['voice', 'inbox', 'records', 'notebook'];
+            const memoryTabs = ['voice', 'inbox', 'records', 'reports', 'links'];
             document.querySelector('.app-container')?.classList.toggle('record-home-mode', memoryTabs.includes(tabName));
             const labels = {
                 timeline: appLanguage === 'en' ? 'Schedule' : '日程',
                 analytics: appLanguage === 'en' ? 'Analytics' : '分析',
                 voice: 'Loomi',
                 records: langText('records'),
-                notebook: 'Notebook',
+                reports: '要闻',
+                links: '爬虫',
                 sleep: '睡眠'
             };
             document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
@@ -4239,6 +4126,112 @@
             });
             const inboxLabel = document.querySelector('.bottom-nav [data-tab="inbox"] > span:first-of-type');
             if (inboxLabel) inboxLabel.innerText = langText('inbox');
+        }
+
+        async function loadInvestmentReports() {
+            const list = document.getElementById('investment-report-list');
+            list.innerHTML = '<div class="loomi-data-card">正在读取报告…</div>';
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/investment-reports`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const { reports = [] } = await response.json();
+                if (!reports.length) {
+                    list.innerHTML = '<div class="loomi-data-card">还没有已发布的研究报告。</div>';
+                    return;
+                }
+                list.innerHTML = reports.map((report, index) => `
+                    <article class="loomi-data-card">
+                        <small>${escapeHtml(report.date || '')} // 待审 · ${escapeHtml(report.source_job || '')}</small>
+                        <h3>${escapeHtml(report.title || '投资研究报告')}</h3>
+                        <div class="loomi-data-meta">${escapeHtml(report.summary || '')}</div>
+                        <details ${index === 0 ? 'open' : ''}>
+                            <summary>阅读报告</summary>
+                            <div class="loomi-report-body" data-report-body="${index}"></div>
+                        </details>
+                        ${report.draft_json_available ? `<button class="action-pill secondary" type="button" data-report-download="${escapeHtml(report.date || '')}">下载完整 JSON</button>` : ''}
+                    </article>`).join('');
+                await ensureNotebookMarkdownLibraries();
+                reports.forEach((report, index) => {
+                    const body = list.querySelector(`[data-report-body="${index}"]`);
+                    if (!body) return;
+                    body.innerHTML = renderNotebookMarkdown(report.body_markdown || '');
+                    const sources = (report.source_links || []).filter(link => /^https?:\/\//i.test(link));
+                    if (sources.length) {
+                        const sourceBox = document.createElement('div');
+                        sourceBox.className = 'loomi-data-meta';
+                        sourceBox.textContent = '来源：';
+                        sources.forEach(link => {
+                            const anchor = document.createElement('a');
+                            anchor.href = link;
+                            anchor.target = '_blank';
+                            anchor.rel = 'noopener noreferrer';
+                            anchor.textContent = link;
+                            sourceBox.append(anchor, document.createElement('br'));
+                        });
+                        body.appendChild(sourceBox);
+                    }
+                });
+            } catch (error) {
+                list.innerHTML = `<div class="loomi-data-card">读取失败：${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function downloadInvestmentDraft(reportDate) {
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/investment-reports/${encodeURIComponent(reportDate)}/draft`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const draft = await response.json();
+                const blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = `portfolio-intelligence-draft-${reportDate}.json`;
+                anchor.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                showToast(`下载失败：${error.message}`, 'error');
+            }
+        }
+
+        async function loadCrawlerLinks() {
+            const list = document.getElementById('crawler-link-list');
+            list.innerHTML = '<div class="loomi-data-card">正在读取链接…</div>';
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/crawler-links`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const location = document.getElementById('crawler-link-location');
+                location.hidden = false;
+                location.textContent = `Firestore: projects/${data.project_id || 'your-project'}/databases/(default)/documents/${data.collection}`;
+                list.innerHTML = (data.links || []).length
+                    ? data.links.map(link => `<div class="loomi-data-card"><small>${escapeHtml(link.status || 'pending')} · ${escapeHtml(link.id || '')}</small><div>${escapeHtml(link.url || '')}</div></div>`).join('')
+                    : '<div class="loomi-data-card">还没有链接。粘贴并上传后会显示在这里。</div>';
+            } catch (error) {
+                list.innerHTML = `<div class="loomi-data-card">读取失败：${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function saveCrawlerLinks() {
+            const input = document.getElementById('crawler-link-input');
+            const links = input.value.trim().split(/\s+/).filter(Boolean);
+            if (!links.length) return showToast('请先粘贴链接', 'warning');
+            const button = document.getElementById('btn-save-crawler-links');
+            button.disabled = true;
+            try {
+                const response = await authFetch(`${CONFIG.BACKEND_URL}/api/crawler-links`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ links })
+                });
+                if (!response.ok) throw new Error((await response.json()).detail || `HTTP ${response.status}`);
+                const data = await response.json();
+                input.value = '';
+                showToast(`已上传 ${data.saved.length} 条链接到 Firestore`, 'success');
+                await loadCrawlerLinks();
+            } catch (error) {
+                showToast(`上传失败：${error.message}`, 'error');
+            } finally {
+                button.disabled = false;
+            }
         }
 
         let inboxFilter = 'open';
@@ -4631,11 +4624,10 @@
         }
 
         async function submitVoiceText(text) {
-            const folderSelect = document.getElementById('voice-folder-select');
             const formData = new FormData();
             formData.append('text', text);
-            formData.append('mode', voiceMode);
-            formData.append('folder_id', folderSelect?.value || 'LifeVoice');
+            formData.append('mode', 'journal');
+            formData.append('folder_id', 'LifeVoice');
             formData.append('source', pendingInputSource);
 
             setSendingButton('btn-parse-text', true);
@@ -4651,29 +4643,15 @@
                 }
                 const data = await response.json();
                 showLoading(false);
-                if (data.mode === 'schedule') {
-                    renderRecommendationPreview({
-                        ...(data.parsed_task || data),
-                        original_text: data.transcript || data.parsed_task?.original_text || text
-                    });
-                    const result = persistLastParsedSchedule({
-                        sourceRecordId: data.record?.id || null,
-                        closeSheets: true,
-                        showFeedback: false
-                    });
-                    await renderVoiceInbox();
-                    showToast(result.saved
-                        ? (appLanguage === 'en' ? `Added to ${result.targetDate}` : `已自动加入 ${result.targetDate} 的日程`)
-                        : (appLanguage === 'en' ? 'Already on the schedule.' : '已经在日程中。'), 'success');
-                    return;
-                }
                 showVoiceSaveResult(data);
                 await renderVoiceInbox();
-                showToast(data.mode === 'ask' ? 'Memory answer ready' : `${data.mode} saved`, 'success');
+                showToast('日记已保存', 'success');
+                return true;
             } catch (e) {
                 showLoading(false);
                 console.error('[Voice] Submit text failed:', e);
                 showToast('Voice submit failed. Check backend settings.', 'error');
+                return false;
             } finally {
                 setSendingButton('btn-parse-text', false);
             }
@@ -4999,7 +4977,7 @@
         }
 
         // Bottom Sheet 打开和关闭
-        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-todo-detail', 'sheet-notebook-detail', 'sheet-settings'];
+        const bottomSheets = ['sheet-input', 'sheet-record-category', 'sheet-record-edit', 'sheet-settings'];
         
         async function checkBackendConnection() {
             const indicator = document.getElementById('setting-conn-indicator');
@@ -5856,11 +5834,7 @@
             const orbIcon = document.getElementById('loomi-orb-icon');
             const statusEl = document.getElementById('loomi-status');
             const resultCard = document.getElementById('loomi-result-card');
-            const modeRow = document.getElementById('loomi-mode-row');
-
-            // 从 mode chip 读取当前选择的模式
-            const activeChip = document.querySelector('#loomi-mode-row .loomi-mode-chip.active');
-            const selectedMode = activeChip?.getAttribute('data-mode') || 'journal';
+            const selectedMode = 'journal';
             setVoiceMode(selectedMode);
 
             if (!isRecording) {
@@ -5894,20 +5868,23 @@
                         orbIcon.className = 'fa-solid fa-spinner fa-spin';
                         statusEl.innerText = langText('sending');
                         statusEl.className = 'loomi-status-text processing';
-                        modeRow.style.opacity = '0.3';
-                        modeRow.style.pointerEvents = 'none';
 
                         // Slide up the bottom editing sheet and load draft transcription!
                         openVoiceCapture(selectedMode);
+                        const draftInput = document.getElementById('textarea-input');
+                        const saveDraftButton = document.getElementById('btn-parse-text');
+                        draftInput.disabled = true;
+                        saveDraftButton.disabled = true;
                         const uploadSucceeded = await uploadAndParseAudio(audioBlob);
+                        draftInput.disabled = false;
+                        saveDraftButton.disabled = false;
+                        if (uploadSucceeded) draftInput.focus();
                         orbBtn.disabled = false;
                         orbIcon.className = 'fa-solid fa-microphone';
                         statusEl.innerText = uploadSucceeded
                             ? (appLanguage === 'en' ? 'Done! Tap to record again' : '完成！点击重新录音')
                             : (appLanguage === 'en' ? 'Failed. Tap to try again' : '处理失败，请重试');
                         statusEl.className = 'loomi-status-text';
-                        modeRow.style.opacity = '1';
-                        modeRow.style.pointerEvents = 'auto';
                     };
 
                     mediaRecorder.start();
@@ -5919,8 +5896,6 @@
                     orbIcon.className = 'fa-solid fa-stop';
                     statusEl.innerText = '正在录音... 再次点击停止';
                     statusEl.className = 'loomi-status-text recording';
-                    modeRow.style.opacity = '0.3';
-                    modeRow.style.pointerEvents = 'none';
 
                 } catch (e) {
                     console.error('[Loomi] Mic request failed:', e);
@@ -5937,8 +5912,6 @@
                 isRecording = false;
                 orbBtn.classList.remove('active-recording');
                 orbIcon.className = 'fa-solid fa-microphone';
-                modeRow.style.opacity = '1';
-                modeRow.style.pointerEvents = 'auto';
                 stopLoomiVisualizer();
             }
         }
@@ -6075,10 +6048,8 @@
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
-            formData.append('mode', voiceMode);
-            if (['journal', 'wiki', 'ask'].includes(voiceMode)) {
-                formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-            }
+            formData.append('mode', 'journal');
+            formData.append('folder_id', 'LifeVoice');
 
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
@@ -6117,10 +6088,8 @@
             const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
             const formData = new FormData();
             formData.append('file', blob, `recording.${ext}`);
-            formData.append('mode', voiceMode);
-            if (['journal', 'wiki', 'ask'].includes(voiceMode)) {
-                formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
-            }
+            formData.append('mode', 'journal');
+            formData.append('folder_id', 'LifeVoice');
 
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/draft`, {
@@ -6141,16 +6110,7 @@
                     document.getElementById('textarea-input').value = data.transcript;
                 }
 
-                if (data.mode === 'schedule' && data.parsed_task) {
-                    renderRecommendationPreview({ ...data.parsed_task, source: 'voice' });
-                }
-                
-                // Pre-select the predicted mode/category
-                if (data.mode) {
-                    setVoiceMode(data.mode);
-                }
-
-                showToast('🎙️ 录音识别成功！请微调文字或分类后点击【确认提交】', 'success');
+                showToast('🎙️ 转录完成，请修改文字后保存', 'success');
                 return true;
 
             } catch (e) {
@@ -6504,17 +6464,10 @@
 
         // ==================== 初始化与事件绑定器 ====================
         function initApp() {
-            loadVoiceFolders().then(renderVoiceInbox);
-            loadInbox();
+            loadVoiceFolders();
             setActiveAppMode(currentTab);
             setVoiceMode(voiceMode);
             applyLanguage(appLanguage);
-            
-            // 首屏初始化渲染
-            document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
-            renderWeekStrip();
-            renderMonthPicker();
-            renderTimeline();
 
             // Tab 导航按钮绑定
             document.querySelectorAll('.nav-item').forEach(btn => {
@@ -6533,7 +6486,8 @@
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
-                    else if (targetTab === 'notebook') loadNotebookNotes();
+                    else if (targetTab === 'reports') loadInvestmentReports();
+                    else if (targetTab === 'links') loadCrawlerLinks();
                 });
             });
 
@@ -6639,6 +6593,13 @@
             document.getElementById('btn-new-record')?.addEventListener('click', openNewRecord);
             document.getElementById('btn-save-record-edit')?.addEventListener('click', saveRecordEdit);
             document.getElementById('btn-refresh-inbox')?.addEventListener('click', loadInbox);
+            document.getElementById('btn-refresh-reports')?.addEventListener('click', loadInvestmentReports);
+            document.getElementById('investment-report-list')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-report-download]');
+                if (button) downloadInvestmentDraft(button.getAttribute('data-report-download'));
+            });
+            document.getElementById('btn-refresh-crawler-links')?.addEventListener('click', loadCrawlerLinks);
+            document.getElementById('btn-save-crawler-links')?.addEventListener('click', saveCrawlerLinks);
             document.querySelectorAll('[data-inbox-filter]').forEach(btn => {
                 btn.addEventListener('click', () => setInboxFilter(btn.getAttribute('data-inbox-filter') || 'open'));
             });
@@ -6684,16 +6645,17 @@
             document.getElementById('btn-parse-text').addEventListener('click', async () => {
                 const txt = document.getElementById('textarea-input').value.trim();
                 if (!txt) {
-                    showToast('💡 请先打字说点什么，比如：“下午写代码两小时”');
+                    showToast('请先录音或输入文字');
                     return;
                 }
-                await submitVoiceText(txt);
+                if (await submitVoiceText(txt)) {
+                    document.getElementById('textarea-input').value = '';
+                    closeAllSheets();
+                }
             });
 
             // 语音录音按钮
-            document.getElementById('btn-voice-record').addEventListener('click', () => {
-                toggleVoiceRecording();
-            });
+            document.getElementById('btn-voice-record')?.addEventListener('click', toggleVoiceRecording);
 
             // 丢弃草稿按钮
             document.getElementById('btn-drop-draft')?.addEventListener('click', () => {
@@ -6705,7 +6667,7 @@
             });
 
             // 确认编入日程
-            document.getElementById('btn-confirm-place').addEventListener('click', () => {
+            document.getElementById('btn-confirm-place')?.addEventListener('click', () => {
                 persistLastParsedSchedule();
             });
 
@@ -6746,26 +6708,6 @@
 
             document.querySelectorAll('[data-lang]').forEach(btn => {
                 btn.addEventListener('click', () => applyLanguage(btn.getAttribute('data-lang') || 'zh'));
-            });
-
-            document.getElementById('btn-reset-demo').addEventListener('click', () => {
-                if (confirm('⚠️ 确定要重置今日日程吗？\n此操作将清除今日日程数据，且不可撤销！')) {
-                    // 清除所有 chrono_tasks_ 开头的项
-                    Object.keys(localStorage).forEach(k => {
-                        if (k.startsWith('chrono_tasks_')) {
-                            localStorage.removeItem(k);
-                        }
-                    });
-
-                    showToast('🔄 今日日程已重置', 'success');
-                    closeAllSheets();
-                    
-                    // 刷新视图
-                    selectedDate = getTodayString();
-                    document.getElementById('date-title-label').innerText = formatDateLabel(selectedDate);
-                    renderWeekStrip();
-                    if (currentTab === 'timeline') renderTimeline();
-                }
             });
 
             // 保存设置
