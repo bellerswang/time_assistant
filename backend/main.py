@@ -3292,10 +3292,13 @@ async def process_voice_submission(
     mode: str,
     prompt_id: str | None,
     source_kind: str | None = None,
+    category: str | None = None,
 ) -> dict:
     requested_mode = (mode or "auto").strip().lower()
     if requested_mode not in {"auto", "journal", "schedule", "wiki", "ask"}:
         raise HTTPException(status_code=400, detail="mode must be one of: auto, journal, schedule, wiki, ask.")
+    if category is not None and category not in CATEGORY_LABELS:
+        raise HTTPException(status_code=400, detail="category is not supported")
 
     folder_id = validate_folder_id(folder_id or "LifeVoice")
     entry_id = f"voice_{uuid.uuid4().hex}"
@@ -3335,6 +3338,9 @@ async def process_voice_submission(
         answer = await answer_with_deepseek(transcript, sources)
 
     record_draft = await create_record_draft(transcript, resolved_mode, source, route, parsed_task)
+    if category and resolved_mode == "journal":
+        record_draft["category"] = category
+        record_draft["category_label"] = CATEGORY_LABELS[category]
     record = build_record_from_draft(record_draft, transcript, source, now, resolved_mode)
     if resolved_mode != "ask":
         primary_result = append_record_to_google_doc(record, folder_id)
@@ -3433,8 +3439,9 @@ async def submit_voice_entry(
     mode: str = Form(default="auto"),
     prompt_id: str | None = Form(default=None),
     source: str | None = Form(default=None),
+    category: str | None = Form(default=None),
 ):
-    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source)
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source, category)
 
 
 @app.post("/api/voice/transcribe")
@@ -3445,8 +3452,9 @@ async def transcribe_voice_entry(
     mode: str = Form(default="journal"),
     prompt_id: str | None = Form(default=None),
     source: str | None = Form(default=None),
+    category: str | None = Form(default=None),
 ):
-    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source)
+    return await process_voice_submission(file, text, folder_id, mode, prompt_id, source, category)
 
 
 @app.post("/api/voice/draft")

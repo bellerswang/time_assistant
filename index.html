@@ -2374,6 +2374,9 @@
         .cyber-capture-module .loomi-selector-btn { min-height: 32px; padding: 6px 10px; border-radius: 1px; font-size: 11px; }
         .cyber-capture-module .loomi-selector-slider { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 1px; box-shadow: 2px 2px 0 rgba(247,53,160,.36); }
         .cyber-capture-module .loomi-selector-btn.active { color: #07121c; }
+        .loomi-category-control { display: flex; width: 100%; justify-content: flex-end; margin: 2px 0 8px; }
+        .loomi-category-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid rgba(0,229,255,.45); border-radius: 2px; background: rgba(0,229,255,.07); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; }
+        .loomi-category-button:active { background: rgba(0,229,255,.16); }
         .cyber-capture-module .loomi-voice-area { gap: 7px !important; }
         .record-orb-button { width: 92px; height: 92px; margin: 3px 0 0; border: 1px solid rgba(0,229,255,.82); border-radius: 4px; font-size: 30px; clip-path: polygon(0 0, 84% 0, 100% 16%, 100% 100%, 16% 100%, 0 84%); }
         .record-orb-button::after { inset: 4px; border-radius: 2px; filter: blur(10px); }
@@ -2545,6 +2548,12 @@
                                 <i class="fa-solid fa-keyboard"></i> 文字
                             </button>
                             <div class="loomi-selector-slider"></div>
+                        </div>
+
+                        <div class="loomi-category-control">
+                            <button class="loomi-category-button" id="loomi-category-button" type="button">
+                                <i class="fa-solid fa-tags"></i><span id="loomi-category-label">分类：个人反思</span><i class="fa-solid fa-chevron-down"></i>
+                            </button>
                         </div>
 
                         <div class="loomi-voice-area" id="loomi-voice-area" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
@@ -2770,16 +2779,16 @@
         <div class="bottom-sheet" id="sheet-record-category">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <span class="sheet-title"><i class="fa-solid fa-tags"></i> Change category</span>
+                <span class="sheet-title"><i class="fa-solid fa-tags"></i> 选择记录分类</span>
                 <button class="sheet-close-btn">&times;</button>
             </div>
             <input type="hidden" id="record-category-target-id">
             <div class="category-sheet-list">
-                <button class="category-choice-btn" data-category="work_idea">Work Idea <span>Ideas, projects, code</span></button>
-                <button class="category-choice-btn" data-category="family_plan">Family Plan <span>Plans, reminders, calendar candidates</span></button>
-                <button class="category-choice-btn" data-category="life_knowledge">Life Knowledge <span>Reusable facts and wiki notes</span></button>
-                <button class="category-choice-btn" data-category="self_reflection">Self Reflection <span>Journal and personal notes</span></button>
-                <button class="category-choice-btn" data-category="inbox">Inbox <span>Review later</span></button>
+                <button class="category-choice-btn" data-category="work_idea">工作想法 <span>灵感、项目、代码</span></button>
+                <button class="category-choice-btn" data-category="family_plan">家庭计划 <span>计划、提醒、待安排事项</span></button>
+                <button class="category-choice-btn" data-category="life_knowledge">生活知识 <span>可复用的信息</span></button>
+                <button class="category-choice-btn" data-category="self_reflection">个人反思 <span>日记与个人记录</span></button>
+                <button class="category-choice-btn" data-category="inbox">稍后整理 <span>留待以后归类</span></button>
             </div>
         </div>
 
@@ -3750,6 +3759,28 @@
         let currentTab = 'voice';
         let voiceMode = 'journal';
         let voiceFolders = [];
+        let selectedVoiceCategory = 'self_reflection';
+
+        const voiceCategoryLabels = {
+            work_idea: '工作想法',
+            family_plan: '家庭计划',
+            life_knowledge: '生活知识',
+            self_reflection: '个人反思',
+            inbox: '稍后整理'
+        };
+        const savedVoiceCategory = localStorage.getItem('loomi.voiceCategory');
+        if (savedVoiceCategory && voiceCategoryLabels[savedVoiceCategory]) selectedVoiceCategory = savedVoiceCategory;
+
+        function updateVoiceCategoryButton() {
+            const label = document.getElementById('loomi-category-label');
+            if (label) label.textContent = '分类：' + (voiceCategoryLabels[selectedVoiceCategory] || voiceCategoryLabels.self_reflection);
+        }
+
+        function openVoiceCategoryPicker() {
+            const target = document.getElementById('record-category-target-id');
+            if (target) target.value = 'new-voice-entry';
+            openSheet('sheet-record-category');
+        }
 
         // ==================== 时间日期工具函数 ====================
         function getTodayString() {
@@ -4600,6 +4631,7 @@
             formData.append('text', text);
             formData.append('mode', 'journal');
             formData.append('folder_id', folderSelect?.value || 'LifeVoice');
+            formData.append('category', selectedVoiceCategory);
 
             showLoading(true, 'Saving voice note...');
             try {
@@ -4628,6 +4660,7 @@
             formData.append('text', text);
             formData.append('mode', 'journal');
             formData.append('folder_id', 'LifeVoice');
+            formData.append('category', selectedVoiceCategory);
             formData.append('source', pendingInputSource);
 
             setSendingButton('btn-parse-text', true);
@@ -5979,6 +6012,7 @@
             formData.append('text', text);
             formData.append('mode', voiceMode);
             formData.append('folder_id', document.getElementById('voice-folder-select')?.value || 'LifeVoice');
+            formData.append('category', selectedVoiceCategory);
             formData.append('source', 'text');
 
             statusEl.innerText = langText('sending');
@@ -6050,6 +6084,7 @@
             formData.append('file', blob, `recording.${ext}`);
             formData.append('mode', 'journal');
             formData.append('folder_id', 'LifeVoice');
+            formData.append('category', selectedVoiceCategory);
 
             try {
                 const response = await authFetch(`${CONFIG.BACKEND_URL}/api/voice/submit`, {
@@ -6582,9 +6617,18 @@
                 btn.addEventListener('click', () => {
                     const recordId = document.getElementById('record-category-target-id')?.value;
                     if (!recordId) return;
+                    if (recordId === 'new-voice-entry') {
+                        selectedVoiceCategory = btn.getAttribute('data-category') || 'self_reflection';
+                        localStorage.setItem('loomi.voiceCategory', selectedVoiceCategory);
+                        updateVoiceCategoryButton();
+                        closeAllSheets();
+                        return;
+                    }
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
+            document.getElementById('loomi-category-button')?.addEventListener('click', openVoiceCategoryPicker);
+            updateVoiceCategoryButton();
             setVoiceMode('journal');
             document.getElementById('btn-search-records')?.addEventListener('click', renderVoiceInbox);
             document.getElementById('records-search-input')?.addEventListener('keydown', (e) => {
