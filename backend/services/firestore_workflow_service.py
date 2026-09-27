@@ -6,6 +6,8 @@ from typing import Any
 
 from google.cloud import firestore
 
+from services.email_links import normalize_email_source_url
+
 
 class FirestoreWorkflowService:
     """Persistent email workflow storage shared by Cloud Run and every client."""
@@ -44,6 +46,7 @@ class FirestoreWorkflowService:
         now = datetime.now(timezone.utc)
         status_counts: Counter[str] = Counter()
         for item in items:
+            item = normalize_email_source_url(item)
             item_id = str(item["id"])
             doc_ref = self.items.document(item_id)
             previous = await doc_ref.get()
@@ -129,4 +132,5 @@ class FirestoreWorkflowService:
         return {key: self._serialize(value) for key, value in data.items()}
 
     def _public_item(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {key: self._serialize(value) for key, value in data.items()}
+        item = normalize_email_source_url(data)
+        return {key: self._serialize(value) for key, value in item.items()}

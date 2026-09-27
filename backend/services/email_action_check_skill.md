@@ -54,7 +54,7 @@ Use the second request body:
 }
 ```
 
-Do not send full email bodies to Firestore. Each resulting Loomi item must include `mailbox`, `title`, `search_clues`, `event_summary`, `action_required`, `status`, `source_url`, and `source_message_id`. Store only minimal source metadata in `raw_messages`.
+Do not send full email bodies to Firestore. Each resulting Loomi item must include `mailbox`, `title`, `search_clues`, `event_summary`, `action_required`, `status`, `source_url`, and `source_message_id`. For Gmail, also include the Gmail API `threadId` as `source_thread_id`; make `source_url` a direct Gmail conversation link in the form `https://mail.google.com/mail/u/0/#all/{threadId}` rather than a generic Inbox URL. Preserve Outlook's provider-supplied message link. Store only minimal source metadata in `raw_messages`.
 
 ## Output And Safety
 

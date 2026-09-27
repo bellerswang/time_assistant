@@ -5,6 +5,8 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+from services.email_links import normalize_email_source_url
+
 
 NOISE = re.compile(r"newsletter|unsubscribe|promotion|promotional|sale|offer|marketing|otp|one[- ]time|verification code|验证码|广告|订阅", re.I)
 
@@ -101,5 +103,18 @@ def build_workflow_items(inbox_messages: list[dict[str, Any]], sent_messages: li
         summary = snippet[:240] or f"来自 {sender or '发件人'} 的邮件"
         action = _text(latest_inbound.get("action_required")) or ("等待对方处理/回复" if status == "waiting" else "阅读邮件并完成邮件中要求的下一步")
         clues = f"主题: {title}; 发件人: {sender or '未知'}; 邮件ID: {source_id}"
-        items.append({"id": _stable_id("merged", thread_key), "mailbox": mailbox_key, "title": title, "search_clues": clues, "event_summary": summary, "action_required": action, "status": status, "source_url": _text(latest_inbound.get("source_url") or latest_inbound.get("web_url") or latest_inbound.get("web_link") or latest_inbound.get("display_url") or latest_inbound.get("url")), "source_message_id": source_id})
+        source_thread_id = _text(latest_inbound.get("thread_id") or latest_inbound.get("threadId"))
+        item = {
+            "id": _stable_id("merged", thread_key),
+            "mailbox": mailbox_key,
+            "title": title,
+            "search_clues": clues,
+            "event_summary": summary,
+            "action_required": action,
+            "status": status,
+            "source_url": _text(latest_inbound.get("source_url") or latest_inbound.get("web_url") or latest_inbound.get("web_link") or latest_inbound.get("display_url") or latest_inbound.get("url")),
+            "source_message_id": source_id,
+            "source_thread_id": source_thread_id or None,
+        }
+        items.append(normalize_email_source_url(item))
     return items, raw
