@@ -1065,7 +1065,7 @@
             right: 20px;
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary) 0%, #bd93f9 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, #ffb800 100%);
             border-radius: var(--radius-full);
             display: flex;
             align-items: center;
@@ -1413,15 +1413,15 @@
         }
         @keyframes planetary-pulse {
             0% {
-                box-shadow: 0 0 20px rgba(0, 245, 255, 0.2), 0 0 0 0px rgba(0, 245, 255, 0.2), 0 0 0 0px rgba(189, 147, 249, 0.2);
+                box-shadow: 0 0 20px rgba(252, 238, 10, 0.2), 0 0 0 0px rgba(0, 229, 255, 0.2), 0 0 0 0px rgba(252, 238, 10, 0.12);
                 transform: scale(1);
             }
             50% {
-                box-shadow: 0 0 40px rgba(0, 245, 255, 0.55), 0 0 0 10px rgba(0, 245, 255, 0.1), 0 0 0 20px rgba(189, 147, 249, 0.1);
+                box-shadow: 0 0 40px rgba(252, 238, 10, 0.42), 0 0 0 10px rgba(0, 229, 255, 0.13), 0 0 0 20px rgba(252, 238, 10, 0.08);
                 transform: scale(1.03);
             }
             100% {
-                box-shadow: 0 0 20px rgba(0, 245, 255, 0.2), 0 0 0 20px rgba(0, 245, 255, 0), 0 0 0 30px rgba(189, 147, 249, 0);
+                box-shadow: 0 0 20px rgba(252, 238, 10, 0.2), 0 0 0 20px rgba(0, 229, 255, 0), 0 0 0 30px rgba(252, 238, 10, 0);
                 transform: scale(1);
             }
         }
@@ -2151,6 +2151,189 @@
             height: 100%;
             z-index: 0;
             pointer-events: none;
+        }
+
+        /* Loomi cyberpunk HUD skin: CSS-only texture keeps the launch lightweight. */
+        :root {
+            --bg: #080a0f;
+            --surface: rgba(13, 17, 23, 0.94);
+            --surface-2: rgba(19, 24, 32, 0.96);
+            --surface-3: rgba(29, 37, 46, 0.98);
+            --border: rgba(252, 238, 10, 0.28);
+            --divider: rgba(0, 229, 255, 0.16);
+            --text: #f5f6f2;
+            --text-muted: #a4adb2;
+            --text-faint: #69757c;
+            --primary: #fcee0a;
+            --primary-dim: rgba(252, 238, 10, 0.13);
+            --accent: #00e5ff;
+            --accent-dim: rgba(0, 229, 255, 0.13);
+            --success: #65ff7a;
+            --warning: #ff9d00;
+            --error: #ff3864;
+            --radius-sm: 3px;
+            --radius-md: 5px;
+            --radius-lg: 7px;
+            --radius-xl: 10px;
+        }
+
+        body {
+            background-color: #07090d;
+            background-image:
+                radial-gradient(ellipse at 14% 15%, rgba(0, 229, 255, 0.10), transparent 38%),
+                radial-gradient(ellipse at 88% 82%, rgba(252, 238, 10, 0.07), transparent 34%),
+                linear-gradient(145deg, #0c1015, #050609 72%);
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.16;
+            background-image:
+                repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 229, 255, 0.11) 4px),
+                linear-gradient(rgba(0, 229, 255, 0.12) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.12) 1px, transparent 1px);
+            background-size: 100% 4px, 34px 34px, 34px 34px;
+            mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+        }
+
+        .app-container {
+            z-index: 1;
+            background:
+                linear-gradient(145deg, rgba(0, 229, 255, 0.035), transparent 42%),
+                repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 229, 255, 0.018) 4px),
+                linear-gradient(180deg, rgba(15, 19, 24, 0.98), rgba(7, 9, 13, 0.99));
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 229, 255, 0.07);
+        }
+
+        @media (min-width: 576px) {
+            .app-container {
+                border: 1px solid rgba(0, 229, 255, 0.32);
+                border-radius: 18px;
+                box-shadow: 0 25px 80px rgba(0, 0, 0, 0.78), 0 0 26px rgba(0, 229, 255, 0.12);
+            }
+        }
+
+        #starfield-canvas { opacity: 0.12; }
+
+        .top-bar, .bottom-nav {
+            background: rgba(9, 12, 16, 0.97);
+            border-color: rgba(252, 238, 10, 0.32);
+            backdrop-filter: blur(14px);
+        }
+        .top-bar { box-shadow: 0 1px 0 rgba(0, 229, 255, 0.12); }
+        .top-logo { letter-spacing: 0.12em; text-transform: uppercase; }
+        .top-logo span::after {
+            content: ' // FIELD NOTES';
+            color: var(--text-faint);
+            font-size: 8px;
+            letter-spacing: 0.12em;
+            vertical-align: 2px;
+        }
+        .date-title-btn, .month-picker, .bottom-sheet {
+            background-color: rgba(12, 16, 21, 0.98);
+            border-color: rgba(0, 229, 255, 0.3);
+            border-radius: var(--radius-md);
+        }
+        .day-cell { border-radius: 5px; }
+        .day-cell.selected {
+            background: linear-gradient(135deg, #fcee0a, #ffb800);
+            box-shadow: 0 0 16px rgba(252, 238, 10, 0.22);
+        }
+        .day-cell.selected .day-name, .day-cell.selected .day-num { color: #101217; }
+
+        .today-agenda-section, .inbox-metric, .inbox-card, .notebook-card,
+        .record-hero, .loomi-result-card, .quick-record-composer,
+        .analytics-card, .analytics-panel, .sleep-card, .record-card {
+            background-color: rgba(13, 17, 23, 0.94);
+            border-color: rgba(0, 229, 255, 0.22);
+            border-radius: 6px;
+            box-shadow: inset 3px 0 0 rgba(0, 229, 255, 0.42), 0 8px 26px rgba(0, 0, 0, 0.2);
+        }
+        .today-agenda-section, .record-hero {
+            background-image: linear-gradient(135deg, rgba(0, 229, 255, 0.06), transparent 56%);
+        }
+        .today-section-kicker, .record-hero-kicker {
+            color: var(--primary);
+            letter-spacing: 0.16em;
+        }
+        .today-section-count, .inbox-metric-value { color: var(--primary); }
+        .today-agenda-item, .inbox-card, .notebook-card, .record-list-item {
+            border-radius: 5px;
+            border-color: rgba(0, 229, 255, 0.19);
+            background: linear-gradient(115deg, rgba(17, 22, 29, 0.96), rgba(10, 13, 18, 0.96));
+        }
+        .today-agenda-item:hover, .notebook-card:hover, .inbox-card:hover {
+            border-color: rgba(252, 238, 10, 0.64);
+            box-shadow: 0 0 18px rgba(252, 238, 10, 0.08);
+        }
+        .action-pill, .btn-sheet-secondary, .inbox-filter-chip, .notebook-filter-chip,
+        .loomi-mode-chip, .loomi-selector-btn {
+            border-radius: 4px;
+            border-color: rgba(0, 229, 255, 0.32);
+            letter-spacing: 0.025em;
+        }
+        .action-pill.primary, .btn-sheet-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #111318;
+            box-shadow: 3px 3px 0 rgba(0, 229, 255, 0.48);
+        }
+        .action-pill.primary:hover, .btn-sheet-primary:hover { filter: brightness(1.08); }
+        .nav-item.active { color: var(--primary); text-shadow: 0 0 12px rgba(252, 238, 10, 0.35); }
+        .nav-item.active svg { filter: drop-shadow(0 0 5px rgba(252, 238, 10, 0.55)); }
+        .loomi-mode-chip.active, .inbox-filter-chip.active, .notebook-filter-chip.active {
+            color: #111318;
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 3px 3px 0 rgba(0, 229, 255, 0.38);
+        }
+        .loomi-mode-selector {
+            border-color: rgba(0, 229, 255, 0.42);
+            border-radius: 5px;
+            background: rgba(7, 10, 14, 0.92);
+        }
+        .loomi-selector-slider {
+            background: var(--primary);
+            border: 0;
+            border-radius: 3px;
+            box-shadow: 3px 3px 0 rgba(0, 229, 255, 0.45);
+        }
+        .loomi-selector-btn.active { color: #111318; text-shadow: none; }
+        .record-hero-title { color: var(--primary); text-shadow: 0 0 22px rgba(252, 238, 10, 0.2); }
+        .record-orb-button {
+            color: #0a0d11;
+            background: radial-gradient(circle at 35% 25%, #fffaa0, transparent 24%), linear-gradient(145deg, #fcee0a, #ffb800 70%);
+            box-shadow: 0 0 28px rgba(252, 238, 10, 0.32), 0 0 0 8px rgba(0, 229, 255, 0.06);
+        }
+        .record-orb-button::after { background: linear-gradient(135deg, var(--primary), var(--accent)); opacity: 0.24; }
+        .recording-wave-core { color: #080a0f; background: linear-gradient(145deg, var(--primary), #ffb800); }
+        .recording-wave-core::before, .recording-wave-core::after { border-color: rgba(252, 238, 10, 0.68); }
+        .form-input, .semantic-textarea, .notebook-preview, .quick-record-composer {
+            background-color: #090c10;
+            border-color: rgba(0, 229, 255, 0.25);
+            border-radius: 5px;
+            color: var(--text);
+        }
+        .form-input:focus, .semantic-textarea:focus, .quick-record-composer:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(252, 238, 10, 0.12);
+        }
+        .bottom-sheet { border-top: 2px solid var(--primary); }
+        .sheet-title { color: var(--primary); letter-spacing: 0.025em; }
+        .auth-gate-card {
+            border-radius: 6px;
+            border-color: rgba(252, 238, 10, 0.52);
+            background: rgba(10, 13, 18, 0.98);
+            box-shadow: 6px 6px 0 rgba(0, 229, 255, 0.18), 0 24px 80px rgba(0, 0, 0, 0.65);
+        }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
         }
     </style>
 </head>
@@ -3562,7 +3745,7 @@
         // 当前应用状态量
         let selectedDate = getTodayString(); // 格式 YYYY-MM-DD
         let currentTab = 'timeline';
-        let voiceMode = 'schedule';
+        let voiceMode = 'journal';
         let voiceFolders = [];
 
         // ==================== 时间日期工具函数 ====================
@@ -3912,7 +4095,7 @@
             document.getElementById('preview-result-card')?.classList.remove('active');
         }
 
-        function openVoiceCapture(mode = 'schedule') {
+        function openVoiceCapture(mode = 'journal') {
             document.getElementById('textarea-input').value = '';
             document.getElementById('preview-result-card')?.classList.remove('active');
             document.getElementById('voice-save-result')?.classList.remove('active');
@@ -5512,8 +5695,8 @@
                         
                         // Galaxy Gradient
                         const grad = canvasCtx.createLinearGradient(x, y, x, y + barHeight);
-                        grad.addColorStop(0, '#00f5ff'); // neon cyan
-                        grad.addColorStop(1, '#bd93f9'); // nebula purple
+                        grad.addColorStop(0, '#00e5ff'); // neon cyan
+                        grad.addColorStop(1, '#fcee0a'); // cyber yellow
                         
                         canvasCtx.fillStyle = grad;
                         canvasCtx.shadowBlur = 6;
@@ -6107,8 +6290,8 @@
                     this.vy = (Math.random() - 0.5) * 1.5 - 0.4; // 尘埃略微向上漂浮
                     this.life = 1.0; // 存活度 [1.0 -> 0.0]
                     this.decay = 0.012 + Math.random() * 0.015; // 随机衰变速率
-                    // 随机使用极光青（--primary）或星云紫（--accent）配色
-                    this.color = Math.random() > 0.55 ? '#00f5ff' : '#bd93f9';
+                    // Random cyber yellow or electric cyan accents.
+                    this.color = Math.random() > 0.55 ? '#fcee0a' : '#00e5ff';
                 }
                 
                 update() {
@@ -6230,6 +6413,7 @@
 
                     currentTab = targetTab;
                     setActiveAppMode(targetTab);
+                    if (targetTab === 'voice') setVoiceMode('journal');
                     if (targetTab === 'timeline') renderTimeline();
                     else if (targetTab === 'inbox') loadInbox();
                     else if (targetTab === 'records') renderVoiceInbox();
@@ -6331,7 +6515,7 @@
                     submitRecordCategory(recordId, btn.getAttribute('data-category') || 'inbox');
                 });
             });
-            setVoiceMode('schedule');
+            setVoiceMode('journal');
             document.getElementById('btn-search-records')?.addEventListener('click', renderVoiceInbox);
             document.getElementById('records-search-input')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') renderVoiceInbox();
